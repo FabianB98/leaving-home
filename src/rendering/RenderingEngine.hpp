@@ -17,22 +17,25 @@ namespace rendering
 {	
 	class RenderingEngine
 	{
+	public:
+		RenderingEngine(AbstractGame& _game, const char* _title, int _width, int _height)
+			: game(&_game), width(_width), height(_height), title(_title) {};
+
+		int start();
+
+		void _updateSize(int _width, int _height);
+
 	private:
-		GLFWwindow* window;
+		GLFWwindow* window{ NULL };
 		AbstractGame* game;
 
 		int width;
 		int height;
 
-		void init();
+		const char* title;
+
+		int init();
 
 		void cleanUp();
-
-		void frameBufferSizeCallback(GLFWwindow* window, int _width, int _height);
-
-	public:
-		RenderingEngine(AbstractGame& _game, int _width, int _height) : game(&_game), width(_width) {};
-
-		void start();
 	};
 }

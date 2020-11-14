@@ -1,3 +1,6 @@
 #pragma once
 
-#include <iostream>
+#include <string>
+
+#include "rendering/RenderingEngine.hpp"
+#include "game/Game.hpp"

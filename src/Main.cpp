@@ -1,9 +1,12 @@
 #include "Main.hpp"
 
-using namespace std;
-
 int main()
 {
-    cout << "Hello CMake." << endl;
-    return 0;
+    game::Game* game = new game::Game();
+
+    rendering::RenderingEngine* renderingEngine = new rendering::RenderingEngine(*game, "Leaving Home", 1080, 720);
+    renderingEngine->start();
+
+    delete game;
+    delete renderingEngine;
 }

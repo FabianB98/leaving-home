@@ -1,23 +1,23 @@
 #pragma once
 
-namespace rendering 
+namespace rendering
 {
 	class AbstractGame
 	{
 	private:
 
 	public:
-		AbstractGame();
-		~AbstractGame();
+		AbstractGame() {};
+		~AbstractGame() {};
 
-		void init();
+		virtual void init() = 0;
 
-		void input(double deltaTime);
+		virtual void input(double deltaTime) = 0;
 
-		void update(double deltaTime);
+		virtual void update(double deltaTime) = 0;
 
-		void render();
+		virtual void render() = 0;
 
-		void cleanUp();
-	}
+		virtual void cleanUp() = 0;
+	};
 }
