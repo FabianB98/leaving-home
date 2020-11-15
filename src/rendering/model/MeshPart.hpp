@@ -1,8 +1,13 @@
 #pragma once
 
-#include <GL/glew.h>
-#include <glm/glm.hpp>
+// Standard headers
+#include <stdlib.h>
+#include <vector>
 
+// OpenGL related headers
+#include <GL/glew.h>
+
+// Our headers
 #include "Material.hpp"
 
 namespace rendering
@@ -19,8 +24,10 @@ namespace rendering
 			void render();
 
 		private:
-			Material material;
+			Material* material;
+
 			GLuint indexBuffer;
+			GLsizei numIndices;
 		};
 	}
 }

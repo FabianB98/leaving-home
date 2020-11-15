@@ -92,6 +92,9 @@ StyleCopReport.xml
 *.svclog
 *.scc
 
+# Re-include mesh files which would be excluded by the block above.
+!res/models/*.obj
+
 # Chutzpah Test files
 _Chutzpah*
 

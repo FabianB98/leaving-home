@@ -1,10 +1,14 @@
 #include "Game.hpp"
 
+#include "../rendering/model/Mesh.hpp"
+
 namespace game
 {
+	rendering::model::Mesh* mesh;
+
 	void Game::init()
 	{
-
+		mesh = new rendering::model::Mesh("cube");
 	}
 
 	void Game::input(double deltaTime)
@@ -24,6 +28,6 @@ namespace game
 
 	void Game::cleanUp()
 	{
-
+		delete mesh;
 	}
 }
