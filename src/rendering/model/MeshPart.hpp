@@ -17,7 +17,7 @@ namespace rendering
 		class MeshPart
 		{
 		public:
-			MeshPart(Material& _material, std::vector<unsigned int>& indices);
+			MeshPart(Material* _material, const std::vector<unsigned int>& indices);
 
 			~MeshPart();
 

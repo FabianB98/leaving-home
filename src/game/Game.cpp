@@ -23,7 +23,7 @@ namespace game
 
 	void Game::render()
 	{
-
+		mesh->render();
 	}
 
 	void Game::cleanUp()

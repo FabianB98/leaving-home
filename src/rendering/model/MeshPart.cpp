@@ -4,8 +4,8 @@ namespace rendering
 {
 	namespace model
 	{
-		MeshPart::MeshPart(Material& _material, std::vector<unsigned int>& indices)
-			: material(&_material), numIndices((GLsizei)indices.size())
+		MeshPart::MeshPart(Material* _material, const std::vector<unsigned int>& indices)
+			: material(_material), numIndices((GLsizei)indices.size())
 		{
 			glGenBuffers(1, &indexBuffer);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);

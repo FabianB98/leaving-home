@@ -8,39 +8,13 @@ namespace rendering
 	namespace model
 	{
 		Mesh::Mesh(
-			std::vector<glm::vec3>& vertices,
-			std::vector<glm::vec2>& uvs,
-			std::vector<glm::vec3>& normals,
-			std::vector<MeshPart>& _parts
+			const std::vector<glm::vec3>& vertices,
+			const std::vector<glm::vec2>& uvs,
+			const std::vector<glm::vec3>& normals,
+			const std::vector<MeshPart*>& _parts
 		) : parts(_parts)
 		{
-			// Create a Vertex Array Object (VAO).
-			glGenVertexArrays(1, &vao);
-			glBindVertexArray(vao);
-
-			// Create a Vertex Buffer (VBO), fill it with the meshs's vertices and bind it to vertex attribute 0.
-			glGenBuffers(1, &vertexVbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vertexVbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-			// Create a VBO, fill it with the mesh's UV coordinates and bind it to vertex attribute 1.
-			glGenBuffers(1, &uvVbo);
-			glBindBuffer(GL_ARRAY_BUFFER, uvVbo);
-			glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-			// Create a VBO, fill it with the mesh's normals and bind it to vertex attribute 2.
-			glGenBuffers(1, &normalVbo);
-			glBindBuffer(GL_ARRAY_BUFFER, normalVbo);
-			glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-			// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
-			glBindVertexArray(0);
+			initOpenGlBuffers(vertices, uvs, normals);
 		}
 
 		Mesh::Mesh(std::string assetName)
@@ -73,26 +47,160 @@ namespace rendering
 			if (!success)
 				throw std::runtime_error(errors);
 
-			// TODO: Extract vertices, uvs, normals and parts from the results and call the other constructor with these.
-			for (int shapeIndex = 0; shapeIndex < shapes.size(); ++shapeIndex)
+			// tinyobjloader returns a data structure where the positions, UV coordinates and normals have different 
+			// indices. As OpenGL can only handle index buffers with shared indices (i.e. positions, UV coordinates and
+			// normals must use the same index when calling glDrawElements), we need to create combined indices (and 
+			// therefore duplicate some of the positions, UV coordinates and normals). The following quite ugly piece of
+			// code will perform this task.
+
+			// A map for storing the individual index combinations we found so far.
+			std::map<std::tuple<int, int, int>, unsigned int> combinedIndexMap;
+			unsigned int nextId = 0;
+
+			// The vertex positions, UV coordinates and normals with shared indices. Will be filled in the following
+			// nested loops.
+			std::vector<glm::vec3> vertices;
+			std::vector<glm::vec2> uvs;
+			std::vector<glm::vec3> normals;
+
+			// The indices for each material.
+			std::map<int, std::vector<unsigned int>*> indicesMap;
+
+			// Iterate over all shapes (i.e. all objects stored in the loaded obj file).
+			for (size_t shapeIndex = 0; shapeIndex < shapes.size(); ++shapeIndex)
 			{
 				tinyobj::shape_t& shape = shapes[shapeIndex];
-				std::cout << "Shape " << shapeIndex << ": " << shape.name << std::endl;
 
-				for (int faceIndex = 0; faceIndex < shape.mesh.num_face_vertices.size(); ++faceIndex)
+				// Iterate over all faces of the current shape.
+				for (size_t faceIndex = 0; faceIndex < shape.mesh.num_face_vertices.size(); ++faceIndex)
 				{
-					int faceVertices = shape.mesh.num_face_vertices[faceIndex];
+					// Extract the material ID of the current face and get the indices for that material.
 					int materialId = shape.mesh.material_ids[faceIndex];
-
-					for (int i = 0; i < faceVertices; ++i)
+					auto materialEntry = indicesMap.find(materialId);
+					std::vector<unsigned int>* materialIndices;
+					if (materialEntry != indicesMap.end())
 					{
-						int vertexIndex = 3 * faceIndex + i;
+						// We have already seen a face for this material. Append any following indices to the mesh part
+						// of this material.
+						materialIndices = materialEntry->second;
+					}
+					else
+					{
+						// We have not yet seen a face for this material. Crate a new list of indices for the mesh part
+						// of this material.
+						materialIndices = new std::vector<unsigned int>();
+						indicesMap[materialId] = materialIndices;
+					}
 
-						tinyobj::index_t& index = shape.mesh.indices[vertexIndex];
-						std::cout << vertexIndex << " " << faceIndex << " " << materialId << " " << index.vertex_index << " " << index.texcoord_index << " " << index.normal_index << std::endl;
+					// Iterate over all vertices of the current face. As tinyobjloader has triangulated the mesh for us,
+					// we can safely assume that all faces have exactly three vertices.
+					for (size_t i = 0; i < 3; ++i)
+					{
+						// Extract the vertex index, the UV index and the normal index from the current vertex.
+						tinyobj::index_t& index = shape.mesh.indices[3 * faceIndex + i];
+						int& vertexIndex = index.vertex_index;
+						int& uvIndex = index.texcoord_index;
+						int& normalIndex = index.normal_index;
+
+						// Create an identifier for the combined vertex index and check whether we have already seen
+						// this combined vertex index.
+						std::tuple<int, int, int> combinedIndexId = 
+							std::tuple<int, int, int>(vertexIndex, uvIndex, normalIndex);
+						auto entry = combinedIndexMap.find(combinedIndexId);
+						unsigned int combinedIndex;
+						if (entry != combinedIndexMap.end())
+						{
+							// We have already seen this combination of vertex position index, UV index and normal
+							// index. Reuse the data from the first occurrence of this combination.
+							combinedIndex = entry->second;
+						}
+						else
+						{
+							// We have not yet seen this combination of vertex position index, UV index and normal
+							// index. Create a new index for this combination and mark this combination as seen.
+							combinedIndex = nextId;
+							combinedIndexMap[combinedIndexId] = combinedIndex;
+							nextId++;
+
+							// As this combination was not seen yet and a new index was created, we also need to add
+							// the actual data to the data buffers.
+							vertices.push_back(glm::vec3(
+								attrib.vertices[3 * (size_t)vertexIndex],
+								attrib.vertices[3 * (size_t)vertexIndex + 1],
+								attrib.vertices[3 * (size_t)vertexIndex + 2]
+							));
+							uvs.push_back(glm::vec2(
+								attrib.texcoords[2 * (size_t)uvIndex],
+								attrib.texcoords[2 * (size_t)uvIndex + 1]
+							));
+							normals.push_back(glm::vec3(
+								attrib.normals[3 * (size_t)normalIndex],
+								attrib.normals[3 * (size_t)normalIndex + 1],
+								attrib.normals[3 * (size_t)normalIndex + 2]
+							));
+						}
+
+						// Add the combined index to the indices of the current material.
+						materialIndices->push_back(combinedIndex);
 					}
 				}
 			}
+
+			// All vertex position, UV coordinate and normal data is now in a format with shared indices. We can
+			// therefore finally initialize the VAO and the VBOs with this data.
+			initOpenGlBuffers(vertices, uvs, normals);
+
+			// Create a MeshPart for each material.
+			for (auto const& materialIndices : indicesMap)
+			{
+				// Create a Material instance from the values loaded by the tinyobjloader.
+				tinyobj::material_t& mat = materials[materialIndices.first];
+				Material* material = new Material(
+					glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]), 
+					glm::vec3(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]), 
+					glm::vec3(mat.specular[0], mat.specular[1], mat.specular[2]), 
+					mat.shininess
+				);
+
+				// Add a new MeshPart instance with the material and the indices to the parts of this Mesh.
+				parts.push_back(new MeshPart(material, *materialIndices.second));
+				delete materialIndices.second;
+			}
+		}
+
+		void Mesh::initOpenGlBuffers(
+			const std::vector<glm::vec3>& vertices,
+			const std::vector<glm::vec2>& uvs,
+			const std::vector<glm::vec3>& normals
+		)
+		{
+			// Create a Vertex Array Object (VAO).
+			glGenVertexArrays(1, &vao);
+			glBindVertexArray(vao);
+
+			// Create a Vertex Buffer (VBO), fill it with the meshs's vertices and bind it to vertex attribute 0.
+			glGenBuffers(1, &vertexVbo);
+			glBindBuffer(GL_ARRAY_BUFFER, vertexVbo);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+			// Create a VBO, fill it with the mesh's UV coordinates and bind it to vertex attribute 1.
+			glGenBuffers(1, &uvVbo);
+			glBindBuffer(GL_ARRAY_BUFFER, uvVbo);
+			glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+			// Create a VBO, fill it with the mesh's normals and bind it to vertex attribute 2.
+			glGenBuffers(1, &normalVbo);
+			glBindBuffer(GL_ARRAY_BUFFER, normalVbo);
+			glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
+			glEnableVertexAttribArray(2);
+			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+			// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
+			glBindVertexArray(0);
 		}
 
 		Mesh::~Mesh()
@@ -108,7 +216,7 @@ namespace rendering
 		{
 			glBindVertexArray(vao);
 			for (auto part : parts)
-				part.render();
+				part->render();
 			glBindVertexArray(0);
 		}
 	}

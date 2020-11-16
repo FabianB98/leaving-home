@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <vector>
+#include <map>
 
 // OpenGL related headers
 #include <GL/glew.h>
@@ -21,10 +22,10 @@ namespace rendering
 		{
 		public:
 			Mesh(
-				std::vector<glm::vec3>& vertices,
-				std::vector<glm::vec2>& uvs,
-				std::vector<glm::vec3>& normals,
-				std::vector<MeshPart>& _parts
+				const std::vector<glm::vec3>& vertices,
+				const std::vector<glm::vec2>& uvs,
+				const std::vector<glm::vec3>& normals,
+				const std::vector<MeshPart*>& _parts
 			);
 
 			Mesh(std::string assetName);
@@ -40,7 +41,13 @@ namespace rendering
 			GLuint uvVbo;
 			GLuint normalVbo;
 
-			std::vector<MeshPart> parts;
+			std::vector<MeshPart*> parts;
+
+			void initOpenGlBuffers(
+				const std::vector<glm::vec3>& vertices,
+				const std::vector<glm::vec2>& uvs,
+				const std::vector<glm::vec3>& normals
+			);
 		};
 	}
 }
