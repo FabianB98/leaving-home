@@ -14,16 +14,12 @@ namespace game
 	rendering::model::Mesh* mesh;
 	rendering::Shader* shader;
 
-	void Game::init()
+	void Game::init(rendering::RenderingEngine* renderingEngine)
 	{
 		shader = new rendering::Shader("phong");
 		mesh = new rendering::model::Mesh("test");
 
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-
-		glEnable(GL_CULL_FACE);
-
+		renderingEngine->setClearColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.0f));
 	}
 
 	void Game::input(double deltaTime)
@@ -36,14 +32,14 @@ namespace game
 
 	}
 
-	void Game::render()
+	void Game::render(rendering::RenderingEngine* renderingEngine)
 	{
 		// TEMPORARY TEST CODE
-		glClearColor(0.2f, 0.2f, 0.2f, 0.f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		int width = renderingEngine->getFramebufferWidth();
+		int height = renderingEngine->getFrameBufferHeight();
 
 		glm::vec3 camPos(0, 0, 5);
-		glm::mat4 projection = glm::perspective(glm::radians(45.f), (float) 1080/ (float) 720, .1f, 1000.f);
+		glm::mat4 projection = glm::perspective(glm::radians(45.f), (float) width/ (float) height, .1f, 1000.f);
 		glm::mat4 view = glm::lookAt(camPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 		glm::mat4 model = glm::rotate((float) glfwGetTime(), glm::vec3(0,1,0)) * glm::scale(glm::vec3(1.5));
 		glm::mat3 normal = glm::mat3(glm::transpose(glm::inverse(model)));

@@ -18,7 +18,7 @@ namespace rendering
         }
 
         // Initialize the game.
-        game->init();
+        game->init(this);
 
         // Set up the input devices.
         glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
@@ -30,6 +30,11 @@ namespace rendering
         // Some variables used for logging the FPS and average frame times to the console.
         double lastFpsTime = glfwGetTime(); // The last time when the FPS were logged to the console.
         int numFrames = 0;                  // The amount of frames rendered since the last FPS log.
+
+        // Initialize some last OpenGL flags. These are important for rendering, but don't need to be set every frame.
+        glEnable(GL_DEPTH_TEST);    // Enable the depth test.
+        glDepthFunc(GL_LESS);       // Discard fragments further away from the camera than the previous fragment.
+        glEnable(GL_CULL_FACE);     // Enable face culling (i.e. only render faces pointing to the outside of meshes).
 
         // Perform the actual update loop.
         while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0)
@@ -118,7 +123,7 @@ namespace rendering
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        game->render();
+        game->render(this);
 
         glfwSwapBuffers(window);
     }

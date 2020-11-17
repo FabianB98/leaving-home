@@ -10,11 +10,27 @@
 #include <glfw/glfw3.h>
 #include <glm/glm.hpp>
 
-// Our headers
-#include "AbstractGame.hpp"
-
 namespace rendering 
 {	
+	class RenderingEngine;
+
+	class AbstractGame
+	{
+	public:
+		AbstractGame() {};
+		~AbstractGame() {};
+
+		virtual void init(RenderingEngine* renderingEngine) = 0;
+
+		virtual void input(double deltaTime) = 0;
+
+		virtual void update(double deltaTime) = 0;
+
+		virtual void render(RenderingEngine* renderingEngine) = 0;
+
+		virtual void cleanUp() = 0;
+	};
+
 	class RenderingEngine
 	{
 	public:

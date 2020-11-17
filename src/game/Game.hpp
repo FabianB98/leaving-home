@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../rendering/AbstractGame.hpp"
+#include "../rendering/RenderingEngine.hpp"
 
 namespace game 
 {
@@ -10,13 +10,13 @@ namespace game
 		Game() {};
 		~Game() {};
 
-		void init();
+		void init(rendering::RenderingEngine* renderingEngine);
 
 		void input(double deltaTime);
 
 		void update(double deltaTime);
 
-		void render();
+		void render(rendering::RenderingEngine* renderingEngine);
 
 		void cleanUp();
 	};
