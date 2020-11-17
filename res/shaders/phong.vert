@@ -20,5 +20,5 @@ void main() {
 	// output position and normal in world space for lighting calculations in
 	// the fragment shader
 	world_pos = (T_M * vec4(vertexPos, 1)).xyz;
-	world_normal = T_Normal * normal;
+	world_normal = normalize(T_Normal * normal);
 }
