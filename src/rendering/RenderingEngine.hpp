@@ -25,6 +25,21 @@ namespace rendering
 
 		void _updateSize(int _width, int _height);
 
+		int getFramebufferWidth()
+		{
+			return width;
+		}
+
+		int getFrameBufferHeight()
+		{
+			return height;
+		}
+
+		void setClearColor(glm::vec4 _clearColor)
+		{
+			clearColor = clearColor;
+		}
+
 	private:
 		GLFWwindow* window{ NULL };
 		AbstractGame* game;
@@ -34,7 +49,15 @@ namespace rendering
 
 		const char* title;
 
+		glm::vec4 clearColor = glm::vec4(0.0f);
+
 		int init();
+
+		void input(double deltaTime);
+
+		void update(double deltaTime);
+
+		void render();
 
 		void cleanUp();
 	};

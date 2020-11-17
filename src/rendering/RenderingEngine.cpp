@@ -50,16 +50,10 @@ namespace rendering
                 lastFpsTime += 1.0;
             }
 
-            // Handle inputs.
-            glfwPollEvents();
-            game->input(deltaTime);
-
             // Perform the actual game logic.
-            game->update(deltaTime);
-            
-            // Render everything.
-            game->render();
-            glfwSwapBuffers(window);
+            input(deltaTime);
+            update(deltaTime);
+            render();
         }
 
         // Clean everything up (i.e. destroy the window).
@@ -108,13 +102,34 @@ namespace rendering
         return 0;
     }
 
+    void RenderingEngine::input(double deltaTime)
+    {
+        glfwPollEvents();
+        game->input(deltaTime);
+    }
+
+    void RenderingEngine::update(double deltaTime)
+    {
+        game->update(deltaTime);
+    }
+
+    void RenderingEngine::render()
+    {
+        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        game->render();
+
+        glfwSwapBuffers(window);
+    }
+
     void RenderingEngine::_updateSize(int _width, int _height)
     {
         width = _width;
         height = _height;
 
         glViewport(0, 0, _width, _height);
-        game->render();
+        render();
     }
 
     void RenderingEngine::cleanUp()
