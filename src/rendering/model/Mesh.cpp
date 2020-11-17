@@ -11,7 +11,7 @@ namespace rendering
 			const std::vector<glm::vec3>& vertices,
 			const std::vector<glm::vec2>& uvs,
 			const std::vector<glm::vec3>& normals,
-			const std::vector<MeshPart*>& _parts
+			const std::vector<std::shared_ptr<MeshPart>>& _parts
 		) : parts(_parts)
 		{
 			initOpenGlBuffers(vertices, uvs, normals);
@@ -155,7 +155,7 @@ namespace rendering
 			{
 				// Create a Material instance from the values loaded by the tinyobjloader.
 				tinyobj::material_t& mat = materials[materialIndices.first];
-				Material* material = new Material(
+				std::shared_ptr<Material> material = std::make_shared<Material>(
 					glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]), 
 					glm::vec3(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]), 
 					glm::vec3(mat.specular[0], mat.specular[1], mat.specular[2]), 
@@ -163,7 +163,7 @@ namespace rendering
 				);
 
 				// Add a new MeshPart instance with the material and the indices to the parts of this Mesh.
-				parts.push_back(new MeshPart(material, *materialIndices.second));
+				parts.push_back(std::make_shared<MeshPart>(material, *materialIndices.second));
 				delete materialIndices.second;
 			}
 		}

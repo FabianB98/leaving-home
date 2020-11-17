@@ -3,6 +3,7 @@
 // Standard headers
 #include <stdlib.h>
 #include <vector>
+#include <memory>
 
 // OpenGL related headers
 #include <GL/glew.h>
@@ -17,14 +18,14 @@ namespace rendering
 		class MeshPart
 		{
 		public:
-			MeshPart(Material* _material, const std::vector<unsigned int>& indices);
+			MeshPart(std::shared_ptr<Material> _material, const std::vector<unsigned int>& indices);
 
 			~MeshPart();
 
 			void render();
 
 		private:
-			Material* material;
+			std::shared_ptr<Material> material;
 
 			GLuint indexBuffer;
 			GLsizei numIndices;
