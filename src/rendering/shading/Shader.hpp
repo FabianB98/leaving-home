@@ -23,7 +23,7 @@ namespace rendering
 	public:
 		Shader(std::string shaderName);
 
-		void use() { glUseProgram(programID); }
+		void use();
 
 		void setUniformInt(const std::string name, const int value);
 		void setUniformVec3(const std::string name, const glm::vec3& vector);
@@ -41,9 +41,11 @@ namespace rendering
 		// map for #define values in the shader code
 		std::unordered_map<std::string, std::string> definitions;
 
-		void loadDefinitions(std::string shaderCode);
 		GLuint getUniformLocation(std::string name);
+		void loadDefinitions(std::string shaderCode);
+		void linkProgram(GLuint vertexShader, GLuint fragmentShader);
 		
 		static std::string loadShaderFile(std::string fileName);
+		static void compileShader(GLuint shader, std::string code);
 	};
 }
