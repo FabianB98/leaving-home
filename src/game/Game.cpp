@@ -12,11 +12,11 @@
 namespace game
 {
 	rendering::model::Mesh* mesh;
-	rendering::Shader* shader;
+	rendering::LightSupportingShader* shader;
 
 	void Game::init(rendering::RenderingEngine* renderingEngine)
 	{
-		shader = new rendering::Shader("phong");
+		shader = new rendering::LightSupportingShader("phong");
 		mesh = new rendering::model::Mesh("test");
 
 		renderingEngine->setClearColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.0f));
@@ -58,15 +58,17 @@ namespace game
 		shader->setUniformVec3("kS", glm::vec3(1, 1, 1));
 		shader->setUniformInt("n", 8);
 
-		rendering::DirectionalLight light;
-		light.intensity = glm::vec3(1, 1, 1);
-		light.direction = glm::vec3(2, 1, 1);
+		rendering::DirectionalLight light(glm::vec3(1), glm::vec3(2,1,1));
 		shader->setUniformDirectionalLight("directionalLight", light);
 
-		rendering::PointLight pLight;
-		pLight.intensity = glm::vec3(0, 0, 1);
-		pLight.position = glm::vec3(-1.5, -1.5, 1.5);
+		rendering::PointLight pLight(glm::vec3(0,0,1), glm::vec3(-1.5,-1.5,1.5));
 		shader->setUniformPointLight("pointLights[0]", pLight);
+
+
+		/*std::vector<rendering::PointLight> lights;
+		for (unsigned int i = 0; i < 20; i++)
+			lights.push_back(rendering::PointLight(glm::vec3(0), glm::vec3(0)));
+		shader->setUniformPointLights("pointLights", lights);*/
 
 		mesh->render();
 	}

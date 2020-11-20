@@ -64,27 +64,6 @@ namespace rendering
 	}
 
 
-	// UNIFORM LIGHT FUNCTIONS - directional light and point lights
-
-	void Shader::setUniformDirectionalLight(const std::string name, const DirectionalLight& light)
-	{
-		setUniformVec3(name + ".intensity", light.intensity);
-		setUniformVec3(name + ".direction", light.direction);
-	}
-
-	void Shader::setUniformPointLight(const std::string name, const PointLight& light)
-	{
-		setUniformVec3(name + ".intensity", light.intensity);
-		setUniformVec3(name + ".position", light.position);
-	}
-
-	void Shader::setUniformPointLights(const std::string name, const std::vector<PointLight> lights)
-	{
-		//TODO: check vector size < max point lights
-		for (unsigned int i = 0; i < lights.size(); ++i)
-			setUniformPointLight(name + "[" + std::to_string(i) + "]", lights[i]);
-	}
-
 	GLuint Shader::getUniformLocation(std::string name)
 	{
 		// returns the location from the cache or gets it from OpenGL
@@ -151,8 +130,8 @@ namespace rendering
 		if (logLength > 0) {
 			std::vector<char> errorMessage(logLength + 1);
 			glGetProgramInfoLog(programID, logLength, NULL, &errorMessage[0]);
-			//printf("%s\n", &errorMessage[0]);
 			std::cerr << &errorMessage[0] << std::endl;
+			throw std::invalid_argument("Shaders could not be linked! See output for more details.");
 		}
 	}
 
@@ -162,7 +141,7 @@ namespace rendering
 		std::string shaderCode;
 		std::ifstream fileStream("res/shaders/" + fileName, std::ios::in);
 		if (!fileStream.is_open()) {
-			printf("Can't open shader file %s!\n", fileName);
+			throw std::invalid_argument("Can't open shader file " + fileName + "!");
 			return shaderCode;
 		}
 
@@ -189,8 +168,8 @@ namespace rendering
 		if (logLength > 0) {
 			std::vector<char> errorMessage(logLength + 1);
 			glGetShaderInfoLog(shader, logLength, NULL, &errorMessage[0]);
-			//printf("%s\n", &errorMessage[0]);
 			std::cerr << &errorMessage[0] << std::endl;
+			throw std::invalid_argument("Shader could not be compiled! See output for more details.");
 		}
 	}
 }
