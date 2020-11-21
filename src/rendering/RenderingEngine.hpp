@@ -10,6 +10,14 @@
 #include <glfw/glfw3.h>
 #include <glm/glm.hpp>
 
+// Headers related to the entity component system.
+#include <entt/entt.hpp>
+
+// Our headers
+#include "components/Camera.hpp"
+#include "components/MeshRenderer.hpp"
+#include "components/Transform.hpp"
+
 namespace rendering 
 {	
 	class RenderingEngine;
@@ -22,20 +30,19 @@ namespace rendering
 
 		virtual void init(RenderingEngine* renderingEngine) = 0;
 
-		virtual void input(double deltaTime) = 0;
+		virtual void input(RenderingEngine* renderingEngine, double deltaTime) = 0;
 
-		virtual void update(double deltaTime) = 0;
+		virtual void update(RenderingEngine* renderingEngine, double deltaTime) = 0;
 
 		virtual void render(RenderingEngine* renderingEngine) = 0;
 
-		virtual void cleanUp() = 0;
+		virtual void cleanUp(RenderingEngine* renderingEngine) = 0;
 	};
 
 	class RenderingEngine
 	{
 	public:
-		RenderingEngine(AbstractGame& _game, const char* _title, int _width, int _height)
-			: game(&_game), width(_width), height(_height), title(_title) {};
+		RenderingEngine(AbstractGame& _game, const char* _title, int _width, int _height);
 
 		int start();
 
@@ -56,6 +63,21 @@ namespace rendering
 			clearColor = _clearColor;
 		}
 
+		entt::registry& getRegistry()
+		{
+			return registry;
+		}
+
+		entt::entity getMainCamera()
+		{
+			return mainCamera;
+		}
+
+		void setMainCamera(entt::entity _mainCamera)
+		{
+			mainCamera = _mainCamera;
+		}
+
 	private:
 		GLFWwindow* window{ NULL };
 		AbstractGame* game;
@@ -67,6 +89,13 @@ namespace rendering
 
 		glm::vec4 clearColor = glm::vec4(0.0f);
 
+		entt::registry registry;
+
+		entt::entity mainCamera;
+
+		shading::LightSupportingShader* mainShader;
+		shading::Shader* wireframeShader;
+
 		int init();
 
 		void input(double deltaTime);
@@ -74,6 +103,8 @@ namespace rendering
 		void update(double deltaTime);
 
 		void render();
+
+		rendering::components::Camera updateCamera(entt::entity cameraEntity, shading::Shader& shader, float aspectRatio);
 
 		void cleanUp();
 	};

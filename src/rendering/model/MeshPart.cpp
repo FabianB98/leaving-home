@@ -17,7 +17,7 @@ namespace rendering
 			glDeleteBuffers(1, &indexBuffer);
 		}
 
-		void MeshPart::render(Shader& shader)
+		void MeshPart::render(rendering::shading::Shader& shader)
 		{
 			material->bind(shader);
 

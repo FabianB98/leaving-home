@@ -1,6 +1,6 @@
 #include "Shader.hpp"
 
-namespace rendering
+namespace rendering::shading
 {
 	Shader::Shader(std::string shaderName)
 	{

@@ -1,6 +1,6 @@
 #include "Shader.hpp"
 
-namespace rendering
+namespace rendering::shading
 {
 	LightSupportingShader::LightSupportingShader(std::string shaderName) : Shader(shaderName)
 	{

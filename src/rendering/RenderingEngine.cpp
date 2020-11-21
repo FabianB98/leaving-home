@@ -2,6 +2,19 @@
 
 namespace rendering 
 {	
+    RenderingEngine::RenderingEngine(AbstractGame& _game, const char* _title, int _width, int _height)
+        : game(&_game), width(_width), height(_height), title(_title)
+    {
+        auto cameraEntity = registry.create();
+        
+        auto parameters = std::make_shared<components::PerspectiveCameraParameters>(
+            glm::radians(45.f), (float) width / (float) height, .1f, 1000.f);
+        auto cameraComponent = registry.emplace<components::Camera>(cameraEntity, parameters);
+        auto transformComponent = registry.emplace<components::Transform>(cameraEntity, glm::inverse(glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0))));
+
+        mainCamera = cameraEntity;
+    }
+
     void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
         RenderingEngine* engine = (RenderingEngine*) glfwGetWindowUserPointer(window);
         engine->_updateSize(width, height);
@@ -62,7 +75,7 @@ namespace rendering
         }
 
         // Clean everything up (i.e. destroy the window).
-        game->cleanUp();
+        game->cleanUp(this);
         cleanUp();
 
         return 0;
@@ -105,18 +118,22 @@ namespace rendering
             return -3;
         }
 
+        // Initialize shaders
+        mainShader = new shading::LightSupportingShader("phong");
+        wireframeShader = new shading::Shader("simple");
+
         return 0;
     }
 
     void RenderingEngine::input(double deltaTime)
     {
         glfwPollEvents();
-        game->input(deltaTime);
+        game->input(this, deltaTime);
     }
 
     void RenderingEngine::update(double deltaTime)
     {
-        game->update(deltaTime);
+        game->update(this, deltaTime);
     }
 
     void RenderingEngine::render()
@@ -124,9 +141,47 @@ namespace rendering
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        mainShader->use();
+
+        //START OF TEMPORARY CODE FOR TESTING...
+        rendering::DirectionalLight light(glm::vec3(2), glm::vec3(2,1,1));
+		mainShader->setUniformDirectionalLight("directionalLight", light);
+
+		rendering::PointLight pLight(glm::vec3(0,0,1), glm::vec3(-1.5,-1.5,1.5));
+        mainShader->setUniformPointLight("pointLights[0]", pLight);
+
+		pLight.setIntensity(glm::vec3(1, 0, 0));
+		pLight.setPosition(glm::vec3(-1.5, 1.5, 1.5));
+        mainShader->setUniformPointLight("pointLights[1]", pLight);
+        //END OF TEMPORARY CODE FOR TESTING...
+
+        auto camera = updateCamera(mainCamera, *mainShader, (float) width / (float) height);
+        auto activeShader = mainShader;
+
+        auto meshes = registry.view<components::MeshRenderer, components::Transform>();
+        for (auto entity : meshes) {
+            auto [meshRenderer, transform] = registry.get<components::MeshRenderer, components::Transform>(entity);
+
+            meshRenderer.render(*mainShader, transform.getTransform(), camera.getViewProjectionMatrix());
+        }
+
         game->render(this);
 
         glfwSwapBuffers(window);
+    }
+
+    components::Camera RenderingEngine::updateCamera(
+        entt::entity cameraEntity, shading::Shader& shader, float aspectRatio)
+    {
+        using namespace rendering::components;
+
+        auto cameraComponent = registry.get<Camera>(cameraEntity);
+        auto transformComponent = registry.get<Transform>(cameraEntity);
+
+        cameraComponent.setAspectRatio(aspectRatio);
+        cameraComponent.updateViewProjection(transformComponent.getTransform(), shader);
+
+        return cameraComponent;
     }
 
     void RenderingEngine::_updateSize(int _width, int _height)
@@ -141,5 +196,8 @@ namespace rendering
     void RenderingEngine::cleanUp()
     {
         glfwTerminate();
+
+        delete mainShader;
+        delete wireframeShader;
     }
 }

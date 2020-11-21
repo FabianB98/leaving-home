@@ -34,7 +34,7 @@ namespace rendering
 
 			~Mesh();
 
-			void render(Shader& shader);
+			void render(rendering::shading::Shader& shader);
 
 		private:
 			GLuint vao;

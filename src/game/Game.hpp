@@ -12,12 +12,12 @@ namespace game
 
 		void init(rendering::RenderingEngine* renderingEngine);
 
-		void input(double deltaTime);
+		void input(rendering::RenderingEngine* renderingEngine, double deltaTime);
 
-		void update(double deltaTime);
+		void update(rendering::RenderingEngine* renderingEngine, double deltaTime);
 
 		void render(rendering::RenderingEngine* renderingEngine);
 
-		void cleanUp();
+		void cleanUp(rendering::RenderingEngine* renderingEngine);
 	};
 }

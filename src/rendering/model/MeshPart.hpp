@@ -23,7 +23,7 @@ namespace rendering
 
 			~MeshPart();
 
-			void render(Shader& shader);
+			void render(rendering::shading::Shader& shader);
 
 		private:
 			std::shared_ptr<Material> material;

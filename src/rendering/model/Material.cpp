@@ -4,7 +4,7 @@ namespace rendering
 {
 	namespace model
 	{
-		void Material::bind(Shader& shader)
+		void Material::bind(shading::Shader& shader)
 		{
 			shader.setUniformVec3("kA", ambient);
 			shader.setUniformVec3("kD", diffuse);

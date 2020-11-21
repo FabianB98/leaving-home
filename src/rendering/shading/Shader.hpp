@@ -17,7 +17,7 @@
 
 #include "Lights.hpp"
 
-namespace rendering 
+namespace rendering::shading
 {
 	class Shader 
 	{
