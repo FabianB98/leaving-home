@@ -4,9 +4,12 @@ namespace rendering
 {
 	namespace model
 	{
-		void Material::bind()
+		void Material::bind(Shader& shader)
 		{
-			// TODO: Pass the material values to the shaders.
+			shader.setUniformVec3("kA", ambient);
+			shader.setUniformVec3("kD", diffuse);
+			shader.setUniformVec3("kS", specular);
+			shader.setUniformInt("n", phongExponent);
 		}
 	}
 }

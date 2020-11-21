@@ -53,7 +53,7 @@ namespace rendering
 
 		void setClearColor(glm::vec4 _clearColor)
 		{
-			clearColor = clearColor;
+			clearColor = _clearColor;
 		}
 
 	private:

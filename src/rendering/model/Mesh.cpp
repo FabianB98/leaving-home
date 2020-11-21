@@ -212,11 +212,11 @@ namespace rendering
 			glDeleteBuffers(1, &normalVbo);
 		}
 
-		void Mesh::render()
+		void Mesh::render(Shader& shader)
 		{
 			glBindVertexArray(vao);
 			for (auto part : parts)
-				part->render();
+				part->render(shader);
 			glBindVertexArray(0);
 		}
 	}

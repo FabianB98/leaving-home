@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include "../shading/Shader.hpp"
+
 namespace rendering
 {
 	namespace model
@@ -18,7 +20,7 @@ namespace rendering
 			Material(glm::vec3& _ambient, glm::vec3& _diffuse, glm::vec3& _specular, float _phongExponent) :
 				ambient(_ambient), diffuse(_diffuse), specular(_specular), phongExponent(_phongExponent) {};
 
-			void bind();
+			void bind(Shader& shader);
 		};
 	}
 }

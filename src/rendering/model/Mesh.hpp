@@ -14,6 +14,7 @@
 
 // Our headers
 #include "MeshPart.hpp"
+#include "../shading/Shader.hpp"
 
 namespace rendering
 {
@@ -33,7 +34,7 @@ namespace rendering
 
 			~Mesh();
 
-			void render();
+			void render(Shader& shader);
 
 		private:
 			GLuint vao;

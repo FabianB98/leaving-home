@@ -17,9 +17,9 @@ namespace rendering
 			glDeleteBuffers(1, &indexBuffer);
 		}
 
-		void MeshPart::render()
+		void MeshPart::render(Shader& shader)
 		{
-			material->bind();
+			material->bind(shader);
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 			glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, (void*)0);

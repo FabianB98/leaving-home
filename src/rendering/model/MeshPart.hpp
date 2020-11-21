@@ -10,6 +10,7 @@
 
 // Our headers
 #include "Material.hpp"
+#include "../shading/Shader.hpp"
 
 namespace rendering
 {
@@ -22,7 +23,7 @@ namespace rendering
 
 			~MeshPart();
 
-			void render();
+			void render(Shader& shader);
 
 		private:
 			std::shared_ptr<Material> material;
