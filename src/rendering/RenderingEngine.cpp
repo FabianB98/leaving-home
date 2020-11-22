@@ -62,8 +62,9 @@ namespace rendering
             if (currentTime - lastFpsTime >= 1.0)
             {
                 // Only print the FPS once per second.
-                double frameTimeMillis = 1000.0 / double(numFrames);
-                std::cout << frameTimeMillis << " ms/frame, " << numFrames << " FPS" << std::endl;
+                frameTimeMillis = 1000.0 / double(numFrames);
+                //std::cout << frameTimeMillis << " ms/frame, " << numFrames << " FPS" << std::endl;
+                lastFrameCount = numFrames;
                 numFrames = 0;
                 lastFpsTime += 1.0;
             }
@@ -118,6 +119,9 @@ namespace rendering
             return -3;
         }
 
+        // Initialize gui
+        gui::init(window);
+
         // Initialize shaders
         mainShader = new shading::LightSupportingShader("phong");
         wireframeShader = new shading::Shader("simple");
@@ -138,10 +142,15 @@ namespace rendering
 
     void RenderingEngine::render()
     {
+        // prepare gui for render
+        gui::startFrame();
+
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        mainShader->use();
+        // select shader to draw objects
+        auto activeShader = showWireframe ? wireframeShader : mainShader;
+        activeShader->use();
 
         //START OF TEMPORARY CODE FOR TESTING...
         rendering::DirectionalLight light(glm::vec3(2), glm::vec3(2,1,1));
@@ -156,16 +165,17 @@ namespace rendering
         //END OF TEMPORARY CODE FOR TESTING...
 
         auto camera = updateCamera(mainCamera, *mainShader, (float) width / (float) height);
-        auto activeShader = mainShader;
 
         auto meshes = registry.view<components::MeshRenderer, components::Transform>();
         for (auto entity : meshes) {
             auto [meshRenderer, transform] = registry.get<components::MeshRenderer, components::Transform>(entity);
 
-            meshRenderer.render(*mainShader, transform.getTransform(), camera.getViewProjectionMatrix());
+            meshRenderer.render(*activeShader, transform.getTransform(), camera.getViewProjectionMatrix());
         }
 
         game->render(this);
+        renderDebugWindow();
+        gui::render();
 
         glfwSwapBuffers(window);
     }
@@ -184,6 +194,27 @@ namespace rendering
         return cameraComponent;
     }
 
+    void toggleWireframe(bool enable)
+    {
+        // set draw mode and culling
+        GLuint polyMode = enable ? GL_LINE : GL_FILL;
+        glPolygonMode(GL_FRONT_AND_BACK, polyMode);
+
+        if (enable) glDisable(GL_CULL_FACE);
+        else glEnable(GL_CULL_FACE);
+    }
+
+    void RenderingEngine::renderDebugWindow()
+    {
+        ImGui::Begin("Debug");
+
+        ImGui::Text("%f ms / frame, %i FPS", frameTimeMillis, lastFrameCount);
+        if (ImGui::Checkbox("Show wireframe", &showWireframe))
+            toggleWireframe(showWireframe);
+
+        ImGui::End();
+    }
+
     void RenderingEngine::_updateSize(int _width, int _height)
     {
         width = _width;
@@ -195,6 +226,7 @@ namespace rendering
 
     void RenderingEngine::cleanUp()
     {
+        gui::cleanUp();
         glfwTerminate();
 
         delete mainShader;

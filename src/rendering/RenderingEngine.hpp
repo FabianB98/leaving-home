@@ -17,6 +17,7 @@
 #include "components/Camera.hpp"
 #include "components/MeshRenderer.hpp"
 #include "components/Transform.hpp"
+#include "../ui/GUI.hpp"
 
 namespace rendering 
 {	
@@ -96,6 +97,11 @@ namespace rendering
 		shading::LightSupportingShader* mainShader;
 		shading::Shader* wireframeShader;
 
+		// debug values
+		bool showWireframe = false;
+		double frameTimeMillis = 0.0;
+		int lastFrameCount = 0;
+
 		int init();
 
 		void input(double deltaTime);
@@ -105,6 +111,8 @@ namespace rendering
 		void render();
 
 		rendering::components::Camera updateCamera(entt::entity cameraEntity, shading::Shader& shader, float aspectRatio);
+
+		void renderDebugWindow();
 
 		void cleanUp();
 	};

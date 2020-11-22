@@ -10,11 +10,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glfw/glfw3.h>
+#include <imgui.h>
 
 namespace game
 {
 	rendering::model::Mesh* mesh;
 	entt::entity tree;
+	float rotation = 0;
 
 	void Game::init(rendering::RenderingEngine* renderingEngine)
 	{
@@ -41,7 +43,7 @@ namespace game
 		registry.patch<rendering::components::Transform>(tree, [](auto& transform) 
 		{ 
 			transform.setTransform(
-				glm::rotate((float)glfwGetTime(), glm::vec3(0, 1, 0)) *
+				glm::rotate(rotation, glm::vec3(0, 1, 0)) *
 				glm::translate(glm::vec3(0, -2, 0)) *
 				glm::scale(glm::vec3(0.5))
 			);
@@ -50,7 +52,11 @@ namespace game
 
 	void Game::render(rendering::RenderingEngine* renderingEngine)
 	{
-		
+		ImGui::Begin("Test window");
+
+		ImGui::SliderFloat("Tree rotation", &rotation, 0.f, 4.f);
+
+		ImGui::End();
 	}
 
 	void Game::cleanUp(rendering::RenderingEngine* renderingEngine)
