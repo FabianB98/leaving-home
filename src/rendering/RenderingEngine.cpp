@@ -167,13 +167,7 @@ namespace rendering
         //END OF TEMPORARY CODE FOR TESTING...
 
         auto camera = updateCamera(mainCamera, *mainShader, (float) width / (float) height);
-
-        auto meshes = registry.view<components::MeshRenderer, components::MatrixTransform>();
-        for (auto entity : meshes) {
-            auto [meshRenderer, transform] = registry.get<components::MeshRenderer, components::MatrixTransform>(entity);
-
-            meshRenderer.render(*activeShader, transform.getTransform(), camera.getViewProjectionMatrix());
-        }
+        rendering::systems::renderRenderingSystem(registry, camera, *activeShader);
 
         game->render(this);
         renderDebugWindow();
