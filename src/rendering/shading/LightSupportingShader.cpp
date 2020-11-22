@@ -16,21 +16,24 @@ namespace rendering::shading
 		}
 	}
 
-	void LightSupportingShader::setUniformDirectionalLight(const std::string name, const DirectionalLight& light)
+	void LightSupportingShader::setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 direction)
 	{
-		setUniformVec3(name + ".intensity", light.getIntensity());
-		setUniformVec3(name + ".direction", light.getDirection());
+		setUniformVec3(name + ".intensity", intensity);
+		setUniformVec3(name + ".direction", direction);
 	}
 
-	void LightSupportingShader::setUniformPointLight(const std::string name, const PointLight& light)
+	void LightSupportingShader::setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position)
 	{
-		setUniformVec3(name + ".intensity", light.getIntensity());
-		setUniformVec3(name + ".position", light.getPosition());
+		setUniformVec3(name + ".intensity", intensity);
+		setUniformVec3(name + ".position", position);
 	}
 
-	void LightSupportingShader::setUniformPointLights(const std::string name, const std::vector<PointLight> lights)
+	void LightSupportingShader::setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions)
 	{
-		unsigned int numLights = lights.size();
+		if (intensities.size() != positions.size())
+			throw std::invalid_argument("Point light intensity and position list size must be equal!");
+
+		unsigned int numLights = intensities.size();
 		unsigned int lightsToSet = std::min(numLights, maxPointLights);
 
 		if (numLights > maxPointLights)
@@ -38,12 +41,12 @@ namespace rendering::shading
 			<< "Lights " << std::to_string(maxPointLights) << " to " << std::to_string(numLights - 1) << " will be ignored." << std::endl;
 
 		for (unsigned int i = 0; i < lightsToSet; ++i)
-			setUniformPointLight(name + "[" + std::to_string(i) + "]", lights[i]);
+			setUniformPointLight(name + "[" + std::to_string(i) + "]", intensities[i], positions[i]);
 
 		// fill up the unused point light uniforms with zeros
 		if (numLights >= maxPointLights) return;
 		for (unsigned int i = numLights; i < maxPointLights; ++i)
-			setUniformPointLight(name + "[" + std::to_string(i) + "]", _UNUSED);
+			setUniformPointLight(name + "[" + std::to_string(i) + "]", glm::vec3(0), glm::vec3(0));
 
 	}
 }

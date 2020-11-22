@@ -154,19 +154,8 @@ namespace rendering
         auto activeShader = showWireframe ? wireframeShader : mainShader;
         activeShader->use();
 
-        //START OF TEMPORARY CODE FOR TESTING...
-        rendering::DirectionalLight light(glm::vec3(2), glm::vec3(2,1,1));
-		mainShader->setUniformDirectionalLight("directionalLight", light);
-
-		rendering::PointLight pLight(glm::vec3(0,0,1), glm::vec3(-1.5,-1.5,1.5));
-        mainShader->setUniformPointLight("pointLights[0]", pLight);
-
-		pLight.setIntensity(glm::vec3(1, 0, 0));
-		pLight.setPosition(glm::vec3(-1.5, 1.5, 1.5));
-        mainShader->setUniformPointLight("pointLights[1]", pLight);
-        //END OF TEMPORARY CODE FOR TESTING...
-
         auto camera = updateCamera(mainCamera, *mainShader, (float) width / (float) height);
+        rendering::systems::updateLights(registry, *mainShader);
         rendering::systems::renderRenderingSystem(registry, camera, *activeShader);
 
         game->render(this);

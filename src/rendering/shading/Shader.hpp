@@ -15,8 +15,6 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
-#include "Lights.hpp"
-
 namespace rendering::shading
 {
 	class Shader 
@@ -53,12 +51,11 @@ namespace rendering::shading
 	public:
 		LightSupportingShader(std::string shaderName);
 
-		void setUniformDirectionalLight(const std::string name, const DirectionalLight& light);
-		void setUniformPointLight(const std::string name, const PointLight& light);
-		void setUniformPointLights(const std::string name, const std::vector<PointLight> lights);
+		void setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 direction);
+		void setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position);
+		void setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions);
 
 	private:
 		unsigned int maxPointLights{ 0 };
-		PointLight _UNUSED = PointLight(glm::vec3(0), glm::vec3(0));
 	};
 }
