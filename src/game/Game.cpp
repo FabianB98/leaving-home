@@ -27,8 +27,7 @@ namespace game
 
 		mesh = new rendering::model::Mesh("tree");
 		registry.emplace<rendering::components::MeshRenderer>(tree, mesh);
-		glm::mat4 transform = glm::translate(glm::vec3(0, -2, 0)) * glm::scale(glm::vec3(0.5));
-		registry.emplace<rendering::components::Transform>(tree, transform);
+		registry.emplace<rendering::components::EulerComponentwiseTransform>(tree, glm::vec3(0, -2, 0), 0, 0, 0, glm::vec3(0.5));
 	}
 
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)
@@ -40,13 +39,9 @@ namespace game
 	{
 		auto& registry = renderingEngine->getRegistry();
 
-		registry.patch<rendering::components::Transform>(tree, [](auto& transform) 
-		{ 
-			transform.setTransform(
-				glm::rotate(rotation, glm::vec3(0, 1, 0)) *
-				glm::translate(glm::vec3(0, -2, 0)) *
-				glm::scale(glm::vec3(0.5))
-			);
+		registry.patch<rendering::components::EulerComponentwiseTransform>(tree, [](auto& transform)
+		{
+			transform.setYaw(rotation);
 		});
 	}
 

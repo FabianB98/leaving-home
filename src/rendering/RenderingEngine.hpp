@@ -17,6 +17,7 @@
 #include "components/Camera.hpp"
 #include "components/MeshRenderer.hpp"
 #include "components/Transform.hpp"
+#include "systems/TransformConversionSystem.hpp"
 #include "../ui/GUI.hpp"
 
 namespace rendering 

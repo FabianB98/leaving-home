@@ -10,7 +10,7 @@ namespace rendering
         auto parameters = std::make_shared<components::PerspectiveCameraParameters>(
             glm::radians(45.f), (float) width / (float) height, .1f, 1000.f);
         auto cameraComponent = registry.emplace<components::Camera>(cameraEntity, parameters);
-        auto transformComponent = registry.emplace<components::Transform>(cameraEntity, glm::inverse(glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0))));
+        auto transformComponent = registry.emplace<components::MatrixTransform>(cameraEntity, glm::inverse(glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0))));
 
         mainCamera = cameraEntity;
     }
@@ -138,6 +138,8 @@ namespace rendering
     void RenderingEngine::update(double deltaTime)
     {
         game->update(this, deltaTime);
+
+        rendering::systems::updateTransformConversion(registry);
     }
 
     void RenderingEngine::render()
@@ -166,9 +168,9 @@ namespace rendering
 
         auto camera = updateCamera(mainCamera, *mainShader, (float) width / (float) height);
 
-        auto meshes = registry.view<components::MeshRenderer, components::Transform>();
+        auto meshes = registry.view<components::MeshRenderer, components::MatrixTransform>();
         for (auto entity : meshes) {
-            auto [meshRenderer, transform] = registry.get<components::MeshRenderer, components::Transform>(entity);
+            auto [meshRenderer, transform] = registry.get<components::MeshRenderer, components::MatrixTransform>(entity);
 
             meshRenderer.render(*activeShader, transform.getTransform(), camera.getViewProjectionMatrix());
         }
@@ -186,7 +188,7 @@ namespace rendering
         using namespace rendering::components;
 
         auto cameraComponent = registry.get<Camera>(cameraEntity);
-        auto transformComponent = registry.get<Transform>(cameraEntity);
+        auto transformComponent = registry.get<MatrixTransform>(cameraEntity);
 
         cameraComponent.setAspectRatio(aspectRatio);
         cameraComponent.updateViewProjection(transformComponent.getTransform(), shader);
