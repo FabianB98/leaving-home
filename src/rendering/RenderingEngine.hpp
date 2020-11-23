@@ -49,6 +49,27 @@ namespace rendering
 
 		int start();
 
+		bool isKeyPressed(int keyCode);
+
+		bool isMouseButtonPressed(int keyCode);
+
+		glm::vec2 getMousePosition()
+		{
+			return mousePosition;
+		}
+
+		glm::vec2 getMouseDelta()
+		{
+			return mouseDelta;
+		}
+
+		void lockMouseCursorToCenter(bool _lockMouseCursor);
+
+		bool isMouseCursorLockedToCenter()
+		{
+			return lockMouseCursor;
+		}
+
 		void _updateSize(int _width, int _height);
 
 		int getFramebufferWidth()
@@ -91,6 +112,10 @@ namespace rendering
 		const char* title;
 
 		glm::vec4 clearColor = glm::vec4(0.0f);
+
+		glm::vec2 mousePosition = glm::vec2(0.0f);
+		glm::vec2 mouseDelta = glm::vec2(0.0f);
+		bool lockMouseCursor = false;
 
 		entt::registry registry;
 

@@ -9,8 +9,8 @@ namespace rendering
         
         auto parameters = std::make_shared<components::PerspectiveCameraParameters>(
             glm::radians(45.f), (float) width / (float) height, .1f, 1000.f);
-        auto cameraComponent = registry.emplace<components::Camera>(cameraEntity, parameters);
-        auto transformComponent = registry.emplace<components::MatrixTransform>(cameraEntity, glm::inverse(glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0))));
+        registry.emplace<components::Camera>(cameraEntity, parameters);
+        registry.emplace<components::MatrixTransform>(cameraEntity, glm::inverse(glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), glm::vec3(0, 1, 0))));
 
         mainCamera = cameraEntity;
     }
@@ -50,7 +50,7 @@ namespace rendering
         glEnable(GL_CULL_FACE);     // Enable face culling (i.e. only render faces pointing to the outside of meshes).
 
         // Perform the actual update loop.
-        while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0)
+        while (!isKeyPressed(GLFW_KEY_ESCAPE) && glfwWindowShouldClose(window) == 0)
         {
             // Compute time difference between the current and the last frame.
             double currentTime = glfwGetTime();
@@ -132,6 +132,27 @@ namespace rendering
     void RenderingEngine::input(double deltaTime)
     {
         glfwPollEvents();
+
+        // Get the current mouse position and determine the mouse movement since the last frame.
+        double newPosX, newPosY;
+        glfwGetCursorPos(window, &newPosX, &newPosY);
+        glm::vec2 newPos = glm::vec2((float)newPosX, (float)newPosY);
+        if (lockMouseCursor)
+        {
+            // Mouse cursor is locked to the center of the window. Movement is therefore calculated as the difference
+            // between the current mouse position and the center of the window.
+            glm::vec2 centerPos = glm::vec2(width / 2.0f, height / 2.0f);
+            glfwSetCursorPos(window, centerPos.x, centerPos.y);
+            mouseDelta = newPos - centerPos;
+        }
+        else
+        {
+            // Mouse cursor is not locked to the center of the window. Movement is therefore calculated as the
+            // difference between the new position and the old position.
+            mouseDelta = newPos - mousePosition;
+        }
+        mousePosition = newPos;
+
         game->input(this, deltaTime);
     }
 
@@ -209,6 +230,33 @@ namespace rendering
             toggleWireframe(showWireframe);
 
         ImGui::End();
+    }
+
+    bool RenderingEngine::isKeyPressed(int keyCode)
+    {
+        return glfwGetKey(window, keyCode) == GLFW_PRESS;
+    }
+
+    bool RenderingEngine::isMouseButtonPressed(int keyCode)
+    {
+        return glfwGetMouseButton(window, keyCode) == GLFW_PRESS;
+    }
+
+    void RenderingEngine::lockMouseCursorToCenter(bool _lockMouseCursor)
+    {
+        if (_lockMouseCursor == lockMouseCursor)
+            return;
+
+        if (_lockMouseCursor)
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            glfwSetCursorPos(window, width / 2.0, height / 2.0);
+        }
+        else
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+        lockMouseCursor = _lockMouseCursor;
     }
 
     void RenderingEngine::_updateSize(int _width, int _height)
