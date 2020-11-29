@@ -81,6 +81,11 @@ namespace rendering::components
 
 		void updateViewProjection(glm::mat4 cameraTransform, shading::Shader& shader);
 
+		glm::mat4 getViewMatrix()
+		{
+			return viewMatrix;
+		}
+
 		glm::mat4 getViewProjectionMatrix()
 		{
 			return viewProjectionMatrix;
@@ -89,6 +94,7 @@ namespace rendering::components
 	private:
 		std::shared_ptr<CameraParameters> parameters;
 
+		glm::mat4 viewMatrix{ glm::mat4(1.f) };
 		glm::mat4 viewProjectionMatrix{ glm::mat4(1.f) };
 	};
 }

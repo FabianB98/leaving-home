@@ -29,6 +29,7 @@ include_directories(
 	lib/glew/include/
 	lib/glm/glm/
 	lib/imgui/
+	lib/stb/
 	lib/fastnoise/Cpp
 	.
 )

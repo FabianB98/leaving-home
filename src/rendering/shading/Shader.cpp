@@ -45,6 +45,12 @@ namespace rendering::shading
 		glUniform1i(id, value);
 	}
 
+	void Shader::setUniformFloat(const std::string name, const float value)
+	{
+		GLuint id = getUniformLocation(name);
+		glUniform1f(id, value);
+	}
+
 	void Shader::setUniformVec3(const std::string name, const glm::vec3& vector)
 	{
 		GLuint id = getUniformLocation(name);

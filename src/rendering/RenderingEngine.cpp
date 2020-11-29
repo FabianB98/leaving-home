@@ -191,7 +191,7 @@ namespace rendering
     {
         using namespace rendering::components;
 
-        auto cameraComponent = registry.get<Camera>(cameraEntity);
+        auto& cameraComponent = registry.get<Camera>(cameraEntity);
         auto transformComponent = registry.get<MatrixTransform>(cameraEntity);
 
         cameraComponent.setAspectRatio(aspectRatio);

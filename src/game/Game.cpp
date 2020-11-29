@@ -6,6 +6,7 @@
 #include "../rendering/components/Lights.hpp"
 #include "../rendering/model/Mesh.hpp"
 #include "../rendering/shading/Shader.hpp"
+#include "../rendering/Skybox.hpp"
 #include "components/FirstPersonRotateController.hpp"
 #include "components/FreeFlyingMoveController.hpp"
 #include "systems/MovementInputSystem.hpp"
@@ -15,6 +16,7 @@
 #include <glfw/glfw3.h>
 #include <imgui.h>
 #include <time.h>
+#include <math.h>
 
 namespace game
 {
@@ -27,6 +29,10 @@ namespace game
 	entt::entity pLight;
 	float red = 1, green = 1, blue = 1;
 
+	float daytime = 0.f;
+	float timeSpeed = 1.f;
+	rendering::Skybox* skybox;
+
 	double randomDouble()
 	{
 		return (double) rand() / (double) RAND_MAX;
@@ -37,20 +43,25 @@ namespace game
 		mesh = new rendering::model::Mesh("tree");
 		plane = new rendering::model::Mesh("plane");
 		cube = new rendering::model::Mesh("cube");
+
+		skybox = new rendering::Skybox("skybox", "skybox");
+
 		renderingEngine->setClearColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.0f));
+
+		using namespace rendering::components;
 
 		auto& registry = renderingEngine->getRegistry();
 
 		entt::entity camera = renderingEngine->getMainCamera();
-		registry.emplace<game::components::FreeFlyingMoveController>(camera);
-		registry.emplace<game::components::FirstPersonRotateController>(camera, GLFW_MOUSE_BUTTON_RIGHT);
-		registry.emplace<rendering::components::EulerComponentwiseTransform>(camera, glm::vec3(0, 5, 5), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<components::FreeFlyingMoveController>(camera, 15.f);
+		registry.emplace<components::FirstPersonRotateController>(camera, GLFW_MOUSE_BUTTON_RIGHT);
+		registry.emplace<EulerComponentwiseTransform>(camera, glm::vec3(0, 5, 5), 0, 0, 0, glm::vec3(1.0f));
 
 
 
 		auto entity = registry.create();
-		registry.emplace<rendering::components::MeshRenderer>(entity, plane);
-		registry.emplace<rendering::components::EulerComponentwiseTransform>(entity, glm::vec3(0), 0, 0, 0, glm::vec3(100));
+		registry.emplace<MeshRenderer>(entity, plane);
+		registry.emplace<EulerComponentwiseTransform>(entity, glm::vec3(0), 0, 0, 0, glm::vec3(100));
 
 
 
@@ -67,22 +78,23 @@ namespace game
 				float yaw = 6.3f * randomDouble();
 				float scale = .75f + .5f * randomDouble();
 
-				registry.emplace<rendering::components::MeshRenderer>(entity, mesh);
-				registry.emplace<rendering::components::EulerComponentwiseTransform>(entity, pos, yaw, 0, 0, glm::vec3(scale));
+				registry.emplace<MeshRenderer>(entity, mesh);
+				registry.emplace<EulerComponentwiseTransform>(entity, pos, yaw, 0, 0, glm::vec3(scale));
+				registry.emplace<components::FirstPersonRotateController>(entity, GLFW_MOUSE_BUTTON_MIDDLE);
 			}
 		}
 
 
 		auto sun = registry.create();
-		registry.emplace<rendering::components::MatrixTransform>(sun, glm::mat4(1.f));
-		registry.emplace<rendering::components::DirectionalLight>(sun, glm::vec3(2), glm::vec3(2, 1, 1));
+		registry.emplace<MatrixTransform>(sun, glm::mat4(1.f));
+		registry.emplace<DirectionalLight>(sun, glm::vec3(2), glm::vec3(2, 1, 1));
 
 		pLight = registry.create();
-		registry.emplace<rendering::components::EulerComponentwiseTransform>(pLight, glm::vec3(-1.5, 2, 1.5),0,0,0,glm::vec3(.5f));
-		registry.emplace<rendering::components::MeshRenderer>(pLight, cube);
-		registry.emplace<rendering::components::PointLight>(pLight, glm::vec3(50), glm::vec3(0));
-		registry.emplace<game::components::FirstPersonRotateController>(pLight, GLFW_MOUSE_BUTTON_MIDDLE);
-		registry.emplace<game::components::FreeFlyingMoveController>(pLight, 
+		registry.emplace<EulerComponentwiseTransform>(pLight, glm::vec3(-1.5, 4, 1.5),0,0,0,glm::vec3(.5f));
+		registry.emplace<MeshRenderer>(pLight, cube);
+		registry.emplace<PointLight>(pLight, glm::vec3(50), glm::vec3(0));
+//		registry.emplace<components::FirstPersonRotateController>(pLight, GLFW_MOUSE_BUTTON_MIDDLE);
+		registry.emplace<components::FreeFlyingMoveController>(pLight, 
 			GLFW_KEY_UP,
 			GLFW_KEY_DOWN,
 			GLFW_KEY_LEFT,
@@ -105,15 +117,28 @@ namespace game
 		{
 			light.intensity = 50.f * glm::vec3(red, green, blue);
 		});
+
+		daytime += timeSpeed * deltaTime;
+		if (daytime >= M_PI) daytime -= 2 * M_PI;
 	}
 
 	void Game::render(rendering::RenderingEngine* renderingEngine)
 	{
+		skybox->use();
+		skybox->getShader()->setUniformFloat("time", daytime);
+		skybox->render(renderingEngine);
+
+
 		ImGui::Begin("Test window");
 
 		ImGui::SliderFloat("Red", &red, 0.f, 1.f);
 		ImGui::SliderFloat("Green", &green, 0.f, 1.f);
 		ImGui::SliderFloat("Blue", &blue, 0.f, 1.f);
+
+		ImGui::Dummy(ImVec2(0, 10.f));
+
+		float pi = M_PI;
+		ImGui::SliderFloat("Day-Night speed", &timeSpeed, 0.f, 1.f);
 
 		ImGui::End();
 	}
