@@ -13,4 +13,5 @@ After cloning the repository, the ./lib directory inside the directory into whic
   - [GLFW version 3.3.2](https://github.com/glfw/glfw/releases/tag/3.3.2) (download, extract and store the source code inside ./lib/glfw)
   - [GLM version 0.9.9.8](https://github.com/g-truc/glm/releases) (download, extract and store the source code inside ./lib/glm)
   - [ImGUI version 1.79](https://github.com/ocornut/imgui/releases/tag/v1.79) (download, extract and store the source code inside ./lib/imgui)
+  - [stb version 2.26](https://github.com/nothings/stb/blob/b42009b3b9d4ca35bc703f5310eedc74f584be58/stb_image.h) (download and store as ./lib/stb/stb_image.h)
   - [tinyobjloader version 1.0.6](https://github.com/tinyobjloader/tinyobjloader/releases/tag/v1.0.6) (download, extract and store the source code inside ./lib/tinyobjloader)

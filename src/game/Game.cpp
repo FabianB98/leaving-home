@@ -68,8 +68,8 @@ namespace game
 		std::srand(time(NULL));
 
 		float spacing = 5.f;
-		for (int i = -19; i < 20; i++) {
-			for (int j = -19; j < 20; j++) {
+		for (int i = -29; i < 30; i++) {
+			for (int j = -29; j < 30; j++) {
 				if (rand() % 2 == 0) continue;
 
 				auto entity = registry.create();
@@ -80,7 +80,7 @@ namespace game
 
 				registry.emplace<MeshRenderer>(entity, mesh);
 				registry.emplace<EulerComponentwiseTransform>(entity, pos, yaw, 0, 0, glm::vec3(scale));
-				registry.emplace<components::FirstPersonRotateController>(entity, GLFW_MOUSE_BUTTON_MIDDLE);
+				//registry.emplace<components::FirstPersonRotateController>(entity, GLFW_MOUSE_BUTTON_MIDDLE);
 			}
 		}
 
@@ -137,7 +137,6 @@ namespace game
 
 		ImGui::Dummy(ImVec2(0, 10.f));
 
-		float pi = M_PI;
 		ImGui::SliderFloat("Day-Night speed", &timeSpeed, 0.f, 1.f);
 
 		ImGui::End();

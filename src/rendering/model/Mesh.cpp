@@ -199,6 +199,39 @@ namespace rendering
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
+			// Create 4 VBOs for the model matrices and bind it to vertex attributes 3, 4, 5 and 6. These VBOs are only
+			// used when using instanced rendering.
+			glGenBuffers(1, &modelMatrixVbo);
+			glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVbo);
+			for (int i = 0; i < 4; i++)
+			{
+				glEnableVertexAttribArray(3 + i);
+				glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (void*)(i * sizeof(glm::vec4)));
+				glVertexAttribDivisor(3 + i, 1);
+			}
+
+			// Create 3 VBOs for the normal matrices and bind it to vertex attribute 7, 8 and 9. These VBOs are only
+			// used when using instanced rendering.
+			glGenBuffers(1, &normalMatrixVbo);
+			glBindBuffer(GL_ARRAY_BUFFER, normalMatrixVbo);
+			for (int i = 0; i < 3; i++)
+			{
+				glEnableVertexAttribArray(7 + i);
+				glVertexAttribPointer(7 + i, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(i * sizeof(glm::vec3)));
+				glVertexAttribDivisor(7 + i, 1);
+			}
+
+			// Create 4 VBOs for the model-view-projection matrices and bind it to vertex attribute 10, 11, 12 and 13.
+			// These VBOs are only used when using instanced rendering.
+			glGenBuffers(1, &mvpMatrixVbo);
+			glBindBuffer(GL_ARRAY_BUFFER, mvpMatrixVbo);
+			for (int i = 0; i < 4; i++)
+			{
+				glEnableVertexAttribArray(10 + i);
+				glVertexAttribPointer(10 + i, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (void*)(i * sizeof(glm::vec4)));
+				glVertexAttribDivisor(10 + i, 1);
+			}
+
 			// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
 			glBindVertexArray(0);
 		}
@@ -210,6 +243,10 @@ namespace rendering
 			glDeleteBuffers(1, &vertexVbo);
 			glDeleteBuffers(1, &uvVbo);
 			glDeleteBuffers(1, &normalVbo);
+
+			glDeleteBuffers(1, &modelMatrixVbo);
+			glDeleteBuffers(1, &normalMatrixVbo);
+			glDeleteBuffers(1, &mvpMatrixVbo);
 		}
 
 		void Mesh::render(rendering::shading::Shader& shader)
@@ -217,6 +254,33 @@ namespace rendering
 			glBindVertexArray(vao);
 			for (auto part : parts)
 				part->render(shader);
+			glBindVertexArray(0);
+		}
+
+		void Mesh::renderInstanced(
+			shading::Shader& shader,
+			const std::vector<glm::mat4>& modelMatrices,
+			const std::vector<glm::mat3>& normalMatrices,
+			const std::vector<glm::mat4>& mvpMatrices
+		) {
+			size_t numInstances = modelMatrices.size();
+
+			//std::cout << numInstances << " " << normalMatrices.size() << " " << mvpMatrices.size() << std::endl;
+
+			glBindVertexArray(vao);
+
+			glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVbo);
+			glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat4), &modelMatrices[0], GL_DYNAMIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, normalMatrixVbo);
+			glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat3), &normalMatrices[0], GL_DYNAMIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, mvpMatrixVbo);
+			glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat4), &mvpMatrices[0], GL_DYNAMIC_DRAW);
+
+			for (auto part : parts)
+				part->renderInstanced(shader, numInstances);
+
 			glBindVertexArray(0);
 		}
 	}
