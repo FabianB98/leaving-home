@@ -30,6 +30,7 @@ namespace game
 	float red = 1, green = 1, blue = 1;
 
 	float daytime = 0.f;
+	float timeSpeed = 1.f;
 	rendering::Skybox* skybox;
 
 	double randomDouble()
@@ -116,6 +117,9 @@ namespace game
 		{
 			light.intensity = 50.f * glm::vec3(red, green, blue);
 		});
+
+		daytime += timeSpeed * deltaTime;
+		if (daytime >= M_PI) daytime -= 2 * M_PI;
 	}
 
 	void Game::render(rendering::RenderingEngine* renderingEngine)
@@ -134,7 +138,7 @@ namespace game
 		ImGui::Dummy(ImVec2(0, 10.f));
 
 		float pi = M_PI;
-		ImGui::SliderFloat("Day-Night", &daytime, -pi, pi);
+		ImGui::SliderFloat("Day-Night speed", &timeSpeed, 0.f, 1.f);
 
 		ImGui::End();
 	}
