@@ -4,7 +4,8 @@ namespace rendering::components
 {
 	void Camera::updateViewProjection(glm::mat4 cameraTransform, shading::Shader& shader)
 	{
-		viewProjectionMatrix = getProjectionMatrix() * glm::inverse(cameraTransform);
+		viewMatrix = glm::inverse(cameraTransform);
+		viewProjectionMatrix = getProjectionMatrix() * viewMatrix;
 
 		glm::vec3 cameraPosition = glm::vec3(cameraTransform[3]);
 		shader.setUniformVec3("cameraPos", cameraPosition);

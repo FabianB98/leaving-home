@@ -25,6 +25,7 @@ namespace rendering::shading
 		void use();
 
 		void setUniformInt(const std::string name, const int value);
+		void setUniformFloat(const std::string name, const float value);
 		void setUniformVec3(const std::string name, const glm::vec3& vector);
 		void setUniformMat3(const std::string name, const glm::mat3& matrix);
 		void setUniformMat4(const std::string name, const glm::mat4& matrix);
