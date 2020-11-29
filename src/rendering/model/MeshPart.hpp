@@ -23,7 +23,9 @@ namespace rendering
 
 			~MeshPart();
 
-			void render(rendering::shading::Shader& shader);
+			void render(shading::Shader& shader);
+
+			void renderInstanced(shading::Shader& shader, size_t numInstances);
 
 		private:
 			std::shared_ptr<Material> material;

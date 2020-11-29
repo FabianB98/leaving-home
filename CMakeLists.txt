@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.9)
 
 project ("LeavingHome")
 
@@ -10,6 +10,8 @@ add_executable("${CMAKE_PROJECT_NAME}" ${sources})
 add_custom_target(copy-resources ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/res/ ${CMAKE_BINARY_DIR}/res/
     DEPENDS "${CMAKE_PROJECT_NAME}")
+
+find_package(OpenMP)
 
 add_definitions(
 	-DTW_STATIC
@@ -81,6 +83,7 @@ set(ALL_LIBS
 	glm
 	imgui
 	EnTT
+	OpenMP::OpenMP_CXX
 )
 
 add_definitions(

@@ -32,10 +32,10 @@ namespace rendering::components
 	{
 	public:
 		EulerComponentwiseTransform()
-			: translation(glm::vec3(0)), yaw(0), pitch(0), roll(0), scale(glm::vec3(1)) {};
+			: translation(glm::vec3(0)), yaw(0), pitch(0), roll(0), scale(glm::vec3(1)), transformChanged(true) {};
 
 		EulerComponentwiseTransform(glm::vec3 _translation, float _yaw, float _pitch, float _roll, glm::vec3 _scale)
-			: translation(_translation), yaw(_yaw), pitch(_pitch), roll(_roll), scale(_scale) {}
+			: translation(_translation), yaw(_yaw), pitch(_pitch), roll(_roll), scale(_scale), transformChanged(true) {}
 
 		glm::vec3 getTranslation()
 		{
@@ -44,7 +44,11 @@ namespace rendering::components
 
 		void setTranslation(glm::vec3 _translation)
 		{
-			translation = _translation;
+			if (_translation != translation)
+			{
+				transformChanged = true;
+				translation = _translation;
+			}
 		}
 
 		float getYaw()
@@ -54,7 +58,11 @@ namespace rendering::components
 
 		void setYaw(float _yaw)
 		{
-			yaw = _yaw;
+			if (_yaw != yaw)
+			{
+				transformChanged = true;
+				yaw = _yaw;
+			}
 		}
 
 		float getPitch()
@@ -64,7 +72,11 @@ namespace rendering::components
 
 		void setPitch(float _pitch)
 		{
-			pitch = _pitch;
+			if (_pitch != pitch)
+			{
+				transformChanged = true;
+				pitch = _pitch;
+			}
 		}
 
 		float getRoll()
@@ -74,7 +86,11 @@ namespace rendering::components
 
 		void setRoll(float _roll)
 		{
-			roll = _roll;
+			if (_roll != roll)
+			{
+				transformChanged = true;
+				roll = _roll;
+			}
 		}
 
 		glm::vec3 getScale()
@@ -84,11 +100,21 @@ namespace rendering::components
 
 		void setScale(glm::vec3 _scale)
 		{
-			scale = _scale;
+			if (_scale != scale)
+			{
+				transformChanged = true;
+				scale = _scale;
+			}
+		}
+
+		bool hasTransformChanged()
+		{
+			return transformChanged;
 		}
 
 		glm::mat4 toTransformationMatrix()
 		{
+			transformChanged = false;
 			return glm::translate(translation) * glm::yawPitchRoll(yaw, pitch, roll) * glm::scale(scale);
 		}
 
@@ -98,16 +124,18 @@ namespace rendering::components
 		float pitch;
 		float roll;
 		glm::vec3 scale;
+
+		bool transformChanged;
 	};
 
 	class QuaternionComponentwiseTransform
 	{
 	public:
 		QuaternionComponentwiseTransform()
-			: translation(glm::vec3(0)), rotation(glm::quat()), scale(glm::vec3(1)) {};
+			: translation(glm::vec3(0)), rotation(glm::quat()), scale(glm::vec3(1)), transformChanged(true) {};
 
 		QuaternionComponentwiseTransform(glm::vec3 _translation, glm::quat _rotation, glm::vec3 _scale)
-			: translation(_translation), rotation(_rotation), scale(_scale) {}
+			: translation(_translation), rotation(_rotation), scale(_scale), transformChanged(true) {}
 
 		glm::vec3 getTranslation()
 		{
@@ -116,7 +144,11 @@ namespace rendering::components
 
 		void setTranslation(glm::vec3 _translation)
 		{
-			translation = _translation;
+			if (_translation != translation)
+			{
+				transformChanged = true;
+				translation = _translation;
+			}
 		}
 
 		glm::quat getRotation()
@@ -126,7 +158,11 @@ namespace rendering::components
 
 		void setRotation(glm::quat _rotation)
 		{
-			rotation = _rotation;
+			if (_rotation != rotation)
+			{
+				transformChanged = true;
+				rotation = _rotation;
+			}
 		}
 
 		glm::vec3 getScale()
@@ -136,11 +172,21 @@ namespace rendering::components
 
 		void setScale(glm::vec3 _scale)
 		{
-			scale = _scale;
+			if (_scale != scale)
+			{
+				transformChanged = true;
+				scale = _scale;
+			}
+		}
+
+		bool hasTransformChanged()
+		{
+			return transformChanged;
 		}
 
 		glm::mat4 toTransformationMatrix()
 		{
+			transformChanged = false;
 			return glm::translate(translation) * glm::toMat4(rotation) * glm::scale(scale);
 		}
 
@@ -148,5 +194,7 @@ namespace rendering::components
 		glm::vec3 translation;
 		glm::quat rotation;
 		glm::vec3 scale;
+
+		bool transformChanged;
 	};
 }

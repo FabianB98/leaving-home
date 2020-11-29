@@ -2,6 +2,25 @@
 
 namespace rendering::systems
 {
+	entt::observer transformObserver;
+
+	std::set<model::Mesh*> transformChanged;
+	std::unordered_map<model::Mesh*, std::pair<std::vector<glm::mat4>, std::vector<glm::mat3>>> meshTransforms;
+	std::vector<glm::mat4> mvps;
+
+	void changedMeshRenderer(entt::registry& registry, entt::entity entity)
+	{
+		auto& meshRenderer = registry.get<components::MeshRenderer>(entity);
+		transformChanged.insert(meshRenderer.getMesh());
+	}
+
+	void initRenderingSystem(entt::registry& registry)
+	{
+		registry.on_construct<components::MeshRenderer>().connect<&changedMeshRenderer>();
+		registry.on_destroy<components::MeshRenderer>().connect<&changedMeshRenderer>();
+		transformObserver.connect(registry, entt::collector.update<components::MatrixTransform>().where<components::MeshRenderer>());
+	}
+
 	void updateLights(entt::registry& registry, rendering::shading::LightSupportingShader& shader)
 	{
 		// DIRECTIONAL LIGHT
@@ -28,14 +47,72 @@ namespace rendering::systems
 		shader.setUniformPointLights("pointLights", intensities, positions);
 	}
 
+	size_t updateMeshTransforms(entt::registry& registry)
+	{
+		// Clear the stored model and normal matrices of all meshes where at least one transformation was changed.
+		for (const auto& mesh : transformChanged) 
+		{
+			meshTransforms[mesh].first.clear();
+			meshTransforms[mesh].second.clear();
+		}
+
+		// Update the model and normal matrices of all meshes where at lest one transformation was changed.
+		registry.view<components::MeshRenderer, components::MatrixTransform>().each([](auto &renderer, auto &transform) {
+			model::Mesh* mesh = renderer.getMesh();
+			if (transformChanged.find(mesh) != transformChanged.end())
+			{
+				glm::mat4 modelMatrix = transform.getTransform();
+				meshTransforms[mesh].first.push_back(modelMatrix);
+				meshTransforms[mesh].second.push_back(glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+			}
+		});
+
+		// Calculate the maximum amount of instances of one mesh of meshes where at least one transformation was changed.
+		size_t numInstances = 0;
+		for (const auto& mesh : transformChanged)
+			numInstances = std::max(numInstances, meshTransforms[mesh].first.size());
+		return numInstances;
+	}
+
 	void renderRenderingSystem(entt::registry& registry, 
 		rendering::components::Camera& camera, rendering::shading::Shader& shader)
 	{
-		auto meshes = registry.view<components::MeshRenderer, components::MatrixTransform>();
-		for (auto entity : meshes) {
-			auto [meshRenderer, transform] = registry.get<components::MeshRenderer, components::MatrixTransform>(entity);
-
-			meshRenderer.render(shader, transform.getTransform(), camera.getViewProjectionMatrix());
+		// Get all entities whose transformation was changed and store that their transformation was changed.
+		for (const auto entity : transformObserver) {
+			changedMeshRenderer(registry, entity);
 		}
+
+		// Update the model and normal matrices of all meshes where ate lest one transformation was changed.
+		if (transformChanged.size() != 0)
+		{
+			size_t maxInstancesPerMesh = updateMeshTransforms(registry);
+			if (maxInstancesPerMesh > mvps.size())
+				mvps.resize(maxInstancesPerMesh);
+		}
+
+		transformObserver.clear();
+		transformChanged.clear();
+
+		// Render each mesh.
+		glm::mat4& viewProjection = camera.getViewProjectionMatrix();
+		for (const auto& meshInstances : meshTransforms)
+		{
+			// Calculate the model view projection matrix of each instance of the mesh.
+			int numInstances = meshInstances.second.first.size();
+			for (int i = 0; i < numInstances; i++)
+				mvps[i] = viewProjection * meshInstances.second.first[i];
+
+			// Render all instances of the mesh.
+			const std::vector<glm::mat4>& const modelMatrices = meshInstances.second.first;
+			const std::vector<glm::mat3>& const normalMatrices = meshInstances.second.second;
+			meshInstances.first->renderInstanced(shader, modelMatrices, normalMatrices, mvps);
+		}
+	}
+
+	void cleanUpRenderingSystem(entt::registry& registry)
+	{
+		registry.on_construct<components::MeshRenderer>().disconnect<&changedMeshRenderer>();
+		registry.on_destroy<components::MeshRenderer>().disconnect<&changedMeshRenderer>();
+		transformObserver.disconnect();
 	}
 }

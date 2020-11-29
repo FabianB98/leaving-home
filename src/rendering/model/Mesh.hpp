@@ -34,7 +34,24 @@ namespace rendering
 
 			~Mesh();
 
-			void render(rendering::shading::Shader& shader);
+			void render(shading::Shader& shader);
+
+			void renderInstanced(
+				shading::Shader& shader, 
+				const std::vector<glm::mat4>& modelMatrices, 
+				const std::vector<glm::mat3>& normalMatrices, 
+				const std::vector<glm::mat4>& mvpMatrices
+			);
+
+			bool operator==(const Mesh& other) const
+			{
+				return vao == other.vao;
+			}
+
+			size_t const hashValue() const
+			{
+				return std::hash<GLuint>{}(vao);
+			}
 
 		private:
 			GLuint vao;
@@ -42,6 +59,10 @@ namespace rendering
 			GLuint vertexVbo;
 			GLuint uvVbo;
 			GLuint normalVbo;
+
+			GLuint modelMatrixVbo;
+			GLuint normalMatrixVbo;
+			GLuint mvpMatrixVbo;
 
 			std::vector<std::shared_ptr<MeshPart>> parts;
 
@@ -52,4 +73,14 @@ namespace rendering
 			);
 		};
 	}
+}
+
+namespace std {
+	template<> struct hash<rendering::model::Mesh>
+	{
+		size_t operator()(rendering::model::Mesh const& mesh) const
+		{
+			return mesh.hashValue();
+		}
+	};
 }

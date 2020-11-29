@@ -24,5 +24,13 @@ namespace rendering
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 			glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, (void*)0);
 		}
+
+		void MeshPart::renderInstanced(shading::Shader& shader, size_t numInstances)
+		{
+			material->bind(shader);
+
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+			glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, (void*)0, numInstances);
+		}
 	}
 }

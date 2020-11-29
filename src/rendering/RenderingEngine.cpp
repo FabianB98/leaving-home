@@ -119,12 +119,15 @@ namespace rendering
             return -3;
         }
 
+        // Initialize the rendering system
+        rendering::systems::initRenderingSystem(registry);
+
         // Initialize gui
         gui::init(window);
 
         // Initialize shaders
-        mainShader = new shading::LightSupportingShader("phong");
-        wireframeShader = new shading::Shader("simple");
+        mainShader = new shading::LightSupportingShader("phongInstanced");
+        wireframeShader = new shading::Shader("simpleInstanced");
 
         return 0;
     }
@@ -259,6 +262,7 @@ namespace rendering
 
     void RenderingEngine::cleanUp()
     {
+        systems::cleanUpRenderingSystem(registry);
         gui::cleanUp();
         glfwTerminate();
 
