@@ -14,7 +14,7 @@
 *.userprefs
 
 # External Libraries
-lib/
+lib/*/
 
 # Build results
 [Dd]ebug/
