@@ -99,8 +99,17 @@ namespace rendering::systems
 		{
 			// Calculate the model view projection matrix of each instance of the mesh.
 			int numInstances = meshInstances.second.first.size();
-			for (int i = 0; i < numInstances; i++)
+
+			// parallel mvp calculation
+			std::vector<int> a(numInstances);
+			std::iota(std::begin(a), std::end(a), 0);
+			std::for_each(std::execution::par_unseq, std::begin(a), std::end(a), [&](int i) {
 				mvps[i] = viewProjection * meshInstances.second.first[i];
+			});
+
+			// for reference: old mvp calculation
+			/*for (int i = 0; i < numInstances; i++)
+				mvps[i] = viewProjection * meshInstances.second.first[i];*/
 
 			// Render all instances of the mesh.
 			const std::vector<glm::mat4>& const modelMatrices = meshInstances.second.first;
