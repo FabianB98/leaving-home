@@ -79,11 +79,13 @@ namespace game
 		std::srand(time(NULL));
 
 		float spacing = 5.f;
-		for (int i = -29; i < 30; i++) {
-			for (int j = -29; j < 30; j++) {
+		int numTrees = 0;
+		for (int i = -190; i < 200; i++) {
+			for (int j = -190; j < 200; j++) {
 				if (rand() % 2 == 0) continue;
 
 				auto entity = registry.create();
+				numTrees++;
 
 				glm::vec3 pos(spacing * (double) i + 3.0*(randomDouble()-0.5), 0, spacing * (double) j + 3.0*(randomDouble() - 0.5));
 				float yaw = 6.3f * randomDouble();
@@ -94,7 +96,7 @@ namespace game
 				//registry.emplace<components::FirstPersonRotateController>(entity, GLFW_MOUSE_BUTTON_MIDDLE);
 			}
 		}
-
+		std::cout << numTrees << " trees generated" << std::endl;
 
 		auto sun = registry.create();
 		registry.emplace<MatrixTransform>(sun, glm::mat4(1.f));
