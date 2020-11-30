@@ -10,6 +10,7 @@
 #include "components/FirstPersonRotateController.hpp"
 #include "components/FreeFlyingMoveController.hpp"
 #include "systems/MovementInputSystem.hpp"
+#include "world/Chunk.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -25,6 +26,8 @@ namespace game
 	rendering::model::Mesh* cube;
 	/*entt::entity tree;
 	float rotation = 0;*/
+
+	world::Chunk* chunk;
 
 	entt::entity pLight;
 	float red = 1, green = 1, blue = 1;
@@ -52,11 +55,19 @@ namespace game
 
 		auto& registry = renderingEngine->getRegistry();
 
+
+
+		chunk = new world::Chunk(glm::vec2(0, 0));
+		entt::entity chunkEntity = registry.create();
+		registry.emplace<MeshRenderer>(chunkEntity, chunk->getMesh());
+		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+
+
+
 		entt::entity camera = renderingEngine->getMainCamera();
 		registry.emplace<components::FreeFlyingMoveController>(camera, 15.f);
 		registry.emplace<components::FirstPersonRotateController>(camera, GLFW_MOUSE_BUTTON_RIGHT);
 		registry.emplace<EulerComponentwiseTransform>(camera, glm::vec3(0, 5, 5), 0, 0, 0, glm::vec3(1.0f));
-
 
 
 		auto entity = registry.create();
@@ -146,5 +157,8 @@ namespace game
 	{
 		renderingEngine->getRegistry().clear();
 		delete mesh;
+		delete plane;
+		delete cube;
+		delete chunk;
 	}
 }
