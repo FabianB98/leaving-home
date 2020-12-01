@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 
 #include "Cell.hpp"
+#include "PlanarGraph.hpp"
 
 #define CHUNK_SIZE 5
 

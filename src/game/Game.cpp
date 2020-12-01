@@ -80,8 +80,8 @@ namespace game
 
 		float spacing = 5.f;
 		int numTrees = 0;
-		for (int i = -190; i < 200; i++) {
-			for (int j = -190; j < 200; j++) {
+		for (int i = -90; i < 100; i++) {
+			for (int j = -90; j < 100; j++) {
 				if (rand() % 2 == 0) continue;
 
 				auto entity = registry.create();
