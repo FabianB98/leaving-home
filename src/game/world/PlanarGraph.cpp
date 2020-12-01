@@ -124,6 +124,15 @@ namespace game::world
 			return -acos(direction.x);
 	}
 
+	PlanarGraph::~PlanarGraph()
+	{
+		while (!nodes.empty())
+		{
+			Node* node = nodes.begin()->second;
+			delete node;
+		}
+	}
+
 	Node* PlanarGraph::getNode(glm::vec2& nodePosition)
 	{
 		auto findResult = nodes.find(nodePosition);
@@ -163,5 +172,35 @@ namespace game::world
 		addNode(nodeB);
 
 		nodeA->addEdgeTo(nodeB);
+	}
+
+	std::vector<Face*> PlanarGraph::calculateFaces()
+	{
+		std::vector<Face*> faces;
+
+		std::unordered_set<DirectedEdge*> traversedEdges;
+		for (auto& node : nodes)
+		{
+			for (auto& outgoingEdge : node.second->edges)
+			{
+				if (traversedEdges.find(outgoingEdge.second) == traversedEdges.end())
+				{
+					Face* face = new Face();
+					faces.push_back(face);
+
+					DirectedEdge* edge = outgoingEdge.second;
+					do
+					{
+						face->nodes.push_back(edge->from);
+						face->edges.push_back(edge);
+
+						traversedEdges.insert(edge);
+						edge = edge->otherDirection->nextCounterclockwise;
+					} while (edge != outgoingEdge.second);
+				}
+			}
+		}
+
+		return faces;
 	}
 }

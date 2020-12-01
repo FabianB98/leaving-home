@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include <glm/glm.hpp>
@@ -129,9 +130,47 @@ namespace game::world
 		friend std::unordered_map<glm::vec2, DirectedEdge*>;
 	};
 
+	class Face
+	{
+	public:
+		size_t getNumNodes()
+		{
+			return nodes.size();
+		}
+
+		const std::vector<Node*> getNodes()
+		{
+			return nodes;
+		}
+
+		size_t getNumEdges()
+		{
+			return edges.size();
+		}
+
+		const std::vector<DirectedEdge*> getEdges()
+		{
+			return edges;
+		}
+
+	private:
+		std::vector<Node*> nodes;
+		std::vector<DirectedEdge*> edges;
+
+		Face() = default;
+		Face(const Face&) = default;
+		Face(Face && edge) = default;
+
+		friend Node;
+		friend DirectedEdge;
+		friend PlanarGraph;
+	};
+
 	class PlanarGraph
 	{
 	public:
+		~PlanarGraph();
+
 		const std::unordered_map<glm::vec2, Node*>& getNodes()
 		{
 			return nodes;
@@ -161,6 +200,8 @@ namespace game::world
 		{
 			nodeA->removeEdgeTo(nodeB);
 		}
+
+		std::vector<Face*> calculateFaces();
 
 	private:
 		std::unordered_map<glm::vec2, Node*> nodes;

@@ -1,7 +1,5 @@
 #include "Chunk.hpp"
 
-#include <stdio.h>
-
 namespace game::world
 {
 	static const glm::vec2 UP = glm::vec2(0, CELL_SIZE);
@@ -12,10 +10,11 @@ namespace game::world
 	rendering::model::Mesh* Chunk::generateMesh()
 	{
 		// Generate the positions of all points used as starting positions for possible cells within the current chunk.
-		std::vector<glm::vec2> positions;
+		PlanarGraph graph = PlanarGraph();
+		std::vector<Node*> nodesOrdered;
 
-		unsigned int sum = 0;
-		unsigned int lineIndexPrefixsum[2 * CHUNK_SIZE + 1];
+		size_t sum = 0;
+		size_t lineIndexPrefixsum[2 * CHUNK_SIZE + 1]{};
 
 		for (int line = -CHUNK_SIZE; line <= CHUNK_SIZE; line++)
 		{
@@ -28,70 +27,111 @@ namespace game::world
 			int pointsInLine = 2 * CHUNK_SIZE + 1 - abs(line);
 			for (int pointInLine = 0; pointInLine < pointsInLine; pointInLine++)
 			{
-				positions.push_back(lineStart + (float)pointInLine * DIAG_RIGHT_UP);
+				Node* node = new Node(lineStart + (float)pointInLine * DIAG_RIGHT_UP);
+				nodesOrdered.push_back(node);
+				graph.addNode(node);
 			}
 
 			lineIndexPrefixsum[line + CHUNK_SIZE] = sum;
 			sum += pointsInLine;
 		}
 
-		// Generate a mesh from the generated positions.
-		std::vector<glm::vec3> vertices;
-		std::vector<glm::vec2> uvs;
-		std::vector<glm::vec3> normals;
-
-		for (auto& position : positions)
+		// Create an embedding of a planar graph from the generated positions.
+		// Add all edges along the first line.
+		for (size_t pointInLine = 0; pointInLine < CHUNK_SIZE; pointInLine++)
 		{
-			vertices.push_back(glm::vec3(position.x, 0, position.y));
-			uvs.push_back(glm::vec2(0, 0));
-			normals.push_back(glm::vec3(0, 1, 0));
+			graph.addEdge(nodesOrdered[pointInLine], nodesOrdered[pointInLine + 1]);
 		}
 
-		std::vector<unsigned int> indices;
-
-		// Upper-left half of the hexagon
+		// Add all edges within the upper-left half of the hexagon.
 		for (int line = 1; line <= CHUNK_SIZE; line++)
 		{
-			// Generate right-pointing triangle.
-			indices.push_back(lineIndexPrefixsum[line] + 1);
-			indices.push_back(lineIndexPrefixsum[line]);
-			indices.push_back(lineIndexPrefixsum[line - 1]);
+			// Add the upward and right-up edge of the first point in the line.
+			graph.addEdge(nodesOrdered[lineIndexPrefixsum[line]], nodesOrdered[lineIndexPrefixsum[line - 1]]);
+			graph.addEdge(nodesOrdered[lineIndexPrefixsum[line]], nodesOrdered[lineIndexPrefixsum[line] + 1]);
 
-			for (int pointInLine = 1; pointInLine < CHUNK_SIZE + line; pointInLine++)
+			int pointsInLine = CHUNK_SIZE + line;
+			for (int pointInLine = 1; pointInLine < pointsInLine; pointInLine++)
 			{
-				// Generate left-pointing triangle.
-				indices.push_back(lineIndexPrefixsum[line] + pointInLine);
-				indices.push_back(lineIndexPrefixsum[line - 1] + pointInLine - 1);
-				indices.push_back(lineIndexPrefixsum[line - 1] + pointInLine);
-
-				// Generate right-pointing triangle.
-				indices.push_back(lineIndexPrefixsum[line] + pointInLine + 1);
-				indices.push_back(lineIndexPrefixsum[line] + pointInLine);
-				indices.push_back(lineIndexPrefixsum[line - 1] + pointInLine);
+				// Add the left-up, upward and right-up edge of the current point in the line.
+				graph.addEdge(nodesOrdered[lineIndexPrefixsum[line] + pointInLine], nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine - 1]);
+				graph.addEdge(nodesOrdered[lineIndexPrefixsum[line] + pointInLine], nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine]);
+				graph.addEdge(nodesOrdered[lineIndexPrefixsum[line] + pointInLine], nodesOrdered[lineIndexPrefixsum[line] + pointInLine + 1]);
 			}
+
+			// Add the left-up edge of the last point in the line.
+			graph.addEdge(nodesOrdered[lineIndexPrefixsum[line] + pointsInLine], nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine - 1]);
 		}
 
-		// Bottom-right half of the hexagon
+		// Add all edges within the lower-right half of the hexagon.
 		for (int line = CHUNK_SIZE + 1; line <= 2 * CHUNK_SIZE; line++)
 		{
 			int pointsInLine = 3 * CHUNK_SIZE - line;
 			for (int pointInLine = 0; pointInLine < pointsInLine; pointInLine++)
 			{
-				// Generate left-pointing triangle.
-				indices.push_back(lineIndexPrefixsum[line] + pointInLine);
-				indices.push_back(lineIndexPrefixsum[line - 1] + pointInLine);
-				indices.push_back(lineIndexPrefixsum[line - 1] + pointInLine + 1);
+				// Add the left-up, upward and right-up edge of the current point in the line.
+				graph.addEdge(nodesOrdered[lineIndexPrefixsum[line] + pointInLine], nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine]);
+				graph.addEdge(nodesOrdered[lineIndexPrefixsum[line] + pointInLine], nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine + 1]);
+				graph.addEdge(nodesOrdered[lineIndexPrefixsum[line] + pointInLine], nodesOrdered[lineIndexPrefixsum[line] + pointInLine + 1]);
+			}
+			
+			// Add the left-up and upward edge of the last point in the line.
+			graph.addEdge(nodesOrdered[lineIndexPrefixsum[line] + pointsInLine], nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine]);
+			graph.addEdge(nodesOrdered[lineIndexPrefixsum[line] + pointsInLine], nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine + 1]);
+		}
 
-				// Generate right-pointing triangle.
-				indices.push_back(lineIndexPrefixsum[line] + pointInLine + 1);
-				indices.push_back(lineIndexPrefixsum[line] + pointInLine);
-				indices.push_back(lineIndexPrefixsum[line - 1] + pointInLine + 1);
+		// TODO: Edge removal
+
+		// TODO: Surface subdivision
+
+		// TODO: Graph relaxation
+
+		// Generate a mesh from the graph.
+		std::vector<Face*> faces = graph.calculateFaces();
+
+		std::vector<glm::vec3> vertices;
+		std::vector<glm::vec2> uvs;
+		std::vector<glm::vec3> normals;
+
+		std::unordered_map<Node*, unsigned int> nodeIndices;
+		unsigned int currentIndex = 0;
+		for (auto& node : graph.getNodes())
+		{
+			glm::vec2& position = node.second->getPosition();
+			vertices.push_back(glm::vec3(position.x, 0, position.y));
+			uvs.push_back(glm::vec2(0, 0));
+			normals.push_back(glm::vec3(0, 1, 0));
+
+			nodeIndices.insert(std::make_pair(node.second, currentIndex));
+			currentIndex++;
+		}
+
+		std::vector<unsigned int> indices;
+
+		for (auto& face : faces)
+		{
+			if (face->getNumNodes() == 3)
+			{
+				auto& nodes = face->getNodes();
+
+				indices.push_back(nodeIndices[nodes[0]]);
+				indices.push_back(nodeIndices[nodes[1]]);
+				indices.push_back(nodeIndices[nodes[2]]);
+			}
+			else if (face->getNumNodes())
+			{
+				auto& nodes = face->getNodes();
+
+				indices.push_back(nodeIndices[nodes[0]]);
+				indices.push_back(nodeIndices[nodes[1]]);
+				indices.push_back(nodeIndices[nodes[2]]);
+
+				indices.push_back(nodeIndices[nodes[0]]);
+				indices.push_back(nodeIndices[nodes[2]]);
+				indices.push_back(nodeIndices[nodes[3]]);
 			}
 
-			// Generate left-pointing triangle.
-			indices.push_back(lineIndexPrefixsum[line] + pointsInLine);
-			indices.push_back(lineIndexPrefixsum[line - 1] + pointsInLine);
-			indices.push_back(lineIndexPrefixsum[line - 1] + pointsInLine + 1);
+			delete face;
 		}
 
 		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
