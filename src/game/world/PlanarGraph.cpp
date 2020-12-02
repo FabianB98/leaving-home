@@ -23,11 +23,14 @@ namespace game::world
 			return nullptr;
 	}
 
-	void Node::addEdgeTo(Node* other)
+	std::pair<DirectedEdge*, DirectedEdge*> Node::addEdgeTo(Node* other)
 	{
 		std::pair<DirectedEdge*, DirectedEdge*> edges = DirectedEdge::createEdge(this, other);
+
 		addEdge(edges.first);
 		other->addEdge(edges.second);
+
+		return edges;
 	}
 
 	void Node::addEdge(DirectedEdge* edge)
@@ -166,12 +169,12 @@ namespace game::world
 		}
 	}
 
-	void PlanarGraph::addEdge(Node* nodeA, Node* nodeB)
+	std::pair<DirectedEdge*, DirectedEdge*> PlanarGraph::addEdge(Node* nodeA, Node* nodeB)
 	{
 		addNode(nodeA);
 		addNode(nodeB);
 
-		nodeA->addEdgeTo(nodeB);
+		return nodeA->addEdgeTo(nodeB);
 	}
 
 	std::vector<Face*> PlanarGraph::calculateFaces()

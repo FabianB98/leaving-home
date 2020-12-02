@@ -52,7 +52,7 @@ namespace game::world
 			return edges;
 		}
 
-		void addEdgeTo(Node* other);
+		std::pair<DirectedEdge*, DirectedEdge*> addEdgeTo(Node* other);
 
 		void removeEdgeTo(Node* other);
 
@@ -189,7 +189,7 @@ namespace game::world
 
 		void removeNode(Node* node);
 
-		void addEdge(Node* nodeA, Node* nodeB);
+		std::pair<DirectedEdge*, DirectedEdge*> addEdge(Node* nodeA, Node* nodeB);
 
 		void removeEdge(DirectedEdge* edge)
 		{

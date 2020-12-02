@@ -4,9 +4,11 @@
 #include "../../rendering/model/Mesh.hpp"
 #include "../../rendering/model/MeshPart.hpp"
 
+#include <algorithm>
+#include <random>
 #include <stdlib.h>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include <glm/glm.hpp>
 
@@ -20,12 +22,20 @@ namespace game::world
 	class Chunk
 	{
 	public:
-		Chunk(glm::vec2 _centerPos)
-			: centerPos(_centerPos), mesh(generateMesh()) {};
+		Chunk(size_t worldSeed, glm::vec2 _centerPos)
+			: chunkSeed(worldSeed ^ std::hash<glm::vec2>()(_centerPos)), centerPos(_centerPos) 
+		{
+			generateMesh();
+		}
 
 		~Chunk()
 		{
 			delete mesh;
+		}
+
+		size_t getChunkSeed()
+		{
+			return chunkSeed;
 		}
 
 		glm::vec2 getCenterPos()
@@ -39,10 +49,11 @@ namespace game::world
 		}
 
 	private:
+		size_t chunkSeed;
 		glm::vec2 centerPos;
 
 		rendering::model::Mesh* mesh;
 
-		rendering::model::Mesh* generateMesh();
+		void generateMesh();
 	};
 }

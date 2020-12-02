@@ -57,7 +57,7 @@ namespace game
 
 
 
-		chunk = new world::Chunk(glm::vec2(0, 0));
+		chunk = new world::Chunk(size_t(1337), glm::vec2(0, 0));
 		entt::entity chunkEntity = registry.create();
 		registry.emplace<MeshRenderer>(chunkEntity, chunk->getMesh());
 		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
