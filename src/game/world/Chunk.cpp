@@ -89,29 +89,75 @@ namespace game::world
 		// Edge removal: Iterate over all edges in a pseudorandom order and delete each edge which connects two triangles.
 		std::default_random_engine random(chunkSeed);
 		std::shuffle(edgesOrdered.begin(), edgesOrdered.end(), random);
-		for (auto& edge : edgesOrdered)
+		auto& edge = edgesOrdered.begin();
+		while (edge != edgesOrdered.end())
 		{
-			bool forwardEdgeTriangle = edge.first
+			bool forwardEdgeTriangle = edge->first
 				->getOtherDirection()->getNextCounterclockwise()
 				->getOtherDirection()->getNextCounterclockwise()
-				->getOtherDirection()->getNextCounterclockwise() == edge.first;
-			bool backwardEdgeTriangle = edge.second
+				->getOtherDirection()->getNextCounterclockwise() == edge->first;
+			bool backwardEdgeTriangle = edge->second
 				->getOtherDirection()->getNextCounterclockwise()
 				->getOtherDirection()->getNextCounterclockwise()
-				->getOtherDirection()->getNextCounterclockwise() == edge.second;
+				->getOtherDirection()->getNextCounterclockwise() == edge->second;
 
 			if (forwardEdgeTriangle && backwardEdgeTriangle)
 			{
-				delete edge.first;
+				delete edge->first;
+				edge = edgesOrdered.erase(edge);
+			}
+			else
+			{
+				edge++;
 			}
 		}
 
-		// TODO: Surface subdivision
+		// Surface subdivision: Divide each triangle face into 3 quads and each quad face into 4 quads by inserting a
+		// new node at the center of the face and connecting it to all nodes of that face as well as the center points
+		// of each edge of that face.
+		std::unordered_set<glm::vec2> connectToPositions;
+		for (auto& edge : edgesOrdered)
+		{
+			Node* fromNode = edge.first->getFrom();
+			Node* toNode = edge.first->getTo();
+			Node* centerNode = new Node(0.5f * (fromNode->getPosition() + toNode->getPosition()));
+
+			delete edge.first;
+			graph.addEdge(centerNode, fromNode);
+			graph.addEdge(centerNode, toNode);
+
+			connectToPositions.insert(centerNode->getPosition());
+		}
+
+		std::vector<Face*> faces = graph.calculateFaces();
+		for (auto& face : faces)
+		{
+			size_t nodesInFace = face->getNumNodes();
+			if (nodesInFace == 6 || nodesInFace == 8)
+			{
+				glm::vec2 centerNodePosition = glm::vec2(0.0f, 0.0f);
+				for (auto& node : face->getNodes())
+					centerNodePosition += node->getPosition();
+				centerNodePosition /= (float)nodesInFace;
+
+				Node* centerNode = new Node(centerNodePosition);
+
+				for (auto& node : face->getNodes())
+				{
+					if (connectToPositions.find(node->getPosition()) != connectToPositions.end())
+					{
+						graph.addEdge(centerNode, node);
+					}
+				}
+			}
+
+			delete face;
+		}
 
 		// TODO: Graph relaxation
 
 		// Generate a mesh from the graph.
-		std::vector<Face*> faces = graph.calculateFaces();
+		faces = graph.calculateFaces();
 
 		std::vector<glm::vec3> vertices;
 		std::vector<glm::vec2> uvs;
@@ -134,7 +180,8 @@ namespace game::world
 
 		for (auto& face : faces)
 		{
-			if (face->getNumNodes() == 3)
+			size_t nodesInFace = face->getNumNodes();
+			if (nodesInFace == 3)
 			{
 				auto& nodes = face->getNodes();
 
@@ -142,7 +189,7 @@ namespace game::world
 				indices.push_back(nodeIndices[nodes[1]]);
 				indices.push_back(nodeIndices[nodes[2]]);
 			}
-			else if (face->getNumNodes())
+			else if (nodesInFace == 4)
 			{
 				auto& nodes = face->getNodes();
 
