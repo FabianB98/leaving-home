@@ -23,12 +23,7 @@ namespace game::world
 	class Chunk
 	{
 	public:
-		Chunk(size_t worldSeed, glm::vec2 _centerPos)
-			: chunkSeed(worldSeed ^ std::hash<glm::vec2>()(_centerPos)), centerPos(_centerPos) 
-		{
-			Generator generator = Generator(this);
-			generator.generateChunkTopology();
-		}
+		Chunk(size_t worldSeed, int32_t _column, int32_t _row);
 
 		~Chunk()
 		{
@@ -52,6 +47,9 @@ namespace game::world
 
 	private:
 		size_t chunkSeed;
+
+		int32_t column;
+		int32_t row;
 		glm::vec2 centerPos;
 
 		rendering::model::Mesh* mesh;

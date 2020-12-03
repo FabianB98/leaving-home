@@ -2,10 +2,31 @@
 
 namespace game::world
 {
-	static const glm::vec2 UP = glm::vec2(0, CELL_SIZE);
-	static const glm::vec2 DIAG_RIGHT_UP = glm::vec2(CELL_SIZE * cos(glm::radians(30.0f)), CELL_SIZE * sin(glm::radians(30.0f)));
-	static const glm::vec2 DIAG_RIGHT_DOWN = glm::vec2(CELL_SIZE * cos(glm::radians(330.0f)), CELL_SIZE * sin(glm::radians(330.0f)));
-	static const glm::vec2 CENTER_LINE_START = - glm::vec2(CELL_SIZE, CELL_SIZE) * DIAG_RIGHT_UP;
+	static const float INITIAL_CELL_SIZE = 2 * CELL_SIZE;
+	static const float CHUNK_BORDER_LENGTH = CHUNK_SIZE * INITIAL_CELL_SIZE;
+
+	static const float CHUNK_WIDTH = sqrt(3.0f) * CHUNK_BORDER_LENGTH;
+	static const float CHUNK_HEIGHT = 2 * CHUNK_BORDER_LENGTH;
+
+	static const float CHUNK_HORIZONTAL_DISTANCE = CHUNK_WIDTH;
+	static const float CHUNK_VERTICAL_DISTANCE = 0.75 * CHUNK_HEIGHT;
+
+	static const glm::vec2 UP = glm::vec2(0, INITIAL_CELL_SIZE);
+	static const glm::vec2 DIAG_RIGHT_UP = glm::vec2(INITIAL_CELL_SIZE * cos(glm::radians(30.0f)), INITIAL_CELL_SIZE * sin(glm::radians(30.0f)));
+	static const glm::vec2 DIAG_RIGHT_DOWN = glm::vec2(INITIAL_CELL_SIZE * cos(glm::radians(330.0f)), INITIAL_CELL_SIZE * sin(glm::radians(330.0f)));
+	static const glm::vec2 CENTER_LINE_START = - glm::vec2(INITIAL_CELL_SIZE, INITIAL_CELL_SIZE) * DIAG_RIGHT_UP;
+
+	Chunk::Chunk(size_t worldSeed, int32_t _column, int32_t _row) : column(_column), row(_row)
+	{
+		float xPos = (column + (row % 2) * 0.5f) * CHUNK_HORIZONTAL_DISTANCE;
+		float yPos = row * CHUNK_VERTICAL_DISTANCE;
+		centerPos = glm::vec2(xPos, yPos);
+
+		chunkSeed = worldSeed ^ std::hash<glm::vec2>()(centerPos);
+
+		Generator generator = Generator(this);
+		generator.generateChunkTopology();
+	}
 
 	void Chunk::Generator::generateChunkTopology()
 	{
@@ -27,7 +48,7 @@ namespace game::world
 		glm::vec2 centerLineStart = chunk->centerPos + CENTER_LINE_START;
 		for (int line = -CHUNK_SIZE; line <= CHUNK_SIZE; line++)
 		{
-			glm::vec2 lineStart = CENTER_LINE_START;
+			glm::vec2 lineStart = centerLineStart;
 			if (line < 0)
 				lineStart -= (float)line * UP;
 			else

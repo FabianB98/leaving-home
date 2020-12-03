@@ -19,6 +19,8 @@
 #include <time.h>
 #include <math.h>
 
+#include <chrono>
+
 namespace game
 {
 	rendering::model::Mesh* mesh;
@@ -27,7 +29,13 @@ namespace game
 	/*entt::entity tree;
 	float rotation = 0;*/
 
-	world::Chunk* chunk;
+	world::Chunk* chunk1;
+	world::Chunk* chunk2;
+	world::Chunk* chunk3;
+	world::Chunk* chunk4;
+	world::Chunk* chunk5;
+	world::Chunk* chunk6;
+	world::Chunk* chunk7;
 
 	entt::entity pLight;
 	float red = 1, green = 1, blue = 1;
@@ -55,14 +63,45 @@ namespace game
 
 		auto& registry = renderingEngine->getRegistry();
 
+		auto start = std::chrono::high_resolution_clock::now();
 
-
-		chunk = new world::Chunk(size_t(1337), glm::vec2(0, 0));
+		chunk1 = new world::Chunk(size_t(1337), 0, 0);
 		entt::entity chunkEntity = registry.create();
-		registry.emplace<MeshRenderer>(chunkEntity, chunk->getMesh());
+		registry.emplace<MeshRenderer>(chunkEntity, chunk1->getMesh());
 		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
+		chunk2 = new world::Chunk(size_t(1337), 0, 1);
+		chunkEntity = registry.create();
+		registry.emplace<MeshRenderer>(chunkEntity, chunk2->getMesh());
+		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
+		chunk3 = new world::Chunk(size_t(1337), 0, 2);
+		chunkEntity = registry.create();
+		registry.emplace<MeshRenderer>(chunkEntity, chunk3->getMesh());
+		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+
+		chunk4 = new world::Chunk(size_t(1337), 1, 0);
+		chunkEntity = registry.create();
+		registry.emplace<MeshRenderer>(chunkEntity, chunk4->getMesh());
+		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+
+		chunk5 = new world::Chunk(size_t(1337), 1, 1);
+		chunkEntity = registry.create();
+		registry.emplace<MeshRenderer>(chunkEntity, chunk5->getMesh());
+		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+
+		chunk6 = new world::Chunk(size_t(1337), 1, 2);
+		chunkEntity = registry.create();
+		registry.emplace<MeshRenderer>(chunkEntity, chunk6->getMesh());
+		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+
+		chunk7 = new world::Chunk(size_t(1337), -1, 1);
+		chunkEntity = registry.create();
+		registry.emplace<MeshRenderer>(chunkEntity, chunk7->getMesh());
+		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+
+		auto finish = std::chrono::high_resolution_clock::now();
+		std::cout << "Generated 7 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
 
 		entt::entity camera = renderingEngine->getMainCamera();
 		registry.emplace<components::FreeFlyingMoveController>(camera, 15.f);
@@ -161,6 +200,12 @@ namespace game
 		delete mesh;
 		delete plane;
 		delete cube;
-		delete chunk;
+		delete chunk1;
+		delete chunk2;
+		delete chunk3;
+		delete chunk4;
+		delete chunk5;
+		delete chunk6;
+		delete chunk7;
 	}
 }
