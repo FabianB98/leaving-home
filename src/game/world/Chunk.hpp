@@ -26,7 +26,8 @@ namespace game::world
 		Chunk(size_t worldSeed, glm::vec2 _centerPos)
 			: chunkSeed(worldSeed ^ std::hash<glm::vec2>()(_centerPos)), centerPos(_centerPos) 
 		{
-			generateMesh();
+			Generator generator = Generator(this);
+			generator.generateChunkTopology();
 		}
 
 		~Chunk()
@@ -55,6 +56,31 @@ namespace game::world
 
 		rendering::model::Mesh* mesh;
 
-		void generateMesh();
+		class Generator
+		{
+		public:
+			Generator(Chunk* _chunk) : chunk(_chunk), graph(PlanarGraph()) {}
+
+			void generateChunkTopology();
+
+		private:
+			Chunk* chunk;
+
+			PlanarGraph graph;
+			std::vector<Node*> nodesOrdered;
+			std::vector<std::pair<DirectedEdge*, DirectedEdge*>> edgesOrdered;
+
+			size_t lineIndexPrefixsum[2 * CHUNK_SIZE + 1]{};
+
+			void generateInitialPositions();
+
+			void generateInitialEdges();
+
+			void removeEdges();
+
+			void subdivideSurfaces();
+
+			void setChunkTopologyData();
+		};
 	};
 }

@@ -7,16 +7,24 @@ namespace game::world
 	static const glm::vec2 DIAG_RIGHT_DOWN = glm::vec2(CELL_SIZE * cos(glm::radians(330.0f)), CELL_SIZE * sin(glm::radians(330.0f)));
 	static const glm::vec2 CENTER_LINE_START = - glm::vec2(CELL_SIZE, CELL_SIZE) * DIAG_RIGHT_UP;
 
-	void Chunk::generateMesh()
+	void Chunk::Generator::generateChunkTopology()
+	{
+		generateInitialPositions();
+		generateInitialEdges();
+
+		removeEdges();
+		subdivideSurfaces();
+
+		setChunkTopologyData();
+	}
+
+	void Chunk::Generator::generateInitialPositions()
 	{
 		// Generate the positions of all points used as starting positions for possible cells within the current chunk.
-		PlanarGraph graph = PlanarGraph();
-		std::vector<Node*> nodesOrdered;
-		std::vector<std::pair<DirectedEdge*, DirectedEdge*>> edgesOrdered;
-
+		// Positions are generated in lines. Each line starts at the bottom left most point of the line and is generated
+		// by moving up diagonally to the right.
 		size_t sum = 0;
-		size_t lineIndexPrefixsum[2 * CHUNK_SIZE + 1]{};
-
+		glm::vec2 centerLineStart = chunk->centerPos + CENTER_LINE_START;
 		for (int line = -CHUNK_SIZE; line <= CHUNK_SIZE; line++)
 		{
 			glm::vec2 lineStart = CENTER_LINE_START;
@@ -36,7 +44,10 @@ namespace game::world
 			lineIndexPrefixsum[line + CHUNK_SIZE] = sum;
 			sum += pointsInLine;
 		}
+	}
 
+	void Chunk::Generator::generateInitialEdges()
+	{
 		// Create an embedding of a planar graph from the generated positions.
 		// Add all edges along the first line.
 		for (size_t pointInLine = 0; pointInLine < CHUNK_SIZE; pointInLine++)
@@ -79,15 +90,18 @@ namespace game::world
 				edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine + 1]));
 				edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line] + pointInLine + 1]));
 			}
-			
+
 			// Add the left-up and upward edge of the last point in the line.
 			Node* currentNode = nodesOrdered[lineIndexPrefixsum[line] + pointsInLine];
 			edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine]));
 			edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine + 1]));
 		}
+	}
 
+	void Chunk::Generator::removeEdges()
+	{
 		// Edge removal: Iterate over all edges in a pseudorandom order and delete each edge which connects two triangles.
-		std::default_random_engine random(chunkSeed);
+		std::default_random_engine random(chunk->chunkSeed);
 		std::shuffle(edgesOrdered.begin(), edgesOrdered.end(), random);
 		auto& edge = edgesOrdered.begin();
 		while (edge != edgesOrdered.end())
@@ -111,7 +125,10 @@ namespace game::world
 				edge++;
 			}
 		}
+	}
 
+	void Chunk::Generator::subdivideSurfaces()
+	{
 		// Surface subdivision: Divide each triangle face into 3 quads and each quad face into 4 quads by inserting a
 		// new node at the center of the face and connecting it to all nodes of that face as well as the center points
 		// of each edge of that face.
@@ -153,11 +170,16 @@ namespace game::world
 
 			delete face;
 		}
+	}
 
-		// TODO: Graph relaxation
+	void Chunk::Generator::setChunkTopologyData()
+	{
+		// TODO: The mesh shouldn't be directly generated here. Instead, instances of class Cell should be created which
+		// are then added to the Chunk. Later on, after the chunk's cells were relaxed (not in this method), the mesh
+		// can be created.
 
 		// Generate a mesh from the graph.
-		faces = graph.calculateFaces();
+		std::vector<Face*> faces = graph.calculateFaces();
 
 		std::vector<glm::vec3> vertices;
 		std::vector<glm::vec2> uvs;
@@ -203,13 +225,13 @@ namespace game::world
 		}
 
 		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
-			glm::vec3(0.0f, 0.2f, 0.0f), 
-			glm::vec3(0.0f, 1.0f, 0.0f), 
-			glm::vec3(0.0f, 0.1f, 0.0f), 
+			glm::vec3(0.0f, 0.2f, 0.0f),
+			glm::vec3(0.0f, 1.0f, 0.0f),
+			glm::vec3(0.0f, 0.1f, 0.0f),
 			2.0f
-		);
+			);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_LINES));
-		mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+		chunk->mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
 	}
 }
