@@ -181,25 +181,22 @@ namespace game::world
 		for (auto& face : faces)
 		{
 			size_t nodesInFace = face->getNumNodes();
-			if (nodesInFace == 3)
+			if (nodesInFace == 4)
 			{
+				// All faces of the planar graph are quads (except for the outside of the chunk, which we don't want to render).
 				auto& nodes = face->getNodes();
 
 				indices.push_back(nodeIndices[nodes[0]]);
 				indices.push_back(nodeIndices[nodes[1]]);
-				indices.push_back(nodeIndices[nodes[2]]);
-			}
-			else if (nodesInFace == 4)
-			{
-				auto& nodes = face->getNodes();
 
-				indices.push_back(nodeIndices[nodes[0]]);
 				indices.push_back(nodeIndices[nodes[1]]);
 				indices.push_back(nodeIndices[nodes[2]]);
 
-				indices.push_back(nodeIndices[nodes[0]]);
 				indices.push_back(nodeIndices[nodes[2]]);
 				indices.push_back(nodeIndices[nodes[3]]);
+
+				indices.push_back(nodeIndices[nodes[3]]);
+				indices.push_back(nodeIndices[nodes[0]]);
 			}
 
 			delete face;
@@ -212,7 +209,7 @@ namespace game::world
 			2.0f
 		);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
-		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices));
+		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_LINES));
 		mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
 	}
 }

@@ -4,8 +4,8 @@ namespace rendering
 {
 	namespace model
 	{
-		MeshPart::MeshPart(std::shared_ptr<Material> _material, const std::vector<unsigned int>& indices)
-			: material(std::move(_material)), numIndices((GLsizei)indices.size())
+		MeshPart::MeshPart(std::shared_ptr<Material> _material, const std::vector<unsigned int>& indices, GLenum _mode)
+			: material(std::move(_material)), numIndices((GLsizei)indices.size()), mode(_mode)
 		{
 			glGenBuffers(1, &indexBuffer);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -22,7 +22,7 @@ namespace rendering
 			material->bind(shader);
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-			glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, (void*)0);
+			glDrawElements(mode, numIndices, GL_UNSIGNED_INT, (void*)0);
 		}
 
 		void MeshPart::renderInstanced(shading::Shader& shader, size_t numInstances)
@@ -30,7 +30,7 @@ namespace rendering
 			material->bind(shader);
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-			glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, (void*)0, numInstances);
+			glDrawElementsInstanced(mode, numIndices, GL_UNSIGNED_INT, (void*)0, numInstances);
 		}
 	}
 }

@@ -19,7 +19,10 @@ namespace rendering
 		class MeshPart
 		{
 		public:
-			MeshPart(std::shared_ptr<Material> _material, const std::vector<unsigned int>& indices);
+			MeshPart(std::shared_ptr<Material> _material, const std::vector<unsigned int>& indices)
+				: MeshPart(_material, indices, GL_TRIANGLES) {};
+
+			MeshPart(std::shared_ptr<Material> _material, const std::vector<unsigned int>& indices, GLenum _mode);
 
 			~MeshPart();
 
@@ -32,6 +35,8 @@ namespace rendering
 
 			GLuint indexBuffer;
 			GLsizei numIndices;
+
+			GLenum mode;
 		};
 	}
 }
