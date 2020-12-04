@@ -11,13 +11,14 @@
 #include "components/FirstPersonRotateController.hpp"
 #include "components/FreeFlyingMoveController.hpp"
 #include "systems/MovementInputSystem.hpp"
+#include "DayNightCycle.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glfw/glfw3.h>
 #include <imgui.h>
 #include <time.h>
-#include <math.h>
+
 
 namespace game
 {
@@ -34,8 +35,7 @@ namespace game
 
 	entt::entity e1, e2, e3;
 
-	float daytime = 0.f;
-	float timeSpeed = 1.f;
+	DayNightCycle daynight;
 	rendering::Skybox* skybox;
 
 	double randomDouble()
@@ -159,50 +159,35 @@ namespace game
 		game::systems::updateMovementInputSystem(renderingEngine, deltaTime);
 	}
 
-	float smoothstep(float t0, float t1, float x) {
-		x = std::clamp((x - t0) / (t1 - t0), 0.f, 1.f);
-		return x * x * (3 - 2 * x);
-	}
+	
 
 	void Game::update(rendering::RenderingEngine* renderingEngine, double deltaTime)
 	{
 		auto& registry = renderingEngine->getRegistry();
 
-		registry.patch<rendering::components::PointLight>(pLight, [](auto& light)
-		{
+		registry.patch<rendering::components::PointLight>(pLight, [](auto& light) {
 			light.intensity = 50.f * glm::vec3(red, green, blue);
 		});
-
-		daytime += timeSpeed * deltaTime;
-		if (daytime >= M_PI) daytime -= 2 * M_PI;
-
-		float half = M_PI * .5f;
-		float dd = M_PI * .1f;
-		float brightness = smoothstep(-half-dd, -half, daytime) * smoothstep(half+dd, half, daytime);
-		float dawn = smoothstep(-half-dd, -half+dd, daytime) * smoothstep(half+dd, half-dd, daytime);
-
-		glm::vec3 intensity = 2 * brightness * (dawn * glm::vec3(1) + (1.f - dawn) * glm::vec3(1, .25f, 0));
-		glm::vec3 direction(0, cos(daytime), sin(daytime));
 		
-		registry.replace<rendering::components::DirectionalLight>(sun, intensity, direction);
-
-
-
-		registry.patch<rendering::components::EulerComponentwiseTransform>(e2, [](auto& tf)
-		{
-			tf.setTranslation(8.f * glm::vec3(sin(daytime), 0, cos(daytime)));
+		daynight.update(deltaTime);
+		registry.replace<rendering::components::DirectionalLight>(sun, daynight.getSunColor(), daynight.getSunDirection());
+		
+		
+		float time = daynight.getTime();
+		registry.patch<rendering::components::EulerComponentwiseTransform>(e2, [time](auto& tf) {
+			tf.setTranslation(8.f * glm::vec3(sin(time), 0, cos(time)));
 		});
-
-		registry.patch<rendering::components::EulerComponentwiseTransform>(e3, [](auto& tf)
-		{
-			tf.setTranslation(4.f * glm::vec3(sin(2*daytime), 0, cos(2*daytime)));
+		registry.patch<rendering::components::EulerComponentwiseTransform>(e3, [time](auto& tf) {
+			tf.setTranslation(4.f * glm::vec3(sin(2*time), 0, cos(2*time)));
 		});
 	}
 
 	void Game::render(rendering::RenderingEngine* renderingEngine)
 	{
+		float time = daynight.getTime();
+
 		skybox->use();
-		skybox->getShader()->setUniformFloat("time", daytime);
+		skybox->getShader()->setUniformFloat("time", time);
 		skybox->render(renderingEngine);
 
 
@@ -214,7 +199,7 @@ namespace game
 
 		ImGui::Dummy(ImVec2(0, 10.f));
 
-		ImGui::SliderFloat("Day-Night speed", &timeSpeed, 0.f, 1.f);
+		ImGui::SliderFloat("Day-Night speed", &daynight.speed, 0.f, 1.f);
 
 		ImGui::End();
 	}
