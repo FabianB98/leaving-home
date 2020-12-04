@@ -56,16 +56,20 @@ namespace rendering::systems
 			meshTransforms[mesh].second.clear();
 		}
 
-		// Update the model and normal matrices of all meshes where at lest one transformation was changed.
-		registry.view<components::MeshRenderer, components::MatrixTransform>().each([](auto &renderer, auto &transform) {
+		auto group = registry.group<components::MeshRenderer>(entt::get<components::MatrixTransform>);
+		for (auto entity : group) {
+			auto& renderer = group.get<components::MeshRenderer>(entity);
 			model::Mesh* mesh = renderer.getMesh();
-			if (transformChanged.find(mesh) != transformChanged.end())
-			{
-				glm::mat4 modelMatrix = transform.getTransform();
-				meshTransforms[mesh].first.push_back(modelMatrix);
-				meshTransforms[mesh].second.push_back(glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
-			}
-		});
+			if (transformChanged.find(mesh) == transformChanged.end()) continue;
+
+			auto& transform = group.get<components::MatrixTransform>(entity);
+			auto relationship = registry.try_get<components::Relationship>(entity);
+
+			glm::mat4 modelMatrix = relationship ? relationship->totalTransform : transform.getTransform();
+			meshTransforms[mesh].first.push_back(modelMatrix);
+			meshTransforms[mesh].second.push_back(glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+		}
+
 
 		// Calculate the maximum amount of instances of one mesh of meshes where at least one transformation was changed.
 		size_t numInstances = 0;
