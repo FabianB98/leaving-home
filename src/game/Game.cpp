@@ -188,6 +188,7 @@ namespace game
 
 		skybox->use();
 		skybox->getShader()->setUniformFloat("time", time);
+		skybox->getShader()->setUniformVec3("sunColor", daynight.getSunColor());
 		skybox->render(renderingEngine);
 
 
@@ -199,7 +200,7 @@ namespace game
 
 		ImGui::Dummy(ImVec2(0, 10.f));
 
-		ImGui::SliderFloat("Day-Night speed", &daynight.speed, 0.f, 1.f);
+		ImGui::SliderFloat("Day-Night speed", &daynight.speed, -1.f, 1.f);
 
 		ImGui::End();
 	}
