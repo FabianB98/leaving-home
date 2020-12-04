@@ -71,8 +71,6 @@ namespace rendering
 			return lockMouseCursor;
 		}
 
-		void _updateSize(int _width, int _height);
-
 		int getFramebufferWidth()
 		{
 			return width;
@@ -143,5 +141,9 @@ namespace rendering
 		void renderDebugWindow();
 
 		void cleanUp();
+
+		void _updateSize(int _width, int _height);
+
+		friend void frameBufferSizeCallback(GLFWwindow* window, int width, int height);
 	};
 }
