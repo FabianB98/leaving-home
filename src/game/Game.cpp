@@ -65,37 +65,44 @@ namespace game
 
 		auto start = std::chrono::high_resolution_clock::now();
 
+		// Center
 		chunk1 = new world::Chunk(size_t(1337), 0, 0);
 		entt::entity chunkEntity = registry.create();
 		registry.emplace<MeshRenderer>(chunkEntity, chunk1->getMesh());
 		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
+		// Diag down right
 		chunk2 = new world::Chunk(size_t(1337), 0, 1);
 		chunkEntity = registry.create();
 		registry.emplace<MeshRenderer>(chunkEntity, chunk2->getMesh());
 		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
-		chunk3 = new world::Chunk(size_t(1337), 0, 2);
+		// Diag down left
+		chunk3 = new world::Chunk(size_t(1337), -1, 1);
 		chunkEntity = registry.create();
 		registry.emplace<MeshRenderer>(chunkEntity, chunk3->getMesh());
 		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
-		chunk4 = new world::Chunk(size_t(1337), 1, 0);
+		// Left
+		chunk4 = new world::Chunk(size_t(1337), -1, 0);
 		chunkEntity = registry.create();
 		registry.emplace<MeshRenderer>(chunkEntity, chunk4->getMesh());
 		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
-		chunk5 = new world::Chunk(size_t(1337), 1, 1);
+		// Diag up left
+		chunk5 = new world::Chunk(size_t(1337), 0, -1);
 		chunkEntity = registry.create();
 		registry.emplace<MeshRenderer>(chunkEntity, chunk5->getMesh());
 		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
-		chunk6 = new world::Chunk(size_t(1337), 1, 2);
+		// Diag up right
+		chunk6 = new world::Chunk(size_t(1337), 1, -1);
 		chunkEntity = registry.create();
 		registry.emplace<MeshRenderer>(chunkEntity, chunk6->getMesh());
 		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
-		chunk7 = new world::Chunk(size_t(1337), -1, 1);
+		// Right
+		chunk7 = new world::Chunk(size_t(1337), 1, 0);
 		chunkEntity = registry.create();
 		registry.emplace<MeshRenderer>(chunkEntity, chunk7->getMesh());
 		registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());

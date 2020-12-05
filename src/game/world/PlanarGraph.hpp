@@ -26,6 +26,7 @@ namespace game::world
 {
 	class Node;
 	class DirectedEdge;
+	class Face;
 	class PlanarGraph;
 
 	class Node
@@ -47,7 +48,7 @@ namespace game::world
 
 		DirectedEdge* getEdge(Node* other);
 
-		const std::unordered_map<glm::vec2, DirectedEdge*> getEdges()
+		const std::unordered_map<Node*, DirectedEdge*> getEdges()
 		{
 			return edges;
 		}
@@ -59,7 +60,7 @@ namespace game::world
 	private:
 		glm::vec2 position;
 
-		std::unordered_map<glm::vec2, DirectedEdge*> edges;
+		std::unordered_map<Node*, DirectedEdge*> edges;
 
 		PlanarGraph* graph;
 
@@ -105,6 +106,8 @@ namespace game::world
 			return otherDirection;
 		}
 
+		Face calculateFace();
+
 	private:
 		Node* from;
 		Node* to;
@@ -125,9 +128,9 @@ namespace game::world
 		friend Node;
 		friend PlanarGraph;
 
-		friend std::pair<const glm::vec2, DirectedEdge*>;
+		friend std::pair<const Node*, DirectedEdge*>;
 		friend std::vector<DirectedEdge*>;
-		friend std::unordered_map<glm::vec2, DirectedEdge*>;
+		friend std::unordered_map<Node*, DirectedEdge*>;
 	};
 
 	class Face
@@ -157,10 +160,6 @@ namespace game::world
 		std::vector<Node*> nodes;
 		std::vector<DirectedEdge*> edges;
 
-		Face() = default;
-		Face(const Face&) = default;
-		Face(Face && edge) = default;
-
 		friend Node;
 		friend DirectedEdge;
 		friend PlanarGraph;
@@ -171,7 +170,7 @@ namespace game::world
 	public:
 		~PlanarGraph();
 
-		const std::unordered_map<glm::vec2, Node*>& getNodes()
+		const std::unordered_set<Node*>& getNodes()
 		{
 			return nodes;
 		}
@@ -181,11 +180,7 @@ namespace game::world
 			return nodes.size();
 		}
 
-		Node* getNode(glm::vec2& nodePosition);
-
 		void addNode(Node* node);
-
-		void removeNode(glm::vec2& nodePosition);
 
 		void removeNode(Node* node);
 
@@ -204,7 +199,7 @@ namespace game::world
 		std::vector<Face*> calculateFaces();
 
 	private:
-		std::unordered_map<glm::vec2, Node*> nodes;
+		std::unordered_set<Node*> nodes;
 
 		friend Node;
 		friend DirectedEdge;

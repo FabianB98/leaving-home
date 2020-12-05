@@ -14,7 +14,7 @@ namespace game::world
 	static const glm::vec2 UP = glm::vec2(0, INITIAL_CELL_SIZE);
 	static const glm::vec2 DIAG_RIGHT_UP = glm::vec2(INITIAL_CELL_SIZE * cos(glm::radians(30.0f)), INITIAL_CELL_SIZE * sin(glm::radians(30.0f)));
 	static const glm::vec2 DIAG_RIGHT_DOWN = glm::vec2(INITIAL_CELL_SIZE * cos(glm::radians(330.0f)), INITIAL_CELL_SIZE * sin(glm::radians(330.0f)));
-	static const glm::vec2 CENTER_LINE_START = - glm::vec2(INITIAL_CELL_SIZE, INITIAL_CELL_SIZE) * DIAG_RIGHT_UP;
+	static const glm::vec2 CENTER_LINE_START = - glm::vec2(CHUNK_SIZE, CHUNK_SIZE) * DIAG_RIGHT_UP;
 
 	Chunk::Chunk(size_t worldSeed, int32_t _column, int32_t _row) : column(_column), row(_row)
 	{
@@ -23,6 +23,10 @@ namespace game::world
 		centerPos = glm::vec2(xPos, yPos);
 
 		chunkSeed = worldSeed ^ std::hash<glm::vec2>()(centerPos);
+
+		uint16_t xId = column & 127;
+		uint16_t yId = row & 127;
+		chunkId = xId + (yId << 7);
 
 		Generator generator = Generator(this);
 		generator.generateChunkTopology();
@@ -210,12 +214,12 @@ namespace game::world
 		unsigned int currentIndex = 0;
 		for (auto& node : graph.getNodes())
 		{
-			glm::vec2& position = node.second->getPosition();
+			glm::vec2& position = node->getPosition();
 			vertices.push_back(glm::vec3(position.x, 0, position.y));
 			uvs.push_back(glm::vec2(0, 0));
 			normals.push_back(glm::vec3(0, 1, 0));
 
-			nodeIndices.insert(std::make_pair(node.second, currentIndex));
+			nodeIndices.insert(std::make_pair(node, currentIndex));
 			currentIndex++;
 		}
 
@@ -245,6 +249,62 @@ namespace game::world
 			delete face;
 		}
 
+		// START OF TEMPORARY TEST CODE
+		glm::vec2 up = chunk->centerPos + (float)CHUNK_SIZE * UP;
+		vertices.push_back(glm::vec3(up.x, 0, up.y));
+		uvs.push_back(glm::vec2(0, 0));
+		normals.push_back(glm::vec3(0, 1, 0));
+
+		glm::vec2 rightUp = chunk->centerPos + (float)CHUNK_SIZE * DIAG_RIGHT_UP;
+		vertices.push_back(glm::vec3(rightUp.x, 1, rightUp.y));
+		uvs.push_back(glm::vec2(0, 0));
+		normals.push_back(glm::vec3(0, 1, 0));
+
+		glm::vec2 rightDown = chunk->centerPos + (float)CHUNK_SIZE * DIAG_RIGHT_DOWN;
+		vertices.push_back(glm::vec3(rightDown.x, 2, rightDown.y));
+		uvs.push_back(glm::vec2(0, 0));
+		normals.push_back(glm::vec3(0, 1, 0));
+
+		glm::vec2 down = chunk->centerPos - (float)CHUNK_SIZE * UP;
+		vertices.push_back(glm::vec3(down.x, 3, down.y));
+		uvs.push_back(glm::vec2(0, 0));
+		normals.push_back(glm::vec3(0, 1, 0));
+
+		glm::vec2 leftDown = chunk->centerPos - (float)CHUNK_SIZE * DIAG_RIGHT_UP;
+		vertices.push_back(glm::vec3(leftDown.x, 4, leftDown.y));
+		uvs.push_back(glm::vec2(0, 0));
+		normals.push_back(glm::vec3(0, 1, 0));
+
+		glm::vec2 leftUp = chunk->centerPos - (float)CHUNK_SIZE * DIAG_RIGHT_DOWN;
+		vertices.push_back(glm::vec3(leftUp.x, 5, leftUp.y));
+		uvs.push_back(glm::vec2(0, 0));
+		normals.push_back(glm::vec3(0, 1, 0));
+
+		std::vector<unsigned int> debugIndices;
+
+		debugIndices.push_back(nodeIndices.size() + 0);
+		debugIndices.push_back(nodeIndices.size() + 1);
+
+		debugIndices.push_back(nodeIndices.size() + 1);
+		debugIndices.push_back(nodeIndices.size() + 2);
+
+		debugIndices.push_back(nodeIndices.size() + 2);
+		debugIndices.push_back(nodeIndices.size() + 3);
+
+		debugIndices.push_back(nodeIndices.size() + 3);
+		debugIndices.push_back(nodeIndices.size() + 4);
+
+		debugIndices.push_back(nodeIndices.size() + 4);
+		debugIndices.push_back(nodeIndices.size() + 5);
+
+		std::shared_ptr<rendering::model::Material> debugMaterial = std::make_shared<rendering::model::Material>(
+			glm::vec3(0.2f, 0.0f, 0.0f),
+			glm::vec3(1.0f, 0.0f, 0.0f),
+			glm::vec3(0.1f, 0.0f, 0.0f),
+			2.0f
+			);
+		// END OF TEMPORARY TEST CODE
+
 		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
 			glm::vec3(0.0f, 0.2f, 0.0f),
 			glm::vec3(0.0f, 1.0f, 0.0f),
@@ -253,6 +313,7 @@ namespace game::world
 			);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_LINES));
+		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(debugMaterial, debugIndices, GL_LINES));
 		chunk->mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
 	}
 }
