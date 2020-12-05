@@ -119,7 +119,8 @@ namespace rendering
             return -3;
         }
 
-        // Initialize the rendering system
+        // Initialize the rendering and hierarchy system
+        rendering::systems::initHierarchySystem(registry);
         rendering::systems::initRenderingSystem(registry);
 
         // Initialize gui
@@ -164,6 +165,7 @@ namespace rendering
         game->update(this, deltaTime);
 
         rendering::systems::updateTransformConversion(registry);
+        rendering::systems::updateHierarchy(registry);
     }
 
     void RenderingEngine::render()
@@ -263,6 +265,7 @@ namespace rendering
     void RenderingEngine::cleanUp()
     {
         systems::cleanUpRenderingSystem(registry);
+        systems::cleanUpHierarchySystem(registry);
         gui::cleanUp();
         glfwTerminate();
 

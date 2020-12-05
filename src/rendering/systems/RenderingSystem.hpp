@@ -12,6 +12,7 @@
 #include "../components/Camera.hpp"
 #include "../components/MeshRenderer.hpp"
 #include "../components/Transform.hpp"
+#include "../components/Relationship.hpp"
 #include "../components/Lights.hpp"
 #include "../shading/Shader.hpp"
 

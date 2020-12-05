@@ -6,6 +6,7 @@ in vec3 tex_coords;
 uniform samplerCube skybox;
 
 uniform float time;
+uniform vec3 sunColor;
 
 // Fragment shader output
 out vec4 color;
@@ -53,6 +54,7 @@ void main() {
 	vec4 texRotated = texture(skybox, vec3(rotationX(time) * vec4(tex_coords, 1)));
 	float vStripe = tex.r;
 	float vStars = texRotated.g;
+	float vSun = texRotated.b;
 
 	vec4 color1 = baseColor1 * (.18 + (1-.18) * smoothstep(-tw, tw, nightday));
 	vec4 color2 = baseColor2 * (.15 + (1-.15) * smoothstep(-tw, tw, nightday));
@@ -62,6 +64,8 @@ void main() {
 		stripeColor(color1, 1.5, theta), stripeColor(color2, 1.3, theta));
 	vec4 twilight = mixWithStripes(vStripe,
 		0.95 * twilightColor(theta), twilightColor(theta));
-	
-	color = stripe + stars + twilight;
+
+	vec4 sun = 0.5 * vSun * vec4(sunColor, 1);
+
+	color = stripe + stars + twilight + sun;
 }

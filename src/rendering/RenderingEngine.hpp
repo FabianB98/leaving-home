@@ -19,6 +19,7 @@
 #include "components/Transform.hpp"
 #include "systems/RenderingSystem.hpp"
 #include "systems/TransformConversionSystem.hpp"
+#include "systems/TransformHierarchySystem.hpp"
 #include "../ui/GUI.hpp"
 
 namespace rendering 
