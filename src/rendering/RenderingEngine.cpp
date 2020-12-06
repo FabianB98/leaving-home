@@ -176,13 +176,12 @@ namespace rendering
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // select shader to draw objects
-        auto activeShader = showWireframe ? wireframeShader : mainShader;
-        activeShader->use();
+        // select default shader for rendering system
+        auto defaultShader = showWireframe ? wireframeShader : mainShader;
 
-        auto camera = updateCamera(mainCamera, *mainShader, (float) width / (float) height);
-        rendering::systems::updateLights(registry, *mainShader);
-        rendering::systems::renderRenderingSystem(registry, camera, *activeShader);
+        auto camera = updateCamera(mainCamera, (float) width / (float) height);
+        //rendering::systems::updateLights(registry, *mainShader);
+        rendering::systems::renderRenderingSystem(registry, camera, defaultShader, showWireframe);
 
         game->render(this);
         renderDebugWindow();
@@ -191,16 +190,18 @@ namespace rendering
         glfwSwapBuffers(window);
     }
 
-    components::Camera RenderingEngine::updateCamera(
-        entt::entity cameraEntity, shading::Shader& shader, float aspectRatio)
+    components::Camera RenderingEngine::updateCamera(entt::entity cameraEntity, float aspectRatio)
     {
         using namespace rendering::components;
 
         auto& cameraComponent = registry.get<Camera>(cameraEntity);
         auto transformComponent = registry.get<MatrixTransform>(cameraEntity);
+        auto relationship = registry.try_get<components::Relationship>(cameraEntity);
+
+        glm::mat4& cameraTransform = relationship ? relationship->totalTransform : transformComponent.getTransform();
 
         cameraComponent.setAspectRatio(aspectRatio);
-        cameraComponent.updateViewProjection(transformComponent.getTransform(), shader);
+        cameraComponent.updateViewProjection(cameraTransform);
 
         return cameraComponent;
     }

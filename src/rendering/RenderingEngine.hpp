@@ -136,7 +136,7 @@ namespace rendering
 
 		void render();
 
-		rendering::components::Camera updateCamera(entt::entity cameraEntity, shading::Shader& shader, float aspectRatio);
+		rendering::components::Camera updateCamera(entt::entity cameraEntity, float aspectRatio);
 
 		void renderDebugWindow();
 

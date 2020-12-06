@@ -2,13 +2,17 @@
 
 namespace rendering::components
 {
-	void Camera::updateViewProjection(glm::mat4 cameraTransform, shading::Shader& shader)
+	void Camera::updateViewProjection(glm::mat4 cameraTransform)
 	{
 		viewMatrix = glm::inverse(cameraTransform);
 		viewProjectionMatrix = getProjectionMatrix() * viewMatrix;
 
-		glm::vec3 cameraPosition = glm::vec3(cameraTransform[3]);
-		shader.setUniformVec3("cameraPos", cameraPosition);
+		position = glm::vec3(cameraTransform[3]);
+	}
+
+	void Camera::applyViewProjection(shading::Shader& shader)
+	{
+		shader.setUniformVec3("cameraPos", position);
 	}
 
 	float PerspectiveCameraParameters::getFieldOfView()

@@ -6,6 +6,7 @@ namespace rendering::systems
 
 	std::set<model::Mesh*> transformChanged;
 	std::unordered_map<model::Mesh*, std::pair<std::vector<glm::mat4>, std::vector<glm::mat3>>> meshTransforms;
+	std::vector<std::pair<model::Mesh*, shading::Shader*>> meshShaders;
 	std::vector<glm::mat4> mvps;
 
 	void changedMeshRenderer(entt::registry& registry, entt::entity entity)
@@ -16,12 +17,13 @@ namespace rendering::systems
 
 	void initRenderingSystem(entt::registry& registry)
 	{
+		registry.set<MeshShading>();
 		registry.on_construct<components::MeshRenderer>().connect<&changedMeshRenderer>();
 		registry.on_destroy<components::MeshRenderer>().connect<&changedMeshRenderer>();
 		transformObserver.connect(registry, entt::collector.update<components::MatrixTransform>().where<components::MeshRenderer>());
 	}
 
-	void updateLights(entt::registry& registry, rendering::shading::LightSupportingShader& shader)
+	void updateLights(entt::registry& registry, rendering::shading::Shader& shader)
 	{
 		// DIRECTIONAL LIGHT
 		auto directional = registry.view<components::DirectionalLight, components::MatrixTransform>().front();
@@ -62,10 +64,10 @@ namespace rendering::systems
 			model::Mesh* mesh = renderer.getMesh();
 			if (transformChanged.find(mesh) == transformChanged.end()) continue;
 
-			auto& transform = group.get<components::MatrixTransform>(entity);
+			auto& transform = registry.get<components::MatrixTransform>(entity);
 			auto relationship = registry.try_get<components::Relationship>(entity);
 
-			glm::mat4 modelMatrix = relationship ? relationship->totalTransform : transform.getTransform();
+			glm::mat4& modelMatrix = relationship ? relationship->totalTransform : transform.getTransform();
 			meshTransforms[mesh].first.push_back(modelMatrix);
 			meshTransforms[mesh].second.push_back(glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
 		}
@@ -78,8 +80,15 @@ namespace rendering::systems
 		return numInstances;
 	}
 
+	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader)
+	{
+		shader.use();
+		camera.applyViewProjection(shader);
+		updateLights(registry, shader);
+	}
+
 	void renderRenderingSystem(entt::registry& registry, 
-		rendering::components::Camera& camera, rendering::shading::Shader& shader)
+		rendering::components::Camera& camera, rendering::shading::Shader* defaultShader, bool overrideShaders)
 	{
 		// Get all entities whose transformation was changed and store that their transformation was changed.
 		for (const auto entity : transformObserver) {
@@ -97,28 +106,55 @@ namespace rendering::systems
 		transformObserver.clear();
 		transformChanged.clear();
 
-		// Render each mesh.
-		glm::mat4& viewProjection = camera.getViewProjectionMatrix();
+		// Fill meshShaders with all meshes from meshTransforms and their shaders
+		meshShaders.clear();
+		auto& shading = registry.ctx<MeshShading>();
 		for (const auto& meshInstances : meshTransforms)
 		{
+			auto* mesh = meshInstances.first;
+			auto& it = shading.shaders.find(mesh);
+			auto* shader = it != shading.shaders.end() ? it->second : defaultShader;
+			meshShaders.push_back(std::make_pair(mesh, shader));
+		}
+
+		// Sort meshShaders to group meshes with the same shaders
+		// TODO: maybe use programID instead of pointer value?
+		std::sort(meshShaders.begin(), meshShaders.end(), [](auto& p1, auto& p2) {
+			return std::less<shading::Shader*>()(p1.second, p2.second);
+		});
+
+		// Render each mesh with the corresponding shader.
+		shading::Shader* activeShader = NULL;
+		glm::mat4& viewProjection = camera.getViewProjectionMatrix();
+		for (const auto& meshShaderPairs : meshShaders)
+		{
+			auto* mesh = meshShaderPairs.first;
+			const auto& meshInstances = meshTransforms[mesh];
 			// Calculate the model view projection matrix of each instance of the mesh.
-			int numInstances = meshInstances.second.first.size();
+			int numInstances = meshInstances.first.size();
 
 			// parallel mvp calculation
 			std::vector<int> a(numInstances);
 			std::iota(std::begin(a), std::end(a), 0);
 			std::for_each(std::execution::par_unseq, std::begin(a), std::end(a), [&](int i) {
-				mvps[i] = viewProjection * meshInstances.second.first[i];
+				mvps[i] = viewProjection * meshInstances.first[i];
 			});
 
 			// for reference: old mvp calculation
 			/*for (int i = 0; i < numInstances; i++)
 				mvps[i] = viewProjection * meshInstances.second.first[i];*/
 
+			// switch shader if necessary
+			auto* shader = meshShaderPairs.second;
+			if (shader != activeShader || activeShader == NULL) {
+				activeShader = shader;
+				activateShader(registry, camera, *activeShader);
+			}
+
 			// Render all instances of the mesh.
-			const std::vector<glm::mat4>& const modelMatrices = meshInstances.second.first;
-			const std::vector<glm::mat3>& const normalMatrices = meshInstances.second.second;
-			meshInstances.first->renderInstanced(shader, modelMatrices, normalMatrices, mvps);
+			const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
+			const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
+			mesh->renderInstanced(*activeShader, modelMatrices, normalMatrices, mvps);
 		}
 	}
 

@@ -42,6 +42,7 @@ namespace game
 
 	DayNightCycle daynight;
 	rendering::Skybox* skybox;
+	rendering::shading::Shader* simple;
 
 	double randomDouble()
 	{
@@ -54,6 +55,8 @@ namespace game
 		plane = new rendering::model::Mesh("plane");
 		cube = new rendering::model::Mesh("cube");
 		test = new rendering::model::Mesh("test");
+
+		simple = new rendering::shading::Shader("simpleInstanced");
 
 		/*std::cout << "tree: " << mesh->hashValue() << std::endl;
 		std::cout << "plane: " << plane->hashValue() << std::endl;
@@ -175,6 +178,11 @@ namespace game
 
 		rendering::systems::relationship(registry, e1, e2);
 		rendering::systems::relationship(registry, e2, e3);
+
+		auto& shading = registry.ctx<rendering::systems::MeshShading>();
+		shading.shaders.insert(std::make_pair(chunk2->getMesh(), simple));
+		shading.shaders.insert(std::make_pair(chunk5->getMesh(), simple));
+		shading.shaders.insert(std::make_pair(chunk1->getMesh(), simple));
 	}
 
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)

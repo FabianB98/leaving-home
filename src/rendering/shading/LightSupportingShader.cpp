@@ -2,7 +2,8 @@
 
 namespace rendering::shading
 {
-	LightSupportingShader::LightSupportingShader(std::string shaderName) : Shader(shaderName)
+	LightSupportingShader::LightSupportingShader(std::string shaderName, bool useGeometryShader)
+		: Shader(shaderName, useGeometryShader)
 	{
 		std::string maxLightsDef = definitions["MAX_LIGHT_COUNT"];
 		maxPointLights = 0;
