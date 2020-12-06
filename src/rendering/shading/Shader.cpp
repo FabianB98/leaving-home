@@ -2,34 +2,42 @@
 
 namespace rendering::shading
 {
-	Shader::Shader(std::string shaderName)
+	Shader::Shader(std::string shaderName, bool useGeometryShader)
 	{
+		std::cout << "Loading shader " << shaderName << std::endl;
+
 		// Create the shaders
 		GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 		GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		GLuint geometryShader;
+		if (useGeometryShader) geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
 
 		// Load shader code
-		std::cout << "Loading shader files" << std::endl;
-		std::string vertexShaderCode = loadShaderFile(shaderName + ".vert");
-		std::string fragmentShaderCode = loadShaderFile(shaderName + ".frag");
+		std::cout << " Loading shader files" << std::endl;
+		auto vertexShaderCode = loadShaderFile(shaderName + ".vert");
+		auto fragmentShaderCode = loadShaderFile(shaderName + ".frag");
+		std::string geometryShaderCode;
+		if (useGeometryShader) geometryShaderCode = loadShaderFile(shaderName + ".geom");
+
 		loadDefinitions(vertexShaderCode);
 		loadDefinitions(fragmentShaderCode);
+		loadDefinitions(geometryShaderCode); // this also works with an empty string
 
 		// Compile and link shaders
-		std::cout << "Compiling shader files" << std::endl;
+		std::cout << " Compiling shader files" << std::endl;
 		compileShader(vertexShader, vertexShaderCode);
 		compileShader(fragmentShader, fragmentShaderCode);
+		if (useGeometryShader) compileShader(geometryShader, geometryShaderCode);
 
-		std::cout << "Linking shaders" << std::endl;
-		linkProgram(vertexShader, fragmentShader);
+		std::cout << " Linking shaders" << std::endl;
+		if (useGeometryShader) linkProgram({ vertexShader, fragmentShader, geometryShader });
+		else linkProgram({ vertexShader, fragmentShader });
 
 
 		// Clean up
-		glDetachShader(programID, vertexShader);
-		glDetachShader(programID, fragmentShader);
-
-		glDeleteShader(vertexShader);
-		glDeleteShader(fragmentShader);
+		cleanUpShader(vertexShader);
+		cleanUpShader(fragmentShader);
+		if (useGeometryShader) cleanUpShader(geometryShader);
 	}
 
 	void Shader::use()
@@ -120,12 +128,12 @@ namespace rendering::shading
 		}
 	}
 
-	void Shader::linkProgram(GLuint vertexShader, GLuint fragmentShader)
+	void Shader::linkProgram(std::initializer_list<GLuint> shaders)
 	{
 		// Link the program
 		programID = glCreateProgram();
-		glAttachShader(programID, vertexShader);
-		glAttachShader(programID, fragmentShader);
+		for (auto shader : shaders)
+			glAttachShader(programID, shader);
 		glLinkProgram(programID);
 
 		// check linked program
@@ -177,5 +185,11 @@ namespace rendering::shading
 			std::cerr << &errorMessage[0] << std::endl;
 			throw std::invalid_argument("Shader could not be compiled! See output for more details.");
 		}
+	}
+
+	void Shader::cleanUpShader(GLuint shader)
+	{
+		glDetachShader(programID, shader);
+		glDeleteShader(shader);
 	}
 }
