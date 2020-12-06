@@ -11,12 +11,12 @@ namespace game::world
 		}
 
 		if (graph != nullptr)
-			graph->nodes.erase(position);
+			graph->nodes.erase(this);
 	}
 
 	DirectedEdge* Node::getEdge(Node* other)
 	{
-		auto findResult = edges.find(other->position);
+		auto findResult = edges.find(other);
 		if (findResult != edges.end())
 			return findResult->second;
 		else
@@ -72,7 +72,7 @@ namespace game::world
 		nextClockwise->nextCounterclockwise = edge;
 		nextCounterclockwise->nextClockwise = edge;
 
-		edges.insert(std::make_pair(edge->to->position, edge));
+		edges.insert(std::make_pair(edge->to, edge));
 	}
 
 	void Node::removeEdgeTo(Node* other)
@@ -100,8 +100,8 @@ namespace game::world
 
 	DirectedEdge::~DirectedEdge()
 	{
-		to->edges.erase(from->position);
-		from->edges.erase(to->position);
+		to->edges.erase(from);
+		from->edges.erase(to);
 
 		if (nextClockwise != nullptr && nextCounterclockwise != nullptr)
 		{
@@ -127,22 +127,29 @@ namespace game::world
 			return -acos(direction.x);
 	}
 
+	Face DirectedEdge::calculateFace()
+	{
+		Face face = Face();
+
+		DirectedEdge* edge = this;
+		do
+		{
+			face.nodes.push_back(edge->from);
+			face.edges.push_back(edge);
+
+			edge = edge->otherDirection->nextCounterclockwise;
+		} while (edge != this);
+
+		return face;
+	}
+
 	PlanarGraph::~PlanarGraph()
 	{
 		while (!nodes.empty())
 		{
-			Node* node = nodes.begin()->second;
+			Node* node = *nodes.begin();
 			delete node;
 		}
-	}
-
-	Node* PlanarGraph::getNode(glm::vec2& nodePosition)
-	{
-		auto findResult = nodes.find(nodePosition);
-		if (findResult != nodes.end())
-			return findResult->second;
-		else
-			return nullptr;
 	}
 
 	void PlanarGraph::addNode(Node* node)
@@ -150,20 +157,13 @@ namespace game::world
 		if (node->graph == nullptr)
 		{
 			node->graph = this;
-			nodes.insert(std::make_pair(node->position, node));
+			nodes.insert(node);
 		}
-	}
-
-	void PlanarGraph::removeNode(glm::vec2& nodePosition)
-	{
-		Node* node = getNode(nodePosition);
-		if (node != nullptr)
-			removeNode(node);
 	}
 
 	void PlanarGraph::removeNode(Node* node)
 	{
-		if (nodes.find(node->position) != nodes.end())
+		if (nodes.find(node) != nodes.end())
 		{
 			delete node;
 		}
@@ -184,22 +184,15 @@ namespace game::world
 		std::unordered_set<DirectedEdge*> traversedEdges;
 		for (auto& node : nodes)
 		{
-			for (auto& outgoingEdge : node.second->edges)
+			for (auto& outgoingEdge : node->edges)
 			{
 				if (traversedEdges.find(outgoingEdge.second) == traversedEdges.end())
 				{
-					Face* face = new Face();
+					Face* face = new Face(outgoingEdge.second->calculateFace());
 					faces.push_back(face);
 
-					DirectedEdge* edge = outgoingEdge.second;
-					do
-					{
-						face->nodes.push_back(edge->from);
-						face->edges.push_back(edge);
-
+					for (auto& edge : face->edges)
 						traversedEdges.insert(edge);
-						edge = edge->otherDirection->nextCounterclockwise;
-					} while (edge != outgoingEdge.second);
 				}
 			}
 		}

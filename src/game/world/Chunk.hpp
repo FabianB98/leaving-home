@@ -13,13 +13,15 @@
 
 #include <glm/glm.hpp>
 
-#include "Cell.hpp"
 #include "PlanarGraph.hpp"
 
 #define CHUNK_SIZE 5
+#define CELL_SIZE 1
 
 namespace game::world 
 {
+	class Cell;
+
 	class Chunk
 	{
 	public:
@@ -35,9 +37,34 @@ namespace game::world
 			return chunkSeed;
 		}
 
+		uint16_t getChunkId()
+		{
+			return chunkId;
+		}
+
+		int32_t getColumn()
+		{
+			return column;
+		}
+
+		int32_t getRow()
+		{
+			return row;
+		}
+
 		glm::vec2 getCenterPos()
 		{
 			return centerPos;
+		}
+
+		const std::vector<Cell*> getCells()
+		{
+			return cells;
+		}
+
+		Cell** getCellsAlongChunkBorder()
+		{
+			return cellsAlongChunkBorder;
 		}
 
 		rendering::model::Mesh* getMesh()
@@ -47,10 +74,14 @@ namespace game::world
 
 	private:
 		size_t chunkSeed;
+		uint16_t chunkId;
 
 		int32_t column;
 		int32_t row;
 		glm::vec2 centerPos;
+
+		std::vector<Cell*> cells;
+		Cell* cellsAlongChunkBorder[12 * CHUNK_SIZE];
 
 		rendering::model::Mesh* mesh;
 
@@ -80,5 +111,52 @@ namespace game::world
 
 			void setChunkTopologyData();
 		};
+	};
+
+	class Cell
+	{
+	public:
+		Cell(Chunk* _chunk, uint16_t _cellId, glm::vec2 _position) : Cell(_chunk, _cellId, _position, std::vector<Cell*>()) {}
+
+		Cell(Chunk* _chunk, uint16_t _cellId, glm::vec2 _position, std::vector<Cell*> _neighbors)
+			: chunk(_chunk), cellId(_cellId), position(_position), neighbors(_neighbors)
+		{
+			completeId = (chunk->getChunkId() << 14) + cellId;
+		}
+
+		Chunk* getChunk()
+		{
+			return chunk;
+		}
+
+		uint16_t getCellId()
+		{
+			return cellId;
+		}
+
+		uint32_t getCompleteId()
+		{
+			return completeId;
+		}
+
+		glm::vec2 getPosition()
+		{
+			return position;
+		}
+
+		const std::vector<Cell*> getNeighbors()
+		{
+			return neighbors;
+		}
+
+	private:
+		Chunk* chunk;
+
+		uint16_t cellId;
+		uint32_t completeId;
+
+		glm::vec2 position;
+
+		std::vector<Cell*> neighbors;
 	};
 }
