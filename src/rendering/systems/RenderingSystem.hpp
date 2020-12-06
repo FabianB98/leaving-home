@@ -20,10 +20,15 @@ namespace rendering::systems
 {
 	void initRenderingSystem(entt::registry& registry);
 
-	void updateLights(entt::registry& registry, rendering::shading::LightSupportingShader& shader);
+	void updateLights(entt::registry& registry, rendering::shading::Shader& shader);
 
 	void renderRenderingSystem(entt::registry& registry,
-		rendering::components::Camera& camera, rendering::shading::Shader& shader);
+		rendering::components::Camera& camera, rendering::shading::Shader* defaultShader, bool overrideShaders = false);
 
 	void cleanUpRenderingSystem(entt::registry& registry);
+
+	struct MeshShading
+	{
+		std::unordered_map<model::Mesh*, shading::Shader*> shaders;
+	};
 }

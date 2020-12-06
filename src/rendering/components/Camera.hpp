@@ -79,7 +79,9 @@ namespace rendering::components
 			return parameters->getProjectionMatrix();
 		}
 
-		void updateViewProjection(glm::mat4 cameraTransform, shading::Shader& shader);
+		void updateViewProjection(glm::mat4 cameraTransform);
+
+		void applyViewProjection(shading::Shader& shader);
 
 		glm::mat4 getViewMatrix()
 		{
@@ -94,6 +96,7 @@ namespace rendering::components
 	private:
 		std::shared_ptr<CameraParameters> parameters;
 
+		glm::vec3 position{};
 		glm::mat4 viewMatrix{ glm::mat4(1.f) };
 		glm::mat4 viewProjectionMatrix{ glm::mat4(1.f) };
 	};

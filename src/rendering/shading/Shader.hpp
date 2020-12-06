@@ -30,6 +30,10 @@ namespace rendering::shading
 		void setUniformVec3(const std::string name, const glm::vec3& vector);
 		void setUniformMat3(const std::string name, const glm::mat3& matrix);
 		void setUniformMat4(const std::string name, const glm::mat4& matrix);
+
+		virtual void setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 direction) {}
+		virtual void setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position) {}
+		virtual void setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions) {}
 		
 	protected:
 		GLuint programID;
