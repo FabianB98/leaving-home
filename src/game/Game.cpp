@@ -180,9 +180,9 @@ namespace game
 		rendering::systems::relationship(registry, e2, e3);
 
 		auto& shading = registry.ctx<rendering::systems::MeshShading>();
-		shading.shaders.insert(std::make_pair(chunk2->getMesh(), simple));
-		shading.shaders.insert(std::make_pair(chunk5->getMesh(), simple));
-		shading.shaders.insert(std::make_pair(chunk1->getMesh(), simple));
+		shading.shaders.insert(std::make_pair(wrld->getChunk(0, 0)->getMesh(), simple));
+		shading.shaders.insert(std::make_pair(wrld->getChunk(-1, 1)->getMesh(), simple));
+		shading.shaders.insert(std::make_pair(wrld->getChunk(0, -1)->getMesh(), simple));
 	}
 
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)
