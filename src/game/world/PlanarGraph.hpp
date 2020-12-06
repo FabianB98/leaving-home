@@ -8,19 +8,44 @@
 
 #include <glm/glm.hpp>
 
-namespace std {
+#define NODE_POS_ROUNDING_PRECISION 0.001
+
+namespace std
+{
 	template <>
 	struct hash<glm::vec2>
 	{
-		std::size_t operator()(const glm::vec2& vector) const
+		std::size_t operator()(const glm::vec2& vec) const
 		{
 			size_t res = 17;
-			res = res * 31 + hash<float>()(vector.x);
-			res = res * 31 + hash<float>()(vector.y);
+			res = res * 31 + hash<float>()(vec.x);
+			res = res * 31 + hash<float>()(vec.y);
 			return res;
 		}
 	};
 }
+
+class Hasher
+{
+public:
+	std::size_t operator()(const glm::vec2& vector) const
+	{
+		size_t res = 17;
+		res = res * 31 + std::hash<long>()(std::lround(vector.x * NODE_POS_ROUNDING_PRECISION));
+		res = res * 31 + std::hash<long>()(std::lround(vector.y * NODE_POS_ROUNDING_PRECISION));
+		return res;
+	}
+};
+
+class EqualFn
+{
+public:
+	bool operator()(const glm::vec2& a, const glm::vec2& b) const
+	{
+		return std::lround(a.x / NODE_POS_ROUNDING_PRECISION) == std::lround(b.x / NODE_POS_ROUNDING_PRECISION)
+			&& std::lround(a.y / NODE_POS_ROUNDING_PRECISION) == std::lround(b.y / NODE_POS_ROUNDING_PRECISION);
+	}
+};
 
 namespace game::world
 {
@@ -32,7 +57,7 @@ namespace game::world
 	class Node
 	{
 	public:
-		Node(glm::vec2 _position) : position(_position), graph(nullptr) {}
+		Node(glm::vec2 _position) : position(_position), graph(nullptr), additionalData(nullptr) {}
 
 		~Node();
 
@@ -40,6 +65,8 @@ namespace game::world
 		{
 			return position;
 		}
+
+		void setPosition(glm::vec2 _position);
 
 		size_t getNumEdges()
 		{
@@ -57,12 +84,24 @@ namespace game::world
 
 		void removeEdgeTo(Node* other);
 
+		void setAdditionalData(void* _additionalData)
+		{
+			additionalData = _additionalData;
+		}
+
+		void* getAdditionalData()
+		{
+			return additionalData;
+		}
+
 	private:
 		glm::vec2 position;
 
 		std::unordered_map<Node*, DirectedEdge*> edges;
 
 		PlanarGraph* graph;
+
+		void* additionalData;
 
 		Node() = default;
 		Node(const Node&) = default;
@@ -170,7 +209,9 @@ namespace game::world
 	public:
 		~PlanarGraph();
 
-		const std::unordered_set<Node*>& getNodes()
+		Node* getNodeAt(glm::vec2 position);
+
+		const std::unordered_map<glm::vec2, Node*, Hasher, EqualFn>& getNodes()
 		{
 			return nodes;
 		}
@@ -199,7 +240,7 @@ namespace game::world
 		std::vector<Face*> calculateFaces();
 
 	private:
-		std::unordered_set<Node*> nodes;
+		std::unordered_map<glm::vec2, Node*, Hasher, EqualFn> nodes;
 
 		friend Node;
 		friend DirectedEdge;

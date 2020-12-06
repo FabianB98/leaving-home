@@ -25,12 +25,15 @@ namespace game::world
 	class Chunk
 	{
 	public:
-		Chunk(size_t worldSeed, int32_t _column, int32_t _row);
+		Chunk(
+			size_t worldSeed,
+			int32_t _column,
+			int32_t _row,
+			Chunk* _neighbors[6],
+			PlanarGraph* _worldGraph
+		);
 
-		~Chunk()
-		{
-			delete mesh;
-		}
+		~Chunk();
 
 		size_t getChunkSeed()
 		{
@@ -88,14 +91,27 @@ namespace game::world
 		class Generator
 		{
 		public:
-			Generator(Chunk* _chunk) : chunk(_chunk), graph(PlanarGraph()) {}
+			Generator(
+				Chunk* _chunk,
+				Chunk* _neighbors[6],
+				PlanarGraph* _worldGraph
+			) : 
+				chunk(_chunk), 
+				neighbors{ _neighbors[0], _neighbors[1], _neighbors[2], _neighbors[3], _neighbors[4], _neighbors[5] },
+				worldGraph(_worldGraph),
+				localGraph(PlanarGraph())
+			{}
 
 			void generateChunkTopology();
 
 		private:
 			Chunk* chunk;
 
-			PlanarGraph graph;
+			Chunk* neighbors[6];
+
+			PlanarGraph* worldGraph;
+
+			PlanarGraph localGraph;
 			std::vector<Node*> nodesOrdered;
 			std::vector<std::pair<DirectedEdge*, DirectedEdge*>> edgesOrdered;
 
@@ -116,13 +132,15 @@ namespace game::world
 	class Cell
 	{
 	public:
-		Cell(Chunk* _chunk, uint16_t _cellId, glm::vec2 _position) : Cell(_chunk, _cellId, _position, std::vector<Cell*>()) {}
-
-		Cell(Chunk* _chunk, uint16_t _cellId, glm::vec2 _position, std::vector<Cell*> _neighbors)
-			: chunk(_chunk), cellId(_cellId), position(_position), neighbors(_neighbors)
+		Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)
+			: chunk(_chunk), cellId(_cellId), node(_node)
 		{
 			completeId = (chunk->getChunkId() << 14) + cellId;
+
+			node->setAdditionalData(this);
 		}
+
+		~Cell();
 
 		Chunk* getChunk()
 		{
@@ -141,13 +159,10 @@ namespace game::world
 
 		glm::vec2 getPosition()
 		{
-			return position;
+			return node->getPosition();
 		}
 
-		const std::vector<Cell*> getNeighbors()
-		{
-			return neighbors;
-		}
+		const std::vector<Cell*> getNeighbors();
 
 	private:
 		Chunk* chunk;
@@ -155,8 +170,8 @@ namespace game::world
 		uint16_t cellId;
 		uint32_t completeId;
 
-		glm::vec2 position;
+		Node* node;
 
-		std::vector<Cell*> neighbors;
+		friend Chunk;
 	};
 }

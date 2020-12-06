@@ -2,8 +2,9 @@
 
 namespace game::world
 {
-	static const float INITIAL_CELL_SIZE = 2 * CELL_SIZE;
-	static const float CHUNK_BORDER_LENGTH = CHUNK_SIZE * INITIAL_CELL_SIZE;
+	static const int INITIAL_CELL_SIZE = 2 * CELL_SIZE;
+	static const int CHUNK_BORDER_LENGTH = CHUNK_SIZE * INITIAL_CELL_SIZE;
+	static const int TOTAL_BORDER_LENGTH = 6 * CHUNK_BORDER_LENGTH;
 
 	static const float CHUNK_WIDTH = sqrt(3.0f) * CHUNK_BORDER_LENGTH;
 	static const float CHUNK_HEIGHT = 2 * CHUNK_BORDER_LENGTH;
@@ -16,7 +17,13 @@ namespace game::world
 	static const glm::vec2 DIAG_RIGHT_DOWN = glm::vec2(INITIAL_CELL_SIZE * cos(glm::radians(330.0f)), INITIAL_CELL_SIZE * sin(glm::radians(330.0f)));
 	static const glm::vec2 CENTER_LINE_START = - glm::vec2(CHUNK_SIZE, CHUNK_SIZE) * DIAG_RIGHT_UP;
 
-	Chunk::Chunk(size_t worldSeed, int32_t _column, int32_t _row) : column(_column), row(_row)
+	Chunk::Chunk(
+		size_t worldSeed,
+		int32_t _column,
+		int32_t _row,
+		Chunk* _neighbors[6],
+		PlanarGraph* _worldGraph
+	) : column(_column), row(_row), mesh(nullptr)
 	{
 		float xPos = (column + (row % 2) * 0.5f) * CHUNK_HORIZONTAL_DISTANCE;
 		float yPos = row * CHUNK_VERTICAL_DISTANCE;
@@ -28,8 +35,23 @@ namespace game::world
 		uint16_t yId = row & 127;
 		chunkId = xId + (yId << 7);
 
-		Generator generator = Generator(this);
+		for (int i = 0; i < 6 * CHUNK_BORDER_LENGTH; i++)
+			cellsAlongChunkBorder[i] = nullptr;
+
+		Generator generator = Generator(
+			this,
+			_neighbors,
+			_worldGraph
+		);
 		generator.generateChunkTopology();
+	}
+
+	Chunk::~Chunk()
+	{
+		delete mesh;
+
+		for (auto& cell : cells)
+			delete cell;
 	}
 
 	void Chunk::Generator::generateChunkTopology()
@@ -63,7 +85,7 @@ namespace game::world
 			{
 				Node* node = new Node(lineStart + (float)pointInLine * DIAG_RIGHT_UP);
 				nodesOrdered.push_back(node);
-				graph.addNode(node);
+				localGraph.addNode(node);
 			}
 
 			lineIndexPrefixsum[line + CHUNK_SIZE] = sum;
@@ -77,7 +99,7 @@ namespace game::world
 		// Add all edges along the first line.
 		for (size_t pointInLine = 0; pointInLine < CHUNK_SIZE; pointInLine++)
 		{
-			edgesOrdered.push_back(graph.addEdge(nodesOrdered[pointInLine], nodesOrdered[pointInLine + 1]));
+			edgesOrdered.push_back(localGraph.addEdge(nodesOrdered[pointInLine], nodesOrdered[pointInLine + 1]));
 		}
 
 		// Add all edges within the upper-left half of the hexagon.
@@ -85,22 +107,22 @@ namespace game::world
 		{
 			// Add the upward and right-up edge of the first point in the line.
 			Node* currentNode = nodesOrdered[lineIndexPrefixsum[line]];
-			edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1]]));
-			edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line] + 1]));
+			edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1]]));
+			edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line] + 1]));
 
 			int pointsInLine = CHUNK_SIZE + line;
 			for (int pointInLine = 1; pointInLine < pointsInLine; pointInLine++)
 			{
 				// Add the left-up, upward and right-up edge of the current point in the line.
 				currentNode = nodesOrdered[lineIndexPrefixsum[line] + pointInLine];
-				edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine - 1]));
-				edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine]));
-				edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line] + pointInLine + 1]));
+				edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine - 1]));
+				edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine]));
+				edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line] + pointInLine + 1]));
 			}
 
 			// Add the left-up edge of the last point in the line.
 			currentNode = nodesOrdered[lineIndexPrefixsum[line] + pointsInLine];
-			edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine - 1]));
+			edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine - 1]));
 		}
 
 		// Add all edges within the lower-right half of the hexagon.
@@ -111,15 +133,15 @@ namespace game::world
 			{
 				// Add the left-up, upward and right-up edge of the current point in the line.
 				Node* currentNode = nodesOrdered[lineIndexPrefixsum[line] + pointInLine];
-				edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine]));
-				edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine + 1]));
-				edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line] + pointInLine + 1]));
+				edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine]));
+				edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointInLine + 1]));
+				edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line] + pointInLine + 1]));
 			}
 
 			// Add the left-up and upward edge of the last point in the line.
 			Node* currentNode = nodesOrdered[lineIndexPrefixsum[line] + pointsInLine];
-			edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine]));
-			edgesOrdered.push_back(graph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine + 1]));
+			edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine]));
+			edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1] + pointsInLine + 1]));
 		}
 	}
 
@@ -165,13 +187,13 @@ namespace game::world
 			Node* centerNode = new Node(0.5f * (fromNode->getPosition() + toNode->getPosition()));
 
 			delete edge.first;
-			graph.addEdge(centerNode, fromNode);
-			graph.addEdge(centerNode, toNode);
+			localGraph.addEdge(centerNode, fromNode);
+			localGraph.addEdge(centerNode, toNode);
 
 			connectToPositions.insert(centerNode->getPosition());
 		}
 
-		std::vector<Face*> faces = graph.calculateFaces();
+		std::vector<Face*> faces = localGraph.calculateFaces();
 		for (auto& face : faces)
 		{
 			size_t nodesInFace = face->getNumNodes();
@@ -188,7 +210,7 @@ namespace game::world
 				{
 					if (connectToPositions.find(node->getPosition()) != connectToPositions.end())
 					{
-						graph.addEdge(centerNode, node);
+						localGraph.addEdge(centerNode, node);
 					}
 				}
 			}
@@ -199,12 +221,104 @@ namespace game::world
 
 	void Chunk::Generator::setChunkTopologyData()
 	{
-		// TODO: The mesh shouldn't be directly generated here. Instead, instances of class Cell should be created which
-		// are then added to the Chunk. Later on, after the chunk's cells were relaxed (not in this method), the mesh
-		// can be created.
+		// Create a map mapping from the local nodes along the chunk border to their corresponding index within the
+		// cellsAlongChunkBorder array. 
+		std::unordered_map<Node*, int> borderIndexMap;
+		std::unordered_set<DirectedEdge*> traversedEdges;
+
+		Node* topNode = nodesOrdered[lineIndexPrefixsum[1] - 1];
+		Node* nodeIndexTwo = nodesOrdered[lineIndexPrefixsum[1] - 2];
+
+		DirectedEdge* edge = topNode->getEdges().begin()->second;
+		while (edge->getOtherDirection()->getNextCounterclockwise()->getTo() != nodeIndexTwo)
+			edge = edge->getNextCounterclockwise();
+
+		for (int i = 0; i < TOTAL_BORDER_LENGTH; i++)
+		{
+			borderIndexMap.insert(std::make_pair(edge->getFrom(), (i + 3 * CHUNK_BORDER_LENGTH) % TOTAL_BORDER_LENGTH));
+			edge = edge->getOtherDirection()->getNextCounterclockwise();
+		}
+
+		// Create global copies of all local nodes which don't exist in the world graph yet and store a map mapping from
+		// local nodes to their corresponding global nodes.
+		std::unordered_map<Node*, Node*> nodeLocalToGlobalMap;
+		for (int chunkEdge = 0; chunkEdge < 6; chunkEdge++)
+		{
+			if (neighbors[chunkEdge] != nullptr)
+			{
+				// The current chunk has an already existing neighbor chunk on the current edge. Therefore, we need to
+				// share all nodes which are on the current edge between this chunk and the neighboring chunk.
+				int cellsAlongBorderStart = chunkEdge * CHUNK_BORDER_LENGTH;
+				Node* previousLocalNode = nullptr;
+				for (int i = 0; i <= CHUNK_BORDER_LENGTH; i++)
+				{
+					// Set the cellsAlongChunkBorder array for this chunk to reflect that we're sharing this cell with
+					// the neighboring chunk.
+					int neighborIndex = (cellsAlongBorderStart + 4 * CHUNK_BORDER_LENGTH - i) % TOTAL_BORDER_LENGTH;
+					Cell* cell = neighbors[chunkEdge]->cellsAlongChunkBorder[neighborIndex];
+					chunk->cellsAlongChunkBorder[(cellsAlongBorderStart + i) % TOTAL_BORDER_LENGTH] = cell;
+
+					// Store that this local node will be mapped to the shared global node of the shared cell.
+					Node* localNode = localGraph.getNodeAt(cell->node->getPosition());
+					nodeLocalToGlobalMap.insert(std::make_pair(localNode, cell->node));
+
+					// As we're already sharing all nodes on this chunk edge with the neighboring chunk, we don't need
+					// to add the graph edges along this chunk edge to the global graph again. To ensure that graph
+					// edges along this chunk edge won't be added to the global graph again, we mark them as traversed.
+					if (previousLocalNode != nullptr)
+					{
+						DirectedEdge* edge = previousLocalNode->getEdge(localNode);
+						traversedEdges.insert(edge);
+						traversedEdges.insert(edge->getOtherDirection());
+					}
+					previousLocalNode = localNode;
+				}
+			}
+		}
+
+		uint16_t cellId = 0;
+		for (auto& iterator : localGraph.getNodes())
+		{
+			Node* const & localNode = iterator.second;
+			if (nodeLocalToGlobalMap.find(localNode) == nodeLocalToGlobalMap.end())
+			{
+				// The current local node is not part of some border to an already existing chunk. We must create a new
+				// global node (i.e. a node in the world graph) and a cell for it.
+				Node* globalNode = new Node(localNode->getPosition());
+				worldGraph->addNode(globalNode);
+				nodeLocalToGlobalMap.insert(std::make_pair(localNode, globalNode));
+
+				Cell* cell = new Cell(chunk, cellId, globalNode);
+				chunk->cells.push_back(cell);
+				cellId++;
+
+				auto& index = borderIndexMap.find(localNode);
+				if (index != borderIndexMap.end())
+					chunk->cellsAlongChunkBorder[index->second] = cell;
+			}
+		}
+
+		// Copy the edges from the local graph to the world graph.
+		for (auto& localNode : localGraph.getNodes())
+		{
+			Node* worldNode = nodeLocalToGlobalMap[localNode.second];
+			for (auto& outgoingEdge : localNode.second->getEdges())
+			{
+				if (traversedEdges.find(outgoingEdge.second) == traversedEdges.end())
+				{
+					worldNode->addEdgeTo(nodeLocalToGlobalMap[outgoingEdge.second->getTo()]);
+
+					traversedEdges.insert(outgoingEdge.second);
+					traversedEdges.insert(outgoingEdge.second->getOtherDirection());
+				}
+			}
+		}
+
+		// TODO: The mesh shouldn't be directly generated here. Therefore all the code starting from here and ending at
+		// the end of this function should be moved to somewhere else.
 
 		// Generate a mesh from the graph.
-		std::vector<Face*> faces = graph.calculateFaces();
+		std::vector<Face*> faces = localGraph.calculateFaces();
 
 		std::vector<glm::vec3> vertices;
 		std::vector<glm::vec2> uvs;
@@ -212,14 +326,14 @@ namespace game::world
 
 		std::unordered_map<Node*, unsigned int> nodeIndices;
 		unsigned int currentIndex = 0;
-		for (auto& node : graph.getNodes())
+		for (auto& node : localGraph.getNodes())
 		{
-			glm::vec2& position = node->getPosition();
+			glm::vec2& position = node.second->getPosition();
 			vertices.push_back(glm::vec3(position.x, 0, position.y));
 			uvs.push_back(glm::vec2(0, 0));
 			normals.push_back(glm::vec3(0, 1, 0));
 
-			nodeIndices.insert(std::make_pair(node, currentIndex));
+			nodeIndices.insert(std::make_pair(node.second, currentIndex));
 			currentIndex++;
 		}
 
@@ -251,31 +365,32 @@ namespace game::world
 
 		// START OF TEMPORARY TEST CODE
 		glm::vec2 up = chunk->centerPos + (float)CHUNK_SIZE * UP;
+		glm::vec2 rightUp = chunk->centerPos + (float)CHUNK_SIZE * DIAG_RIGHT_UP;
+		glm::vec2 rightDown = chunk->centerPos + (float)CHUNK_SIZE * DIAG_RIGHT_DOWN;
+		glm::vec2 down = chunk->centerPos - (float)CHUNK_SIZE * UP;
+		glm::vec2 leftDown = chunk->centerPos - (float)CHUNK_SIZE * DIAG_RIGHT_UP;
+		glm::vec2 leftUp = chunk->centerPos - (float)CHUNK_SIZE * DIAG_RIGHT_DOWN;
+
 		vertices.push_back(glm::vec3(up.x, 0, up.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		glm::vec2 rightUp = chunk->centerPos + (float)CHUNK_SIZE * DIAG_RIGHT_UP;
 		vertices.push_back(glm::vec3(rightUp.x, 1, rightUp.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		glm::vec2 rightDown = chunk->centerPos + (float)CHUNK_SIZE * DIAG_RIGHT_DOWN;
 		vertices.push_back(glm::vec3(rightDown.x, 2, rightDown.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		glm::vec2 down = chunk->centerPos - (float)CHUNK_SIZE * UP;
 		vertices.push_back(glm::vec3(down.x, 3, down.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		glm::vec2 leftDown = chunk->centerPos - (float)CHUNK_SIZE * DIAG_RIGHT_UP;
 		vertices.push_back(glm::vec3(leftDown.x, 4, leftDown.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		glm::vec2 leftUp = chunk->centerPos - (float)CHUNK_SIZE * DIAG_RIGHT_DOWN;
 		vertices.push_back(glm::vec3(leftUp.x, 5, leftUp.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
@@ -315,5 +430,20 @@ namespace game::world
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_LINES));
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(debugMaterial, debugIndices, GL_LINES));
 		chunk->mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+	}
+
+	Cell::~Cell()
+	{
+		delete node;
+	}
+
+	const std::vector<Cell*> Cell::getNeighbors()
+	{
+		std::vector<Cell*> neighbors;
+
+		for (auto& edge : node->getEdges())
+			neighbors.push_back((Cell*)(edge.first->getAdditionalData()));
+
+		return neighbors;
 	}
 }
