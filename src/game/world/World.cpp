@@ -17,7 +17,10 @@ namespace game::world
 		if (chunk != nullptr)
 			return chunk;
 
-		Chunk* neighbors[6] {
+		chunk = new Chunk(worldSeed, column, row);
+		chunks.insert(std::make_pair(std::make_pair(column, row), chunk));
+
+		Chunk* neighbors[6]{
 				getChunk(column + 1, row - 1),	// Neighbor chunk to the diagonal up right
 				getChunk(column + 1, row + 0),	// Neighbor chunk to the right
 				getChunk(column + 0, row + 1),	// Neighbor chunk to the diagonal down right
@@ -25,9 +28,8 @@ namespace game::world
 				getChunk(column - 1, row + 0),	// Neighbor chunk to the left
 				getChunk(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
 		};
+		chunk->generateChunkTopology(neighbors, &graph);
 
-		chunk = new Chunk(worldSeed, column, row, neighbors, &graph);
-		chunks.insert(std::make_pair(std::make_pair(column, row), chunk));
 		return chunk;
 	}
 

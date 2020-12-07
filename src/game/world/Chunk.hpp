@@ -28,15 +28,11 @@ namespace game::world
 		Chunk(
 			size_t worldSeed,
 			int32_t _column,
-			int32_t _row,
-			Chunk* _neighbors[6],
-			PlanarGraph* _worldGraph
+			int32_t _row
 		) : Chunk(
 			worldSeed,
 			_column,
 			_row,
-			_neighbors,
-			_worldGraph,
 			CHUNK_SIZE,
 			CELL_SIZE
 		) {};
@@ -113,11 +109,11 @@ namespace game::world
 			size_t worldSeed,
 			int32_t _column,
 			int32_t _row,
-			Chunk* _neighbors[6],
-			PlanarGraph* _worldGraph,
 			int _chunkSize,
 			float _cellSize
 		);
+
+		void generateChunkTopology(Chunk* _neighbors[6], PlanarGraph* _worldGraph);
 
 		class Generator
 		{
@@ -168,7 +164,22 @@ namespace game::world
 			void subdivideSurfaces();
 
 			void setChunkTopologyData();
+
+			void generateTopologyGridMesh();
+
+			void Chunk::Generator::addCell(
+				std::vector<glm::vec3>& vertices,
+				std::vector<glm::vec2>& uvs,
+				std::vector<glm::vec3>& normals,
+				std::unordered_map<Node*, unsigned int>& nodeIndices,
+				unsigned int& currentIndex,
+				Cell* cell
+			);
+
+			friend class World;
 		};
+
+		friend class World;
 	};
 
 	class Cell

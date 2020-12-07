@@ -6,8 +6,6 @@ namespace game::world
 		size_t worldSeed,
 		int32_t _column,
 		int32_t _row,
-		Chunk* _neighbors[6],
-		PlanarGraph* _worldGraph,
 		int _chunkSize,
 		float _cellSize
 	) :
@@ -37,7 +35,10 @@ namespace game::world
 		cellsAlongChunkBorder.resize(totalBorderLength);
 		for (int i = 0; i < totalBorderLength; i++)
 			cellsAlongChunkBorder[i] = nullptr;
+	}
 
+	void Chunk::generateChunkTopology(Chunk* _neighbors[6], PlanarGraph* _worldGraph)
+	{
 		Generator generator = Generator(
 			this,
 			_neighbors,
@@ -63,6 +64,7 @@ namespace game::world
 		subdivideSurfaces();
 
 		setChunkTopologyData();
+		generateTopologyGridMesh();
 	}
 
 	void Chunk::Generator::generateInitialPositions()
@@ -313,122 +315,83 @@ namespace game::world
 				}
 			}
 		}
+	}
 
-		// TODO: The mesh shouldn't be directly generated here. Therefore all the code starting from here and ending at
-		// the end of this function should be moved to somewhere else.
-
-		// Generate a mesh from the graph.
-		std::vector<Face*> faces = localGraph.calculateFaces();
-
-		std::vector<glm::vec3> vertices;
-		std::vector<glm::vec2> uvs;
-		std::vector<glm::vec3> normals;
-
-		std::unordered_map<Node*, unsigned int> nodeIndices;
-		unsigned int currentIndex = 0;
-		for (auto& node : localGraph.getNodes())
+	void Chunk::Generator::addCell(
+		std::vector<glm::vec3>& vertices,
+		std::vector<glm::vec2>& uvs,
+		std::vector<glm::vec3>& normals,
+		std::unordered_map<Node*, unsigned int>& nodeIndices,
+		unsigned int& currentIndex,
+		Cell* cell
+	) {
+		if (nodeIndices.find(cell->node) == nodeIndices.end())
 		{
-			glm::vec2& position = node.second->getPosition();
+			glm::vec2& position = cell->node->getPosition();
 			vertices.push_back(glm::vec3(position.x, 0, position.y));
 			uvs.push_back(glm::vec2(0, 0));
 			normals.push_back(glm::vec3(0, 1, 0));
 
-			nodeIndices.insert(std::make_pair(node.second, currentIndex));
+			nodeIndices.insert(std::make_pair(cell->node, currentIndex));
 			currentIndex++;
 		}
+	}
 
+	void Chunk::Generator::generateTopologyGridMesh()
+	{
+		std::vector<glm::vec3> vertices;
+		std::vector<glm::vec2> uvs;
+		std::vector<glm::vec3> normals;
 		std::vector<unsigned int> indices;
 
-		for (auto& face : faces)
+		std::unordered_map<Node*, unsigned int> nodeIndices;
+		unsigned int currentIndex = 0;
+
+		for (auto& cell : chunk->cells)
+			addCell(vertices, uvs, normals, nodeIndices, currentIndex, cell);
+		for (auto& cell : chunk->cellsAlongChunkBorder)
+			addCell(vertices, uvs, normals, nodeIndices, currentIndex, cell);
+
+		std::unordered_set<DirectedEdge*> traversedEdges;
+		for (Cell* cell : chunk->cells)
 		{
-			size_t nodesInFace = face->getNumNodes();
-			if (nodesInFace == 4)
+			Node* node = cell->node;
+			for (auto& edgeAndDestination : node->getEdges())
 			{
-				// All faces of the planar graph are quads (except for the outside of the chunk, which we don't want to render).
-				auto& nodes = face->getNodes();
+				DirectedEdge* outgoingEdge = edgeAndDestination.second;
+				if (traversedEdges.find(outgoingEdge) == traversedEdges.end())
+				{
+					Face face = outgoingEdge->calculateFace();
 
-				indices.push_back(nodeIndices[nodes[0]]);
-				indices.push_back(nodeIndices[nodes[1]]);
+					if (face.getNumEdges() == 3 || face.getNumEdges() == 4)
+					{
+						for (DirectedEdge* edge : face.getEdges())
+						{
+							indices.push_back(nodeIndices[edge->getFrom()]);
+							indices.push_back(nodeIndices[edge->getTo()]);
 
-				indices.push_back(nodeIndices[nodes[1]]);
-				indices.push_back(nodeIndices[nodes[2]]);
-
-				indices.push_back(nodeIndices[nodes[2]]);
-				indices.push_back(nodeIndices[nodes[3]]);
-
-				indices.push_back(nodeIndices[nodes[3]]);
-				indices.push_back(nodeIndices[nodes[0]]);
+							traversedEdges.insert(edge);
+						}
+					}
+					else
+					{
+						for (DirectedEdge* edge : face.getEdges())
+						{
+							traversedEdges.insert(edge);
+						}
+					}
+				}
 			}
-
-			delete face;
 		}
 
-		// START OF TEMPORARY TEST CODE
-		glm::vec2 upCorner = chunk->centerPos + (float)chunk->chunkSize * up;
-		glm::vec2 rightUpCorner = chunk->centerPos + (float)chunk->chunkSize * diagRightUp;
-		glm::vec2 rightDownCorner = chunk->centerPos + (float)chunk->chunkSize * diagRightDown;
-		glm::vec2 downCorner = chunk->centerPos - (float)chunk->chunkSize * up;
-		glm::vec2 leftDownCorner = chunk->centerPos - (float)chunk->chunkSize * diagRightUp;
-		glm::vec2 leftUpCorner = chunk->centerPos - (float)chunk->chunkSize * diagRightDown;
-
-		vertices.push_back(glm::vec3(upCorner.x, 0, upCorner.y));
-		uvs.push_back(glm::vec2(0, 0));
-		normals.push_back(glm::vec3(0, 1, 0));
-
-		vertices.push_back(glm::vec3(rightUpCorner.x, 1, rightUpCorner.y));
-		uvs.push_back(glm::vec2(0, 0));
-		normals.push_back(glm::vec3(0, 1, 0));
-
-		vertices.push_back(glm::vec3(rightDownCorner.x, 2, rightDownCorner.y));
-		uvs.push_back(glm::vec2(0, 0));
-		normals.push_back(glm::vec3(0, 1, 0));
-
-		vertices.push_back(glm::vec3(downCorner.x, 3, downCorner.y));
-		uvs.push_back(glm::vec2(0, 0));
-		normals.push_back(glm::vec3(0, 1, 0));
-
-		vertices.push_back(glm::vec3(leftDownCorner.x, 4, leftDownCorner.y));
-		uvs.push_back(glm::vec2(0, 0));
-		normals.push_back(glm::vec3(0, 1, 0));
-
-		vertices.push_back(glm::vec3(leftUpCorner.x, 5, leftUpCorner.y));
-		uvs.push_back(glm::vec2(0, 0));
-		normals.push_back(glm::vec3(0, 1, 0));
-
-		std::vector<unsigned int> debugIndices;
-
-		debugIndices.push_back(nodeIndices.size() + 0);
-		debugIndices.push_back(nodeIndices.size() + 1);
-
-		debugIndices.push_back(nodeIndices.size() + 1);
-		debugIndices.push_back(nodeIndices.size() + 2);
-
-		debugIndices.push_back(nodeIndices.size() + 2);
-		debugIndices.push_back(nodeIndices.size() + 3);
-
-		debugIndices.push_back(nodeIndices.size() + 3);
-		debugIndices.push_back(nodeIndices.size() + 4);
-
-		debugIndices.push_back(nodeIndices.size() + 4);
-		debugIndices.push_back(nodeIndices.size() + 5);
-
-		std::shared_ptr<rendering::model::Material> debugMaterial = std::make_shared<rendering::model::Material>(
+		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
 			glm::vec3(0.2f, 0.0f, 0.0f),
 			glm::vec3(1.0f, 0.0f, 0.0f),
 			glm::vec3(0.1f, 0.0f, 0.0f),
 			2.0f
 			);
-		// END OF TEMPORARY TEST CODE
-
-		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
-			glm::vec3(0.0f, 0.2f, 0.0f),
-			glm::vec3(0.0f, 1.0f, 0.0f),
-			glm::vec3(0.0f, 0.1f, 0.0f),
-			2.0f
-			);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_LINES));
-		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(debugMaterial, debugIndices, GL_LINES));
 		chunk->mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
 	}
 
