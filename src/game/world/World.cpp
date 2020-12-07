@@ -9,7 +9,10 @@ namespace game::world
 		int chunkSize = CHUNK_SIZE * WATER_RELATIVE_VERTEX_DENSITY;
 		float cellSize = CELL_SIZE * (1.0f / (float)WATER_RELATIVE_VERTEX_DENSITY);
 
-		Chunk waterChunk = Chunk(worldSeed, 0, 0, chunkSize, cellSize);
+		heightNoise.SetSeed(_worldSeed);
+		heightNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+
+		Chunk waterChunk = Chunk(worldSeed, 0, 0, heightNoise, chunkSize, cellSize);
 		waterMesh = waterChunk.generateWaterMesh();
 	}
 
@@ -36,7 +39,7 @@ namespace game::world
 		if (chunk != nullptr)
 			return chunk;
 
-		chunk = new Chunk(worldSeed, column, row);
+		chunk = new Chunk(worldSeed, column, row, heightNoise);
 		chunks.insert(std::make_pair(std::make_pair(column, row), chunk));
 
 		Chunk* neighbors[6]{

@@ -13,6 +13,8 @@
 
 #include <glm/glm.hpp>
 
+#include <FastNoiseLite.h>
+
 #include "PlanarGraph.hpp"
 
 #define CHUNK_SIZE 5
@@ -28,11 +30,13 @@ namespace game::world
 		Chunk(
 			size_t worldSeed,
 			int32_t _column,
-			int32_t _row
+			int32_t _row,
+			FastNoiseLite& _heightNoise
 		) : Chunk(
 			worldSeed,
 			_column,
 			_row,
+			_heightNoise,
 			CHUNK_SIZE,
 			CELL_SIZE
 		) {};
@@ -92,6 +96,8 @@ namespace game::world
 
 		rendering::model::Mesh* mesh;
 
+		FastNoiseLite& heightNoise;
+
 		const int chunkSize;
 		const float cellSize;
 
@@ -109,6 +115,7 @@ namespace game::world
 			size_t worldSeed,
 			int32_t _column,
 			int32_t _row,
+			FastNoiseLite& _heightNoise,
 			int _chunkSize,
 			float _cellSize
 		);
@@ -143,7 +150,6 @@ namespace game::world
 
 		private:
 			Chunk* chunk;
-
 			Chunk* neighbors[6];
 
 			PlanarGraph* worldGraph;
@@ -183,6 +189,7 @@ namespace game::world
 			friend class World;
 		};
 
+		friend class Cell;
 		friend class World;
 	};
 
@@ -195,6 +202,8 @@ namespace game::world
 			completeId = (chunk->getChunkId() << 14) + cellId;
 
 			node->setAdditionalData(this);
+
+			height = chunk->heightNoise.GetNoise(node->getPosition().x * 10.0f, node->getPosition().y * 10.0f);
 		}
 
 		~Cell();
@@ -219,6 +228,16 @@ namespace game::world
 			return node->getPosition();
 		}
 
+		float getHeight()
+		{
+			return height;
+		}
+
+		glm::vec3 getPositionAndHeight()
+		{
+			return glm::vec3(node->getPosition().x, height, node->getPosition().y);
+		}
+
 		const std::vector<Cell*> getNeighbors();
 
 	private:
@@ -228,6 +247,8 @@ namespace game::world
 		uint32_t completeId;
 
 		Node* node;
+
+		float height;
 
 		friend Chunk;
 	};

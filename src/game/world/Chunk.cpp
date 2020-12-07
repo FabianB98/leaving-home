@@ -6,11 +6,13 @@ namespace game::world
 		size_t worldSeed,
 		int32_t _column,
 		int32_t _row,
+		FastNoiseLite& _heightNoise,
 		int _chunkSize,
 		float _cellSize
 	) :
 		column(_column),
 		row(_row),
+		heightNoise(_heightNoise),
 		chunkSize(_chunkSize),
 		cellSize(_cellSize),
 		initialCellSize(2.0f * cellSize),
@@ -334,8 +336,7 @@ namespace game::world
 	) {
 		if (nodeIndices.find(cell->node) == nodeIndices.end())
 		{
-			glm::vec2& position = cell->node->getPosition();
-			vertices.push_back(glm::vec3(position.x, 0, position.y));
+			vertices.push_back(cell->getPositionAndHeight());
 			uvs.push_back(glm::vec2(0, 0));
 			normals.push_back(glm::vec3(0, 1, 0));
 
