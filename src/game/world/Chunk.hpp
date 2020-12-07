@@ -31,7 +31,15 @@ namespace game::world
 			int32_t _row,
 			Chunk* _neighbors[6],
 			PlanarGraph* _worldGraph
-		);
+		) : Chunk(
+			worldSeed,
+			_column,
+			_row,
+			_neighbors,
+			_worldGraph,
+			CHUNK_SIZE,
+			CELL_SIZE
+		) {};
 
 		~Chunk();
 
@@ -65,7 +73,7 @@ namespace game::world
 			return cells;
 		}
 
-		Cell** getCellsAlongChunkBorder()
+		const std::vector<Cell*> getCellsAlongChunkBorder()
 		{
 			return cellsAlongChunkBorder;
 		}
@@ -84,9 +92,32 @@ namespace game::world
 		glm::vec2 centerPos;
 
 		std::vector<Cell*> cells;
-		Cell* cellsAlongChunkBorder[12 * CHUNK_SIZE];
+		std::vector<Cell*> cellsAlongChunkBorder;
 
 		rendering::model::Mesh* mesh;
+
+		const int chunkSize;
+		const float cellSize;
+
+		const int initialCellSize;
+		const int chunkBorderLength;
+		const int totalBorderLength;
+
+		const float chunkWidth;
+		const float chunkHeight;
+
+		const float chunkHorizontalDistance;
+		const float chunkVerticalDistance;
+
+		Chunk(
+			size_t worldSeed,
+			int32_t _column,
+			int32_t _row,
+			Chunk* _neighbors[6],
+			PlanarGraph* _worldGraph,
+			int _chunkSize,
+			float _cellSize
+		);
 
 		class Generator
 		{
@@ -99,8 +130,14 @@ namespace game::world
 				chunk(_chunk), 
 				neighbors{ _neighbors[0], _neighbors[1], _neighbors[2], _neighbors[3], _neighbors[4], _neighbors[5] },
 				worldGraph(_worldGraph),
-				localGraph(PlanarGraph())
-			{}
+				localGraph(PlanarGraph()),
+				up(glm::vec2(0, chunk->initialCellSize)),
+				diagRightUp(glm::vec2(chunk->initialCellSize* cos(glm::radians(30.0f)), chunk->initialCellSize* sin(glm::radians(30.0f)))),
+				diagRightDown(glm::vec2(chunk->initialCellSize* cos(glm::radians(330.0f)), chunk->initialCellSize* sin(glm::radians(330.0f)))),
+				centerLineStart(-glm::vec2(CHUNK_SIZE, CHUNK_SIZE) * diagRightUp)
+			{
+				lineIndexPrefixsum.resize(size_t(2) * chunk->chunkSize + 1);
+			}
 
 			void generateChunkTopology();
 
@@ -115,7 +152,12 @@ namespace game::world
 			std::vector<Node*> nodesOrdered;
 			std::vector<std::pair<DirectedEdge*, DirectedEdge*>> edgesOrdered;
 
-			size_t lineIndexPrefixsum[2 * CHUNK_SIZE + 1]{};
+			std::vector<size_t> lineIndexPrefixsum;
+
+			const glm::vec2 up;
+			const glm::vec2 diagRightUp;
+			const glm::vec2 diagRightDown;
+			const glm::vec2 centerLineStart;
 
 			void generateInitialPositions();
 

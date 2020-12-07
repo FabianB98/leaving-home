@@ -2,31 +2,30 @@
 
 namespace game::world
 {
-	static const int INITIAL_CELL_SIZE = 2 * CELL_SIZE;
-	static const int CHUNK_BORDER_LENGTH = CHUNK_SIZE * INITIAL_CELL_SIZE;
-	static const int TOTAL_BORDER_LENGTH = 6 * CHUNK_BORDER_LENGTH;
-
-	static const float CHUNK_WIDTH = sqrt(3.0f) * CHUNK_BORDER_LENGTH;
-	static const float CHUNK_HEIGHT = 2 * CHUNK_BORDER_LENGTH;
-
-	static const float CHUNK_HORIZONTAL_DISTANCE = CHUNK_WIDTH;
-	static const float CHUNK_VERTICAL_DISTANCE = 0.75 * CHUNK_HEIGHT;
-
-	static const glm::vec2 UP = glm::vec2(0, INITIAL_CELL_SIZE);
-	static const glm::vec2 DIAG_RIGHT_UP = glm::vec2(INITIAL_CELL_SIZE * cos(glm::radians(30.0f)), INITIAL_CELL_SIZE * sin(glm::radians(30.0f)));
-	static const glm::vec2 DIAG_RIGHT_DOWN = glm::vec2(INITIAL_CELL_SIZE * cos(glm::radians(330.0f)), INITIAL_CELL_SIZE * sin(glm::radians(330.0f)));
-	static const glm::vec2 CENTER_LINE_START = - glm::vec2(CHUNK_SIZE, CHUNK_SIZE) * DIAG_RIGHT_UP;
-
 	Chunk::Chunk(
 		size_t worldSeed,
 		int32_t _column,
 		int32_t _row,
 		Chunk* _neighbors[6],
-		PlanarGraph* _worldGraph
-	) : column(_column), row(_row), mesh(nullptr)
+		PlanarGraph* _worldGraph,
+		int _chunkSize,
+		float _cellSize
+	) :
+		column(_column),
+		row(_row),
+		chunkSize(_chunkSize),
+		cellSize(_cellSize),
+		initialCellSize(2.0f * cellSize),
+		chunkBorderLength(chunkSize * initialCellSize),
+		totalBorderLength(6 * chunkBorderLength),
+		chunkWidth(sqrt(3.0f) * chunkBorderLength),
+		chunkHeight(2.0f * chunkBorderLength),
+		chunkHorizontalDistance(chunkWidth),
+		chunkVerticalDistance(0.75f * chunkHeight),
+		mesh(nullptr)
 	{
-		float xPos = (column + (row % 2) * 0.5f) * CHUNK_HORIZONTAL_DISTANCE;
-		float yPos = row * CHUNK_VERTICAL_DISTANCE;
+		float xPos = (column + (row % 2) * 0.5f) * chunkHorizontalDistance;
+		float yPos = row * chunkVerticalDistance;
 		centerPos = glm::vec2(xPos, yPos);
 
 		chunkSeed = worldSeed ^ std::hash<glm::vec2>()(centerPos);
@@ -35,7 +34,8 @@ namespace game::world
 		uint16_t yId = row & 127;
 		chunkId = xId + (yId << 7);
 
-		for (int i = 0; i < 6 * CHUNK_BORDER_LENGTH; i++)
+		cellsAlongChunkBorder.resize(totalBorderLength);
+		for (int i = 0; i < totalBorderLength; i++)
 			cellsAlongChunkBorder[i] = nullptr;
 
 		Generator generator = Generator(
@@ -71,24 +71,24 @@ namespace game::world
 		// Positions are generated in lines. Each line starts at the bottom left most point of the line and is generated
 		// by moving up diagonally to the right.
 		size_t sum = 0;
-		glm::vec2 centerLineStart = chunk->centerPos + CENTER_LINE_START;
-		for (int line = -CHUNK_SIZE; line <= CHUNK_SIZE; line++)
+		glm::vec2 leftMostPosition = chunk->centerPos + centerLineStart;
+		for (int line = -chunk->chunkSize; line <= chunk->chunkSize; line++)
 		{
-			glm::vec2 lineStart = centerLineStart;
+			glm::vec2 lineStart = leftMostPosition;
 			if (line < 0)
-				lineStart -= (float)line * UP;
+				lineStart -= (float)line * up;
 			else
-				lineStart += (float)line * DIAG_RIGHT_DOWN;
+				lineStart += (float)line * diagRightDown;
 
-			int pointsInLine = 2 * CHUNK_SIZE + 1 - abs(line);
+			int pointsInLine = 2 * chunk->chunkSize + 1 - abs(line);
 			for (int pointInLine = 0; pointInLine < pointsInLine; pointInLine++)
 			{
-				Node* node = new Node(lineStart + (float)pointInLine * DIAG_RIGHT_UP);
+				Node* node = new Node(lineStart + (float)pointInLine * diagRightUp);
 				nodesOrdered.push_back(node);
 				localGraph.addNode(node);
 			}
 
-			lineIndexPrefixsum[line + CHUNK_SIZE] = sum;
+			lineIndexPrefixsum[line + chunk->chunkSize] = sum;
 			sum += pointsInLine;
 		}
 	}
@@ -97,20 +97,20 @@ namespace game::world
 	{
 		// Create an embedding of a planar graph from the generated positions.
 		// Add all edges along the first line.
-		for (size_t pointInLine = 0; pointInLine < CHUNK_SIZE; pointInLine++)
+		for (size_t pointInLine = 0; pointInLine < chunk->chunkSize; pointInLine++)
 		{
 			edgesOrdered.push_back(localGraph.addEdge(nodesOrdered[pointInLine], nodesOrdered[pointInLine + 1]));
 		}
 
 		// Add all edges within the upper-left half of the hexagon.
-		for (int line = 1; line <= CHUNK_SIZE; line++)
+		for (int line = 1; line <= chunk->chunkSize; line++)
 		{
 			// Add the upward and right-up edge of the first point in the line.
 			Node* currentNode = nodesOrdered[lineIndexPrefixsum[line]];
 			edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line - 1]]));
 			edgesOrdered.push_back(localGraph.addEdge(currentNode, nodesOrdered[lineIndexPrefixsum[line] + 1]));
 
-			int pointsInLine = CHUNK_SIZE + line;
+			int pointsInLine = chunk->chunkSize + line;
 			for (int pointInLine = 1; pointInLine < pointsInLine; pointInLine++)
 			{
 				// Add the left-up, upward and right-up edge of the current point in the line.
@@ -126,9 +126,9 @@ namespace game::world
 		}
 
 		// Add all edges within the lower-right half of the hexagon.
-		for (int line = CHUNK_SIZE + 1; line <= 2 * CHUNK_SIZE; line++)
+		for (int line = chunk->chunkSize + 1; line <= 2 * chunk->chunkSize; line++)
 		{
-			int pointsInLine = 3 * CHUNK_SIZE - line;
+			int pointsInLine = 3 * chunk->chunkSize - line;
 			for (int pointInLine = 0; pointInLine < pointsInLine; pointInLine++)
 			{
 				// Add the left-up, upward and right-up edge of the current point in the line.
@@ -233,9 +233,9 @@ namespace game::world
 		while (edge->getOtherDirection()->getNextCounterclockwise()->getTo() != nodeIndexTwo)
 			edge = edge->getNextCounterclockwise();
 
-		for (int i = 0; i < TOTAL_BORDER_LENGTH; i++)
+		for (int i = 0; i < chunk->totalBorderLength; i++)
 		{
-			borderIndexMap.insert(std::make_pair(edge->getFrom(), (i + 3 * CHUNK_BORDER_LENGTH) % TOTAL_BORDER_LENGTH));
+			borderIndexMap.insert(std::make_pair(edge->getFrom(), (i + 3 * chunk->chunkBorderLength) % chunk->totalBorderLength));
 			edge = edge->getOtherDirection()->getNextCounterclockwise();
 		}
 
@@ -248,15 +248,15 @@ namespace game::world
 			{
 				// The current chunk has an already existing neighbor chunk on the current edge. Therefore, we need to
 				// share all nodes which are on the current edge between this chunk and the neighboring chunk.
-				int cellsAlongBorderStart = chunkEdge * CHUNK_BORDER_LENGTH;
+				int cellsAlongBorderStart = chunkEdge * chunk->chunkBorderLength;
 				Node* previousLocalNode = nullptr;
-				for (int i = 0; i <= CHUNK_BORDER_LENGTH; i++)
+				for (int i = 0; i <= chunk->chunkBorderLength; i++)
 				{
 					// Set the cellsAlongChunkBorder array for this chunk to reflect that we're sharing this cell with
 					// the neighboring chunk.
-					int neighborIndex = (cellsAlongBorderStart + 4 * CHUNK_BORDER_LENGTH - i) % TOTAL_BORDER_LENGTH;
+					int neighborIndex = (cellsAlongBorderStart + 4 * chunk->chunkBorderLength - i) % chunk->totalBorderLength;
 					Cell* cell = neighbors[chunkEdge]->cellsAlongChunkBorder[neighborIndex];
-					chunk->cellsAlongChunkBorder[(cellsAlongBorderStart + i) % TOTAL_BORDER_LENGTH] = cell;
+					chunk->cellsAlongChunkBorder[(cellsAlongBorderStart + i) % chunk->totalBorderLength] = cell;
 
 					// Store that this local node will be mapped to the shared global node of the shared cell.
 					Node* localNode = localGraph.getNodeAt(cell->node->getPosition());
@@ -364,34 +364,34 @@ namespace game::world
 		}
 
 		// START OF TEMPORARY TEST CODE
-		glm::vec2 up = chunk->centerPos + (float)CHUNK_SIZE * UP;
-		glm::vec2 rightUp = chunk->centerPos + (float)CHUNK_SIZE * DIAG_RIGHT_UP;
-		glm::vec2 rightDown = chunk->centerPos + (float)CHUNK_SIZE * DIAG_RIGHT_DOWN;
-		glm::vec2 down = chunk->centerPos - (float)CHUNK_SIZE * UP;
-		glm::vec2 leftDown = chunk->centerPos - (float)CHUNK_SIZE * DIAG_RIGHT_UP;
-		glm::vec2 leftUp = chunk->centerPos - (float)CHUNK_SIZE * DIAG_RIGHT_DOWN;
+		glm::vec2 upCorner = chunk->centerPos + (float)chunk->chunkSize * up;
+		glm::vec2 rightUpCorner = chunk->centerPos + (float)chunk->chunkSize * diagRightUp;
+		glm::vec2 rightDownCorner = chunk->centerPos + (float)chunk->chunkSize * diagRightDown;
+		glm::vec2 downCorner = chunk->centerPos - (float)chunk->chunkSize * up;
+		glm::vec2 leftDownCorner = chunk->centerPos - (float)chunk->chunkSize * diagRightUp;
+		glm::vec2 leftUpCorner = chunk->centerPos - (float)chunk->chunkSize * diagRightDown;
 
-		vertices.push_back(glm::vec3(up.x, 0, up.y));
+		vertices.push_back(glm::vec3(upCorner.x, 0, upCorner.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		vertices.push_back(glm::vec3(rightUp.x, 1, rightUp.y));
+		vertices.push_back(glm::vec3(rightUpCorner.x, 1, rightUpCorner.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		vertices.push_back(glm::vec3(rightDown.x, 2, rightDown.y));
+		vertices.push_back(glm::vec3(rightDownCorner.x, 2, rightDownCorner.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		vertices.push_back(glm::vec3(down.x, 3, down.y));
+		vertices.push_back(glm::vec3(downCorner.x, 3, downCorner.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		vertices.push_back(glm::vec3(leftDown.x, 4, leftDown.y));
+		vertices.push_back(glm::vec3(leftDownCorner.x, 4, leftDownCorner.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
-		vertices.push_back(glm::vec3(leftUp.x, 5, leftUp.y));
+		vertices.push_back(glm::vec3(leftUpCorner.x, 5, leftUpCorner.y));
 		uvs.push_back(glm::vec2(0, 0));
 		normals.push_back(glm::vec3(0, 1, 0));
 
