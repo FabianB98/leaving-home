@@ -47,6 +47,13 @@ namespace game::world
 		generator.generateChunkTopology();
 	}
 
+	rendering::model::Mesh* Chunk::generateWaterMesh()
+	{
+		Chunk* neighbors[6]{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+		Generator generator = Generator(this, neighbors, nullptr);
+		return generator.generateWaterMesh();
+	}
+
 	Chunk::~Chunk()
 	{
 		delete mesh;
@@ -64,7 +71,7 @@ namespace game::world
 		subdivideSurfaces();
 
 		setChunkTopologyData();
-		generateTopologyGridMesh();
+		chunk->mesh = generateTopologyGridMesh();
 	}
 
 	void Chunk::Generator::generateInitialPositions()
@@ -337,7 +344,7 @@ namespace game::world
 		}
 	}
 
-	void Chunk::Generator::generateTopologyGridMesh()
+	rendering::model::Mesh* Chunk::Generator::generateTopologyGridMesh()
 	{
 		std::vector<glm::vec3> vertices;
 		std::vector<glm::vec2> uvs;
@@ -392,7 +399,60 @@ namespace game::world
 			);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_LINES));
-		chunk->mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+		return new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+	}
+
+	rendering::model::Mesh* Chunk::Generator::generateWaterMesh()
+	{
+		generateInitialPositions();
+		generateInitialEdges();
+
+		std::vector<Face*> faces = localGraph.calculateFaces();
+
+		std::vector<glm::vec3> vertices;
+		std::vector<glm::vec2> uvs;
+		std::vector<glm::vec3> normals;
+
+		std::unordered_map<Node*, unsigned int> nodeIndices;
+		unsigned int currentIndex = 0;
+		for (auto& node : localGraph.getNodes())
+		{
+			glm::vec2& position = node.second->getPosition();
+			vertices.push_back(glm::vec3(position.x, 0, position.y));
+			uvs.push_back(glm::vec2(0, 0));
+			normals.push_back(glm::vec3(0, 1, 0));
+
+			nodeIndices.insert(std::make_pair(node.second, currentIndex));
+			currentIndex++;
+		}
+
+		std::vector<unsigned int> indices;
+
+		for (auto& face : faces)
+		{
+			size_t nodesInFace = face->getNumNodes();
+			if (nodesInFace == 3)
+			{
+				// All faces of the planar graph are triangles (except for the outside of the chunk, which we don't want to render).
+				auto& nodes = face->getNodes();
+
+				indices.push_back(nodeIndices[nodes[0]]);
+				indices.push_back(nodeIndices[nodes[1]]);
+				indices.push_back(nodeIndices[nodes[2]]);
+			}
+
+			delete face;
+		}
+
+		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
+			glm::vec3(0.0f, 0.0f, 0.2f),
+			glm::vec3(0.0f, 0.0f, 0.8f),
+			glm::vec3(0.0f, 0.0f, 0.4f),
+			2.0f
+			);
+		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
+		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
+		return new rendering::model::Mesh(vertices, uvs, normals, meshParts);
 	}
 
 	Cell::~Cell()

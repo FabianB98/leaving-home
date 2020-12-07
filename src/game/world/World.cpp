@@ -1,7 +1,26 @@
 #include "World.hpp"
 
+#define WATER_RELATIVE_VERTEX_DENSITY 4
+
 namespace game::world
 {
+	World::World(size_t _worldSeed) : worldSeed(_worldSeed)
+	{
+		int chunkSize = CHUNK_SIZE * WATER_RELATIVE_VERTEX_DENSITY;
+		float cellSize = CELL_SIZE * (1.0f / (float)WATER_RELATIVE_VERTEX_DENSITY);
+
+		Chunk waterChunk = Chunk(worldSeed, 0, 0, chunkSize, cellSize);
+		waterMesh = waterChunk.generateWaterMesh();
+	}
+
+	World::~World()
+	{
+		for (auto& chunk : chunks)
+			delete chunk.second;
+
+		delete waterMesh;
+	}
+
 	Chunk* World::getChunk(int32_t column, int32_t row)
 	{
 		auto& chunk = chunks.find(std::make_pair(column, row));
@@ -31,11 +50,5 @@ namespace game::world
 		chunk->generateChunkTopology(neighbors, &graph);
 
 		return chunk;
-	}
-
-	World::~World()
-	{
-		for (auto& chunk : chunks)
-			delete chunk.second;
 	}
 }

@@ -95,7 +95,7 @@ namespace game::world
 		const int chunkSize;
 		const float cellSize;
 
-		const int initialCellSize;
+		const float initialCellSize;
 		const int chunkBorderLength;
 		const int totalBorderLength;
 
@@ -115,6 +115,8 @@ namespace game::world
 
 		void generateChunkTopology(Chunk* _neighbors[6], PlanarGraph* _worldGraph);
 
+		rendering::model::Mesh* generateWaterMesh();
+
 		class Generator
 		{
 		public:
@@ -128,14 +130,16 @@ namespace game::world
 				worldGraph(_worldGraph),
 				localGraph(PlanarGraph()),
 				up(glm::vec2(0, chunk->initialCellSize)),
-				diagRightUp(glm::vec2(chunk->initialCellSize* cos(glm::radians(30.0f)), chunk->initialCellSize* sin(glm::radians(30.0f)))),
-				diagRightDown(glm::vec2(chunk->initialCellSize* cos(glm::radians(330.0f)), chunk->initialCellSize* sin(glm::radians(330.0f)))),
-				centerLineStart(-glm::vec2(CHUNK_SIZE, CHUNK_SIZE) * diagRightUp)
+				diagRightUp(glm::vec2(chunk->initialCellSize * cos(glm::radians(30.0f)), chunk->initialCellSize * sin(glm::radians(30.0f)))),
+				diagRightDown(glm::vec2(chunk->initialCellSize * cos(glm::radians(330.0f)), chunk->initialCellSize * sin(glm::radians(330.0f)))),
+				centerLineStart(-glm::vec2(chunk->chunkSize, chunk->chunkSize) * diagRightUp)
 			{
 				lineIndexPrefixsum.resize(size_t(2) * chunk->chunkSize + 1);
 			}
 
 			void generateChunkTopology();
+
+			rendering::model::Mesh* generateWaterMesh();
 
 		private:
 			Chunk* chunk;
@@ -165,7 +169,7 @@ namespace game::world
 
 			void setChunkTopologyData();
 
-			void generateTopologyGridMesh();
+			rendering::model::Mesh* generateTopologyGridMesh();
 
 			void Chunk::Generator::addCell(
 				std::vector<glm::vec3>& vertices,

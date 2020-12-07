@@ -25,7 +25,7 @@ namespace game::world
 	class World
 	{
 	public:
-		World(size_t _worldSeed) : worldSeed(_worldSeed) {};
+		World(size_t _worldSeed);
 
 		~World();
 
@@ -43,10 +43,17 @@ namespace game::world
 			return chunks;
 		}
 
+		rendering::model::Mesh* getWaterMesh()
+		{
+			return waterMesh;
+		}
+
 	private:
 		size_t worldSeed;
 
 		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> chunks;
 		PlanarGraph graph;
+
+		rendering::model::Mesh* waterMesh;
 	};
 }
