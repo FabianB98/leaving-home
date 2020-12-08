@@ -75,7 +75,7 @@ namespace game
 
 		entt::entity waterEntity = registry.create();
 		registry.emplace<MeshRenderer>(waterEntity, wrld->getWaterMesh());
-		registry.emplace<MatrixTransform>(waterEntity, EulerComponentwiseTransform(glm::vec3(0, 0, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+		registry.emplace<MatrixTransform>(waterEntity, EulerComponentwiseTransform(glm::vec3(0, WATER_HEIGHT, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::cout << "Generated 7 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;

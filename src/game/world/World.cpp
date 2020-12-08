@@ -1,18 +1,13 @@
 #include "World.hpp"
 
-#define WATER_RELATIVE_VERTEX_DENSITY 4
-
 namespace game::world
 {
-	World::World(size_t _worldSeed) : worldSeed(_worldSeed)
+	World::World(size_t _worldSeed) : worldSeed(_worldSeed), heightGenerator(HeightGenerator(worldSeed))
 	{
 		int chunkSize = CHUNK_SIZE * WATER_RELATIVE_VERTEX_DENSITY;
 		float cellSize = CELL_SIZE * (1.0f / (float)WATER_RELATIVE_VERTEX_DENSITY);
 
-		heightNoise.SetSeed(_worldSeed);
-		heightNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-
-		Chunk waterChunk = Chunk(worldSeed, 0, 0, heightNoise, chunkSize, cellSize);
+		Chunk waterChunk = Chunk(worldSeed, 0, 0, heightGenerator, chunkSize, cellSize);
 		waterMesh = waterChunk.generateWaterMesh();
 	}
 
@@ -39,7 +34,7 @@ namespace game::world
 		if (chunk != nullptr)
 			return chunk;
 
-		chunk = new Chunk(worldSeed, column, row, heightNoise);
+		chunk = new Chunk(worldSeed, column, row, heightGenerator);
 		chunks.insert(std::make_pair(std::make_pair(column, row), chunk));
 
 		Chunk* neighbors[6]{

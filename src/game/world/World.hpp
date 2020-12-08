@@ -2,10 +2,12 @@
 
 #include <unordered_map>
 
-#include <FastNoiseLite.h>
-
 #include "Chunk.hpp"
+#include "HeightGenerator.hpp"
 #include "PlanarGraph.hpp"
+
+#define WATER_HEIGHT 2.0f
+#define WATER_RELATIVE_VERTEX_DENSITY 4
 
 namespace std
 {
@@ -50,13 +52,18 @@ namespace game::world
 			return waterMesh;
 		}
 
+		HeightGenerator getHeightGenerator()
+		{
+			return heightGenerator;
+		}
+
 	private:
 		size_t worldSeed;
 
 		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> chunks;
 		PlanarGraph graph;
 
-		FastNoiseLite heightNoise;
+		HeightGenerator heightGenerator;
 
 		rendering::model::Mesh* waterMesh;
 	};

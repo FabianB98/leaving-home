@@ -23,18 +23,19 @@ namespace game::world
 		size_t worldSeed,
 		int32_t _column,
 		int32_t _row,
-		FastNoiseLite& _heightNoise,
+		HeightGenerator& _heightGenerator,
 		int _chunkSize,
 		float _cellSize
 	) :
 		column(_column),
 		row(_row),
-		heightNoise(_heightNoise),
+		heightGenerator(_heightGenerator),
 		chunkSize(_chunkSize),
 		cellSize(_cellSize),
+		numCellsAlongOneChunkEdge(2 * chunkSize),
+		numCellsAlongChunkBorder(6 * numCellsAlongOneChunkEdge),
 		initialCellSize(2.0f * cellSize),
 		chunkBorderLength(chunkSize * initialCellSize),
-		totalBorderLength(6 * chunkBorderLength),
 		chunkWidth(sqrt(3.0f) * chunkBorderLength),
 		chunkHeight(2.0f * chunkBorderLength),
 		chunkHorizontalDistance(chunkWidth),
@@ -51,8 +52,8 @@ namespace game::world
 		uint16_t yId = row & 127;
 		chunkId = xId + (yId << 7);
 
-		cellsAlongChunkBorder.resize(totalBorderLength);
-		for (int i = 0; i < totalBorderLength; i++)
+		cellsAlongChunkBorder.resize(numCellsAlongChunkBorder);
+		for (int i = 0; i < numCellsAlongChunkBorder; i++)
 			cellsAlongChunkBorder[i] = nullptr;
 	}
 
@@ -262,9 +263,10 @@ namespace game::world
 		while (edge->getOtherDirection()->getNextCounterclockwise()->getTo() != nodeIndexTwo)
 			edge = edge->getNextCounterclockwise();
 
-		for (int i = 0; i < chunk->totalBorderLength; i++)
+		for (int i = 0; i < chunk->numCellsAlongChunkBorder; i++)
 		{
-			borderIndexMap.insert(std::make_pair(edge->getFrom(), (i + 3 * chunk->chunkBorderLength) % chunk->totalBorderLength));
+			int index = (i + 3 * chunk->numCellsAlongOneChunkEdge) % chunk->numCellsAlongChunkBorder;
+			borderIndexMap.insert(std::make_pair(edge->getFrom(), index));
 			edge = edge->getOtherDirection()->getNextCounterclockwise();
 		}
 
@@ -277,15 +279,16 @@ namespace game::world
 			{
 				// The current chunk has an already existing neighbor chunk on the current edge. Therefore, we need to
 				// share all nodes which are on the current edge between this chunk and the neighboring chunk.
-				int cellsAlongBorderStart = chunkEdge * chunk->chunkBorderLength;
+				int cellsAlongBorderStart = chunkEdge * chunk->numCellsAlongOneChunkEdge;
 				Node* previousLocalNode = nullptr;
-				for (int i = 0; i <= chunk->chunkBorderLength; i++)
+				for (int i = 0; i <= chunk->numCellsAlongOneChunkEdge; i++)
 				{
 					// Set the cellsAlongChunkBorder array for this chunk to reflect that we're sharing this cell with
 					// the neighboring chunk.
-					int neighborIndex = (cellsAlongBorderStart + 4 * chunk->chunkBorderLength - i) % chunk->totalBorderLength;
+					int neighborIndexWithOverflow = cellsAlongBorderStart + 4 * chunk->numCellsAlongOneChunkEdge - i;
+					int neighborIndex = neighborIndexWithOverflow % chunk->numCellsAlongChunkBorder;
 					Cell* cell = neighbors[chunkEdge]->cellsAlongChunkBorder[neighborIndex];
-					chunk->cellsAlongChunkBorder[(cellsAlongBorderStart + i) % chunk->totalBorderLength] = cell;
+					chunk->cellsAlongChunkBorder[(cellsAlongBorderStart + i) % chunk->numCellsAlongChunkBorder] = cell;
 
 					// Store that this local node will be mapped to the shared global node of the shared cell.
 					Node* localNode = localGraph.getNodeAt(cell->node->getPosition());

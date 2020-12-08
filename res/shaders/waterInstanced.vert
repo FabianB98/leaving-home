@@ -15,7 +15,7 @@ out mat4 MVP;
 float rand(vec2 co){return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);}
 
 float height(vec2 pos) {
-	return 0.15 * (sin(5*pos.x*rand(pos) + time) + cos(5*pos.y*rand(pos) + time));
+	return 0.5 * (sin(5*pos.x*rand(pos) + time) + cos(5*pos.y*rand(pos) + time));
 }
 
 

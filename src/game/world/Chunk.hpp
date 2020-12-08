@@ -13,12 +13,11 @@
 
 #include <glm/glm.hpp>
 
-#include <FastNoiseLite.h>
-
 #include "PlanarGraph.hpp"
+#include "HeightGenerator.hpp"
 
 #define CHUNK_SIZE 5
-#define CELL_SIZE 1
+#define CELL_SIZE 8
 
 namespace game::world 
 {
@@ -31,12 +30,12 @@ namespace game::world
 			size_t worldSeed,
 			int32_t _column,
 			int32_t _row,
-			FastNoiseLite& _heightNoise
+			HeightGenerator& _heightGenerator
 		) : Chunk(
 			worldSeed,
 			_column,
 			_row,
-			_heightNoise,
+			_heightGenerator,
 			CHUNK_SIZE,
 			CELL_SIZE
 		) {};
@@ -96,14 +95,16 @@ namespace game::world
 
 		rendering::model::Mesh* mesh;
 
-		FastNoiseLite& heightNoise;
+		HeightGenerator& heightGenerator;
 
 		const int chunkSize;
 		const float cellSize;
 
+		const int numCellsAlongOneChunkEdge;
+		const int numCellsAlongChunkBorder;
+
 		const float initialCellSize;
-		const int chunkBorderLength;
-		const int totalBorderLength;
+		const float chunkBorderLength;
 
 		const float chunkWidth;
 		const float chunkHeight;
@@ -115,7 +116,7 @@ namespace game::world
 			size_t worldSeed,
 			int32_t _column,
 			int32_t _row,
-			FastNoiseLite& _heightNoise,
+			HeightGenerator& _heightGenerator,
 			int _chunkSize,
 			float _cellSize
 		);
@@ -216,7 +217,7 @@ namespace game::world
 
 			node->setAdditionalData(this);
 
-			height = chunk->heightNoise.GetNoise(node->getPosition().x * 10.0f, node->getPosition().y * 10.0f);
+			height = chunk->heightGenerator.getHeightQuantized(node->getPosition());
 		}
 
 		~Cell();
