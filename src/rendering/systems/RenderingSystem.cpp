@@ -7,6 +7,7 @@ namespace rendering::systems
 	std::set<model::Mesh*> transformChanged;
 	std::unordered_map<model::Mesh*, std::pair<std::vector<glm::mat4>, std::vector<glm::mat3>>> meshTransforms;
 	std::vector<std::pair<model::Mesh*, shading::Shader*>> meshShaders;
+	std::unordered_map<shading::Shader*, int> shaderPriorities;
 	std::vector<glm::mat4> mvps;
 
 	void changedMeshRenderer(entt::registry& registry, entt::entity entity)
@@ -118,10 +119,21 @@ namespace rendering::systems
 			meshShaders.push_back(std::make_pair(mesh, shader));
 		}
 
+		// Fill shader priorities with priorities from shading and add unknown shaders as priority 0
+		shaderPriorities.clear();
+		for (const auto& meshShader : meshShaders) {
+			auto it = shading.priorities.find(meshShader.second);
+			int priority = it != shading.priorities.end() ? it->second : 0;
+			shaderPriorities.insert(std::make_pair(meshShader.second, priority));
+		}
+
 		// Sort meshShaders to group meshes with the same shaders
 		// TODO: maybe use programID instead of pointer value?
-		std::sort(meshShaders.begin(), meshShaders.end(), [](auto& p1, auto& p2) {
-			return std::less<shading::Shader*>()(p1.second, p2.second);
+		std::sort(meshShaders.begin(), meshShaders.end(), [](auto& ms1, auto& ms2) {
+			int p1 = shaderPriorities[ms1.second];
+			int p2 = shaderPriorities[ms2.second];
+
+			return p1 != p2 ? p1 < p2 : std::less<shading::Shader*>()(ms1.second, ms2.second);
 		});
 
 		// Render each mesh with the corresponding shader.

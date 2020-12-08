@@ -32,5 +32,6 @@ namespace rendering::systems
 	struct MeshShading
 	{
 		std::unordered_map<model::Mesh*, shading::Shader*> shaders;
+		std::unordered_map<shading::Shader*, int> priorities;
 	};
 }

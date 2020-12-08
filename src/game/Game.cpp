@@ -190,8 +190,10 @@ namespace game
 		shading.shaders.insert(std::make_pair(wrld->getChunk(-1, 1)->getMesh(), simple));
 		shading.shaders.insert(std::make_pair(wrld->getChunk(0, -1)->getMesh(), simple));
 
-
 		shading.shaders.insert(std::make_pair(wrld->getWaterMesh(), waterShader));
+
+
+		shading.priorities.insert(std::make_pair(waterShader, 1));
 	}
 
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)
