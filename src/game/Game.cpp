@@ -88,7 +88,7 @@ namespace game
 
 		sun = registry.create();
 		registry.emplace<MatrixTransform>(sun, glm::mat4(1.f));
-		registry.emplace<DirectionalLight>(sun, glm::vec3(2), glm::vec3(2, 1, 1));
+		registry.emplace<DirectionalLight>(sun, glm::vec3(1), glm::vec3(2, 1, 1));
 
 
 

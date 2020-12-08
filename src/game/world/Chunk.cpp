@@ -1,5 +1,7 @@
 #include "Chunk.hpp"
 
+#define GRASS_COLOR glm::vec3(0.16863f, 0.54902f, 0.15294f)
+
 namespace std
 {
 	template <>
@@ -519,6 +521,8 @@ namespace game::world
 		std::vector<unsigned int> indices;
 		unsigned int index = 0;
 
+		traversedEdges.clear();
+
 		for (Cell* cell : cellsToTraverse)
 		{
 			bool allFacesDefined = true;
@@ -550,14 +554,63 @@ namespace game::world
 					currentEdge = currentEdge->getNextClockwise();
 				}
 
-				// TODO: Add triangles for the sideways facing faces of the cell if needed.
+				// Add triangles for the sideways facing faces of the cell if needed.
+				DirectedEdge* lastEdge = startingEdge;
+				currentEdge = lastEdge->getNextClockwise();
+				do
+				{
+					float ownHeight = cell->getHeight();
+					float otherHeight = ((Cell*)(currentEdge->getTo()->getAdditionalData()))->getHeight();
+					if (ownHeight != otherHeight && traversedEdges.find(currentEdge) == traversedEdges.end())
+					{
+						traversedEdges.insert(currentEdge);
+						traversedEdges.insert(currentEdge->getOtherDirection());
+
+						glm::vec2 cornerPosA = facePositionMap[currentEdge];
+						glm::vec2 cornerPosB = facePositionMap[lastEdge];
+
+						glm::vec3 cornerPosDiff = glm::vec3(cornerPosA.x, 0, cornerPosA.y) - glm::vec3(cornerPosB.x, 0, cornerPosB.y);
+						glm::vec3 normal = glm::normalize(glm::cross(cornerPosDiff, glm::vec3(0, 1, 0)));
+						if (ownHeight < otherHeight)
+							normal = -normal;
+
+						vertices.push_back(glm::vec3(cornerPosA.x, ownHeight, cornerPosA.y));
+						uvs.push_back(glm::vec2(0.0f, 0.0f));
+						normals.push_back(normal);
+
+						vertices.push_back(glm::vec3(cornerPosB.x, ownHeight, cornerPosB.y));
+						uvs.push_back(glm::vec2(0.0f, 0.0f));
+						normals.push_back(normal);
+
+						vertices.push_back(glm::vec3(cornerPosB.x, otherHeight, cornerPosB.y));
+						uvs.push_back(glm::vec2(0.0f, 0.0f));
+						normals.push_back(normal);
+
+						vertices.push_back(glm::vec3(cornerPosA.x, otherHeight, cornerPosA.y));
+						uvs.push_back(glm::vec2(0.0f, 0.0f));
+						normals.push_back(normal);
+
+						indices.push_back(index);
+						indices.push_back(index + 1);
+						indices.push_back(index + 2);
+
+						indices.push_back(index);
+						indices.push_back(index + 2);
+						indices.push_back(index + 3);
+
+						index += 4;
+					}
+
+					lastEdge = currentEdge;
+					currentEdge = currentEdge->getNextClockwise();
+				} while (lastEdge != startingEdge);
 			}
 		}
 
 		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
-			glm::vec3(0.0f, 0.2f, 0.0f),
-			glm::vec3(0.0f, 1.0f, 0.0f),
-			glm::vec3(0.0f, 0.2f, 0.0f),
+			0.2f * GRASS_COLOR,
+			0.5f * GRASS_COLOR,
+			0.3f * GRASS_COLOR,
 			2.0f
 			);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
