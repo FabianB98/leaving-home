@@ -68,4 +68,5 @@ void main() {
 	vec4 sun = 0.5 * vSun * vec4(sunColor, 1);
 
 	color = stripe + stars + twilight + sun;
+	color.a = 1;
 }

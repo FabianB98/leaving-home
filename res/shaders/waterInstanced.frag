@@ -1,19 +1,10 @@
 #version 330 core
 
-#define MAX_LIGHT_COUNT 16
-
 struct DirectionalLight {
 	vec3 intensity;
 	vec3 direction;
 };
 
-struct PointLight {
-	vec3 intensity;
-	vec3 position;
-};
-
-
-in vec2 UV; // unused (for now)
 in vec3 world_normal;
 in vec3 world_pos;
 
@@ -28,7 +19,6 @@ uniform int n;
 
 // Lights in the scene
 uniform DirectionalLight directionalLight;
-uniform PointLight[MAX_LIGHT_COUNT] pointLights;
 
 // Fragment shader output
 out vec4 color;
@@ -52,21 +42,7 @@ vec3 calcDirectionalLight(DirectionalLight light) {
 	return calcLight(light.intensity, normalize(light.direction));
 }
 
-// Calculate the effect of a point light on the fragment
-vec3 calcPointLight(PointLight light) {
-	vec3 toLight = light.position - world_pos;
-	// dot product for efficient squared distance
-	return calcLight(light.intensity, normalize(toLight)) / dot(toLight, toLight);
-}
-
 void main() {
-	vec3 sum = vec3(0);
-
-	// accumulate the effect of all lights
-	sum += calcDirectionalLight(directionalLight);
-	for (int i = 0; i < MAX_LIGHT_COUNT; i++) {
-		sum += calcPointLight(pointLights[i]);
-	}
-
-	color = vec4(sum, 1);
+	vec3 result = calcDirectionalLight(directionalLight);
+	color = vec4(result, 0.95);
 }

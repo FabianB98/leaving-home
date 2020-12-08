@@ -36,6 +36,7 @@ namespace rendering::shading
 
 		unsigned int numLights = intensities.size();
 		unsigned int lightsToSet = std::min(numLights, maxPointLights);
+		if (lightsToSet == 0) return;
 
 		if (numLights > maxPointLights)
 			std::cout << "Warning! Only " << std::to_string(maxPointLights) << " point lights are supported. "

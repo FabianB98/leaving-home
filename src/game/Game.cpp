@@ -43,6 +43,7 @@ namespace game
 	DayNightCycle daynight;
 	rendering::Skybox* skybox;
 	rendering::shading::Shader* simple;
+	rendering::shading::Shader* waterShader;
 
 	double randomDouble()
 	{
@@ -57,6 +58,7 @@ namespace game
 		test = new rendering::model::Mesh("test");
 
 		simple = new rendering::shading::Shader("simpleInstanced");
+		waterShader = new rendering::shading::LightSupportingShader("waterInstanced", true);
 
 		/*std::cout << "tree: " << mesh->hashValue() << std::endl;
 		std::cout << "plane: " << plane->hashValue() << std::endl;
@@ -81,15 +83,15 @@ namespace game
 		wrld->generateChunk(0, -1); // Diag up left
 		wrld->generateChunk(1, -1); // Diag up right
 		wrld->generateChunk(1, 0);	// Right
-		for (auto& chunk : wrld->getChunks()) {
+		/*for (auto& chunk : wrld->getChunks()) {
 			entt::entity chunkEntity = registry.create();
 			registry.emplace<MeshRenderer>(chunkEntity, chunk.second->getMesh());
 			registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 20, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
-		}
+		}*/
 
 		entt::entity waterEntity = registry.create();
 		registry.emplace<MeshRenderer>(waterEntity, wrld->getWaterMesh());
-		registry.emplace<MatrixTransform>(waterEntity, EulerComponentwiseTransform(glm::vec3(0, 19, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+		registry.emplace<MatrixTransform>(waterEntity, EulerComponentwiseTransform(glm::vec3(0, 25, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::cout << "Generated 7 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
@@ -97,7 +99,7 @@ namespace game
 		entt::entity camera = renderingEngine->getMainCamera();
 		registry.emplace<components::FreeFlyingMoveController>(camera, 15.f);
 		registry.emplace<components::FirstPersonRotateController>(camera, GLFW_MOUSE_BUTTON_RIGHT);
-		registry.emplace<EulerComponentwiseTransform>(camera, glm::vec3(0, 5, 5), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<EulerComponentwiseTransform>(camera, glm::vec3(0, 25, 5), 0, 0, 0, glm::vec3(1.0f));
 
 
 		auto entity = registry.create();
@@ -187,6 +189,9 @@ namespace game
 		shading.shaders.insert(std::make_pair(wrld->getChunk(0, 0)->getMesh(), simple));
 		shading.shaders.insert(std::make_pair(wrld->getChunk(-1, 1)->getMesh(), simple));
 		shading.shaders.insert(std::make_pair(wrld->getChunk(0, -1)->getMesh(), simple));
+
+
+		shading.shaders.insert(std::make_pair(wrld->getWaterMesh(), waterShader));
 	}
 
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)

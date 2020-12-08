@@ -83,6 +83,7 @@ namespace rendering::systems
 	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader)
 	{
 		shader.use();
+		shader.setUniformFloat("time", (float)glfwGetTime());
 		camera.applyViewProjection(shader);
 		updateLights(registry, shader);
 	}
@@ -113,7 +114,7 @@ namespace rendering::systems
 		{
 			auto* mesh = meshInstances.first;
 			auto& it = shading.shaders.find(mesh);
-			auto* shader = it != shading.shaders.end() ? it->second : defaultShader;
+			auto* shader = (it == shading.shaders.end() || overrideShaders) ? defaultShader : it->second;
 			meshShaders.push_back(std::make_pair(mesh, shader));
 		}
 

@@ -445,10 +445,10 @@ namespace game::world
 		}
 
 		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
-			glm::vec3(0.0f, 0.0f, 0.2f),
-			glm::vec3(0.0f, 0.0f, 0.8f),
-			glm::vec3(0.0f, 0.0f, 0.4f),
-			2.0f
+			glm::vec3(0.0f, 0.0f, 0.1f),
+			glm::vec3(0.0f, 0.0f, 0.3f),
+			glm::vec3(0.2f, 0.2f, 0.4f),
+			24.0f
 			);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));

@@ -48,6 +48,8 @@ namespace rendering
         glEnable(GL_DEPTH_TEST);    // Enable the depth test.
         glDepthFunc(GL_LESS);       // Discard fragments further away from the camera than the previous fragment.
         glEnable(GL_CULL_FACE);     // Enable face culling (i.e. only render faces pointing to the outside of meshes).
+        glEnable(GL_BLEND);         // Enable blending.
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Use standard alpha blending.
 
         // Perform the actual update loop.
         while (!isKeyPressed(GLFW_KEY_ESCAPE) && glfwWindowShouldClose(window) == 0)
