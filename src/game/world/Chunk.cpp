@@ -1,5 +1,20 @@
 #include "Chunk.hpp"
 
+namespace std
+{
+	template <>
+	struct hash<pair<glm::vec2, float>>
+	{
+		std::size_t operator()(const pair<glm::vec2, float>& p) const
+		{
+			size_t res = 17;
+			res = res * 31 + hash<glm::vec2>()(p.first);
+			res = res * 31 + hash<float>()(p.second);
+			return res;
+		}
+	};
+}
+
 namespace game::world
 {
 	Chunk::Chunk(
@@ -73,7 +88,8 @@ namespace game::world
 		subdivideSurfaces();
 
 		setChunkTopologyData();
-		chunk->mesh = generateTopologyGridMesh();
+		//chunk->mesh = generateTopologyGridMesh();
+		chunk->mesh = generateLandscapeMesh();
 	}
 
 	void Chunk::Generator::generateInitialPositions()
@@ -371,7 +387,9 @@ namespace game::world
 				{
 					Face face = outgoingEdge->calculateFace();
 
-					if (face.getNumEdges() == 3 || face.getNumEdges() == 4)
+					// All faces of the planar graph are quads (except for the outside of the chunk, which we don't
+					// want to render).
+					if (face.getNumEdges() == 4)
 					{
 						for (DirectedEdge* edge : face.getEdges())
 						{
@@ -400,6 +418,150 @@ namespace game::world
 			);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_LINES));
+		return new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+	}
+
+	unsigned int Chunk::Generator::addCellCorner(
+		std::vector<glm::vec3>& vertices,
+		std::vector<glm::vec2>& uvs,
+		std::vector<glm::vec3>& normals,
+		std::unordered_map<DirectedEdge*, glm::vec2>& facePositionMap,
+		std::unordered_map<std::pair<glm::vec2, float>, unsigned int>& vertexIndexMap,
+		unsigned int& currentIndex,
+		Cell* cell,
+		DirectedEdge* edge
+	) {
+		glm::vec2& position = facePositionMap[edge];
+		std::pair<glm::vec2, float> pair = std::make_pair(position, cell->height);
+
+		if (vertexIndexMap.find(pair) == vertexIndexMap.end())
+		{
+			vertices.push_back(glm::vec3(position.x, cell->height, position.y));
+			uvs.push_back(glm::vec2(0.0f, 0.0f));
+			normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+
+			vertexIndexMap.insert(std::make_pair(pair, currentIndex));
+			return currentIndex++;
+		}
+		else
+		{
+			return vertexIndexMap[pair];
+		}
+	}
+
+	rendering::model::Mesh* Chunk::Generator::generateLandscapeMesh()
+	{
+		// Determine the center positions of all planar graph faces within the chunk.
+		std::unordered_set<Cell*> cellsToCalculateFacesFor;
+		for (Cell* cell : chunk->cells)
+			cellsToCalculateFacesFor.insert(cell);
+		for (Cell* cell : chunk->cellsAlongChunkBorder)
+			cellsToCalculateFacesFor.insert(cell);
+
+		std::unordered_map<DirectedEdge*, glm::vec2> facePositionMap;
+		std::unordered_set<DirectedEdge*> traversedEdges;
+		for (Cell* cell : cellsToCalculateFacesFor)
+		{
+			Node* node = cell->node;
+			for (auto& edgeAndDestination : node->getEdges())
+			{
+				DirectedEdge* outgoingEdge = edgeAndDestination.second;
+				if (traversedEdges.find(outgoingEdge) == traversedEdges.end())
+				{
+					Face face = outgoingEdge->calculateFace();
+
+					// All faces of the planar graph are quads (except for the outside of the chunk, which we don't
+					// want to render).
+					if (face.getNumEdges() == 4)
+					{
+						glm::vec2 faceCenterPos = glm::vec2(0.0f, 0.0f);
+						for (Node* node : face.getNodes())
+							faceCenterPos += node->getPosition();
+						faceCenterPos /= 4.0f;
+
+						for (DirectedEdge* edge : face.getEdges())
+						{
+							facePositionMap.insert(std::make_pair(edge, faceCenterPos));
+
+							traversedEdges.insert(edge);
+						}
+					}
+					else
+					{
+						for (DirectedEdge* edge : face.getEdges())
+						{
+							traversedEdges.insert(edge);
+						}
+					}
+				}
+			}
+		}
+
+		// Determine all cells which we need to add to the mesh.
+		std::unordered_set<Cell*> cellsToTraverse;
+		for (Cell* cell : chunk->cells)
+			cellsToTraverse.insert(cell);
+
+		for (Cell* cell : chunk->cellsAlongChunkBorder)
+		{
+			if (cell->chunk == chunk)
+				cellsToTraverse.erase(cell);
+			else
+				cellsToTraverse.insert(cell);
+		}
+
+		// Create the mesh.
+		std::vector<glm::vec3> vertices;
+		std::vector<glm::vec2> uvs;
+		std::vector<glm::vec3> normals;
+
+		std::unordered_map<std::pair<glm::vec2, float>, unsigned int> vertexIndexMap;
+		std::vector<unsigned int> indices;
+		unsigned int index = 0;
+
+		for (Cell* cell : cellsToTraverse)
+		{
+			bool allFacesDefined = true;
+			for (auto& edge : cell->node->getEdges())
+			{
+				if (facePositionMap.find(edge.second) == facePositionMap.end())
+					allFacesDefined = false;
+			}
+			
+			if (allFacesDefined)
+			{
+				// Add triangles for the upwards facing face of the cell.
+				DirectedEdge* startingEdge = cell->node->getEdges().begin()->second;
+				int startIndex = addCellCorner(vertices, uvs, normals, facePositionMap, vertexIndexMap, index, cell, startingEdge);
+
+				DirectedEdge* currentEdge = startingEdge->getNextClockwise();
+				int lastIndex = addCellCorner(vertices, uvs, normals, facePositionMap, vertexIndexMap, index, cell, currentEdge);
+
+				currentEdge = currentEdge->getNextClockwise();
+				while (currentEdge != startingEdge)
+				{
+					int currentIndex = addCellCorner(vertices, uvs, normals, facePositionMap, vertexIndexMap, index, cell, currentEdge);
+
+					indices.push_back(startIndex);
+					indices.push_back(lastIndex);
+					indices.push_back(currentIndex);
+
+					lastIndex = currentIndex;
+					currentEdge = currentEdge->getNextClockwise();
+				}
+
+				// TODO: Add triangles for the sideways facing faces of the cell if needed.
+			}
+		}
+
+		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
+			glm::vec3(0.0f, 0.2f, 0.0f),
+			glm::vec3(0.0f, 1.0f, 0.0f),
+			glm::vec3(0.0f, 0.2f, 0.0f),
+			2.0f
+			);
+		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
+		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
 		return new rendering::model::Mesh(vertices, uvs, normals, meshParts);
 	}
 
