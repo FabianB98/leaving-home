@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+#include <FastNoiseLite.h>
+
 #include "Chunk.hpp"
 #include "PlanarGraph.hpp"
 
@@ -53,6 +55,8 @@ namespace game::world
 
 		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> chunks;
 		PlanarGraph graph;
+
+		FastNoiseLite heightNoise;
 
 		rendering::model::Mesh* waterMesh;
 	};
