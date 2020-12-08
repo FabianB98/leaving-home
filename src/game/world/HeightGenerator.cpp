@@ -13,8 +13,8 @@ namespace game::world
 		return 10.0f * heightNoise.GetNoise(x, y);
 	}
 
-	float HeightGenerator::getHeightQuantized(float x, float y)
+	float HeightGenerator::quantizeHeight(float height)
 	{
-		return fastRound(getHeight(x, y) / HEIGHT_QUANTIZATION_STEP_SIZE) * HEIGHT_QUANTIZATION_STEP_SIZE;
+		return fastRound(height / HEIGHT_QUANTIZATION_STEP_SIZE) * HEIGHT_QUANTIZATION_STEP_SIZE;
 	}
 }

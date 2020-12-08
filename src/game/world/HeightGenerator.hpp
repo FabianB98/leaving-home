@@ -26,7 +26,12 @@ namespace game::world
 			return getHeightQuantized(pos.x, pos.y);
 		}
 
-		float getHeightQuantized(float x, float y);
+		float getHeightQuantized(float x, float y)
+		{
+			return quantizeHeight(getHeight(x, y));
+		}
+
+		float quantizeHeight(float height);
 
 	private:
 		FastNoiseLite heightNoise;

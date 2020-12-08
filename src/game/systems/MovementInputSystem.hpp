@@ -8,10 +8,13 @@
 #include "../../rendering/components/Transform.hpp"
 #include "../components/FirstPersonRotateController.hpp"
 #include "../components/FreeFlyingMoveController.hpp"
+#include "../components/HeightConstrainedMoveController.hpp"
+#include "../world/HeightGenerator.hpp"
+#include "../world/World.hpp"
 
 #include <glfw/glfw3.h>
 
 namespace game::systems
 {
-	void updateMovementInputSystem(rendering::RenderingEngine* renderingEngine, double deltaTime);
+	void updateMovementInputSystem(rendering::RenderingEngine* renderingEngine, double deltaTime, world::HeightGenerator& heightGenerator);
 }

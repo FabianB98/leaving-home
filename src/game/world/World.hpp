@@ -52,7 +52,7 @@ namespace game::world
 			return waterMesh;
 		}
 
-		HeightGenerator getHeightGenerator()
+		HeightGenerator& getHeightGenerator()
 		{
 			return heightGenerator;
 		}

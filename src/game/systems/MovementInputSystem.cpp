@@ -4,8 +4,18 @@ namespace game::systems
 {
 	const float TWO_TIMES_PI = 2.0f * M_PI;
 
+	const float SMOOTHING_DISTANCE = 20.0f;
+	const float SMOOTHING_WEIGHTS[9] = {
+		1.0f / 16.0f, 1.0f / 8.0f, 1.0f / 16.0f,
+		1.0f / 8.0f , 1.0f / 4.0f, 1.0f / 8.0f ,
+		1.0f / 16.0f, 1.0f / 8.0f, 1.0f / 16.0f
+	};
+
 	using namespace rendering::components;
 	using namespace game::components;
+
+	bool lockMouse = false;
+	bool unlockMouse = true;
 
 	void updateFreeFlyingMoveControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry,
 		double deltaTime)
@@ -54,14 +64,75 @@ namespace game::systems
 		});
 	}
 
+	void updateHeightConstrainedMoveControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry, 
+		double deltaTime, world::HeightGenerator& heightGenerator)
+	{
+		auto movementView = registry.view<EulerComponentwiseTransform, HeightConstrainedMoveController>();
+		movementView.each([renderingEngine, &registry, deltaTime, &heightGenerator](auto entity, auto& transform, auto& controller) {
+			int mouseButtonCode = controller.getMouseButtonCode();
+			bool shouldMove = mouseButtonCode < 0 || renderingEngine->isMouseButtonPressed(mouseButtonCode);
+			bool mouseLocked = renderingEngine->isMouseCursorLockedToCenter();
+
+			if (shouldMove)
+			{
+				unlockMouse = false;
+				if (mouseLocked)
+				{
+					// Determine the directions (forward and right) into which the entity should be moved if the mouse
+					// was moved in the corresponding direction.
+					float sinYaw = sin(transform.getYaw());
+					float cosYaw = cos(transform.getYaw());
+					glm::vec3 forward = glm::vec3(-sinYaw, 0, -cosYaw);
+					glm::vec3 right = glm::vec3(cosYaw, 0, -sinYaw);
+
+					glm::vec2 mouseDelta = renderingEngine->getMouseDelta();
+					glm::vec2 movementDelta = mouseDelta * glm::vec2(deltaTime * controller.getMouseSensitivity());
+
+					registry.patch<EulerComponentwiseTransform>(entity, [movementDelta, forward, right, &heightGenerator](auto& transform)
+					{
+						// Calculate the new position on the XZ plane.
+						glm::vec3 oldPosition = transform.getTranslation();
+						glm::vec3 newPosition = oldPosition - movementDelta.x * right + movementDelta.y * forward;
+
+						// Average the heights around the new position with gaussian weights to determine the position along the Y axis.
+						const float heights[9] = {
+							heightGenerator.getHeight(newPosition.x - SMOOTHING_DISTANCE, newPosition.z - SMOOTHING_DISTANCE),
+							heightGenerator.getHeight(newPosition.x - SMOOTHING_DISTANCE, newPosition.z                     ),
+							heightGenerator.getHeight(newPosition.x - SMOOTHING_DISTANCE, newPosition.z + SMOOTHING_DISTANCE),
+							heightGenerator.getHeight(newPosition.x                     , newPosition.z - SMOOTHING_DISTANCE),
+							heightGenerator.getHeight(newPosition.x                     , newPosition.z                     ),
+							heightGenerator.getHeight(newPosition.x                     , newPosition.z + SMOOTHING_DISTANCE),
+							heightGenerator.getHeight(newPosition.x + SMOOTHING_DISTANCE, newPosition.z - SMOOTHING_DISTANCE),
+							heightGenerator.getHeight(newPosition.x + SMOOTHING_DISTANCE, newPosition.z                     ),
+							heightGenerator.getHeight(newPosition.x + SMOOTHING_DISTANCE, newPosition.z + SMOOTHING_DISTANCE)
+						};
+
+						newPosition.y = 0.0f;
+						for (int i = 0; i < 9; i++)
+						{
+							newPosition.y += SMOOTHING_WEIGHTS[i] * (0.75f * heights[i] + 0.25f * heightGenerator.quantizeHeight(heights[i]));
+						}
+
+						// Ensure that the camera won't be under water.
+						if (newPosition.y < WATER_HEIGHT)
+							newPosition.y = WATER_HEIGHT;
+						
+						transform.setTranslation(newPosition);
+					});
+				}
+				else
+				{
+					lockMouse = true;
+				}
+			}
+		});
+	}
+
 	void updateFirstPersonRotateControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry,
 		double deltaTime)
 	{
-		bool lockMouse = false;
-		bool unlockMouse = true;
-
 		auto rotateView = registry.view<EulerComponentwiseTransform, FirstPersonRotateController>();
-		rotateView.each([renderingEngine, &registry, deltaTime, &lockMouse, &unlockMouse](auto entity, auto& transform, auto& controller) {
+		rotateView.each([renderingEngine, &registry, deltaTime](auto entity, auto& transform, auto& controller) {
 			int mouseButtonCode = controller.getMouseButtonCode();
 			bool shouldRotate = mouseButtonCode < 0 || renderingEngine->isMouseButtonPressed(mouseButtonCode);
 			bool mouseLocked = renderingEngine->isMouseCursorLockedToCenter();
@@ -90,6 +161,20 @@ namespace game::systems
 			}
 		});
 
+		
+	}
+
+	void updateMovementInputSystem(rendering::RenderingEngine* renderingEngine, double deltaTime, world::HeightGenerator& heightGenerator)
+	{
+		entt::registry& registry = renderingEngine->getRegistry();
+
+		lockMouse = false;
+		unlockMouse = true;
+
+		updateFreeFlyingMoveControllers(renderingEngine, registry, deltaTime);
+		updateHeightConstrainedMoveControllers(renderingEngine, registry, deltaTime, heightGenerator);
+		updateFirstPersonRotateControllers(renderingEngine, registry, deltaTime);
+
 		if (lockMouse)
 		{
 			renderingEngine->lockMouseCursorToCenter(true);
@@ -98,13 +183,5 @@ namespace game::systems
 		{
 			renderingEngine->lockMouseCursorToCenter(false);
 		}
-	}
-
-	void updateMovementInputSystem(rendering::RenderingEngine* renderingEngine, double deltaTime)
-	{
-		entt::registry& registry = renderingEngine->getRegistry();
-
-		updateFreeFlyingMoveControllers(renderingEngine, registry, deltaTime);
-		updateFirstPersonRotateControllers(renderingEngine, registry, deltaTime);
 	}
 }

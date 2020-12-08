@@ -10,6 +10,7 @@
 #include "../rendering/Skybox.hpp"
 #include "components/FirstPersonRotateController.hpp"
 #include "components/FreeFlyingMoveController.hpp"
+#include "components/HeightConstrainedMoveController.hpp"
 #include "systems/MovementInputSystem.hpp"
 #include "DayNightCycle.hpp"
 #include "world/Chunk.hpp"
@@ -80,10 +81,17 @@ namespace game
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::cout << "Generated 7 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
 
+		entt::entity cameraBase = registry.create();
+		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, 0, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));
+		registry.emplace<components::HeightConstrainedMoveController>(cameraBase, GLFW_MOUSE_BUTTON_RIGHT, 8.0f);
+		registry.emplace<components::FirstPersonRotateController>(cameraBase, GLFW_MOUSE_BUTTON_MIDDLE, 0.2f, glm::radians(-90.0f), glm::radians(-10.0f));
+		registry.emplace<rendering::components::Relationship>(cameraBase);
+
 		entt::entity camera = renderingEngine->getMainCamera();
-		registry.emplace<components::FreeFlyingMoveController>(camera, 15.f);
-		registry.emplace<components::FirstPersonRotateController>(camera, GLFW_MOUSE_BUTTON_RIGHT);
-		registry.emplace<EulerComponentwiseTransform>(camera, glm::vec3(0, 15, 5), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<EulerComponentwiseTransform>(camera, glm::vec3(0, 0, 100), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<rendering::components::Relationship>(camera);
+
+		rendering::systems::relationship(registry, cameraBase, camera);
 
 
 		sun = registry.create();
@@ -106,10 +114,8 @@ namespace game
 
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)
 	{
-		game::systems::updateMovementInputSystem(renderingEngine, deltaTime);
+		game::systems::updateMovementInputSystem(renderingEngine, deltaTime, wrld->getHeightGenerator());
 	}
-
-	
 
 	void Game::update(rendering::RenderingEngine* renderingEngine, double deltaTime)
 	{
