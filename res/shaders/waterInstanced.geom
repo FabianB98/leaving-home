@@ -2,7 +2,6 @@
 layout (triangles) in;
 layout (triangle_strip, max_vertices = 3) out;
 
-in mat4 MVP[];
 in vec3 worldPos[];
 
 out vec3 world_pos;
@@ -16,7 +15,7 @@ void main() {
 	world_normal = normalize(cross(l1, l2));
 
 	for (int i = 0; i < 3; i++) {
-		gl_Position = MVP[i] * gl_in[i].gl_Position;
+		gl_Position = gl_in[i].gl_Position;
 		world_pos = worldPos[i];
 		EmitVertex();
 	}

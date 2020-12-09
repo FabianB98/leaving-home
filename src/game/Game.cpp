@@ -70,11 +70,18 @@ namespace game
 			entt::entity chunkEntity = registry.create();
 			registry.emplace<MeshRenderer>(chunkEntity, chunk.second->getLandscapeMesh());
 			registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 0, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
-		}
 
-		entt::entity waterEntity = registry.create();
-		registry.emplace<MeshRenderer>(waterEntity, wrld->getWaterMesh());
-		registry.emplace<MatrixTransform>(waterEntity, EulerComponentwiseTransform(glm::vec3(0, WATER_HEIGHT, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+			entt::entity waterEntity = registry.create();
+			registry.emplace<MeshRenderer>(waterEntity, wrld->getWaterMesh());
+			registry.emplace<MatrixTransform>(
+				waterEntity,
+				EulerComponentwiseTransform(
+					glm::vec3(chunk.second->getCenterPos().x, WATER_HEIGHT, chunk.second->getCenterPos().y),
+					0, 0, 0,
+					glm::vec3(1)
+				).toTransformationMatrix()
+			);
+		}
 
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::cout << "Generated 100 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;

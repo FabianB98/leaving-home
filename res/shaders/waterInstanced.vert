@@ -7,7 +7,6 @@ layout(location = 10) in mat4 T_MVP;
 uniform float time;
 
 out vec3 worldPos;
-out mat4 MVP;
 
 
 
@@ -24,7 +23,6 @@ void main() {
 	vec4 flatWorldPos = T_M * pos;
 
 	pos.y += height(flatWorldPos.xz);
-	gl_Position = pos;
-	MVP = T_MVP;
+	gl_Position = T_MVP * pos;
 	worldPos = (T_M * pos).xyz;
 }
