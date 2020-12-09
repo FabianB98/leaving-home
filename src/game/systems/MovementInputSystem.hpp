@@ -6,6 +6,7 @@
 
 #include "../../rendering/RenderingEngine.hpp"
 #include "../../rendering/components/Transform.hpp"
+#include "../components/AxisConstrainedMoveController.hpp"
 #include "../components/FirstPersonRotateController.hpp"
 #include "../components/FreeFlyingMoveController.hpp"
 #include "../components/HeightConstrainedMoveController.hpp"

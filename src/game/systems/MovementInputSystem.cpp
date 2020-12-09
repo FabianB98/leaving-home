@@ -128,6 +128,40 @@ namespace game::systems
 		});
 	}
 
+	void updateAxisConstrainedMoveControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry, double deltaTime)
+	{
+		auto movementView = registry.view<EulerComponentwiseTransform, AxisConstrainedMoveController>();
+		movementView.each([renderingEngine, &registry, deltaTime](auto entity, auto& transform, auto& controller) {
+			float movementAlongAxis = deltaTime * controller.getMouseWheelSensitivity() * renderingEngine->getScrollDelta().y;
+
+			if (movementAlongAxis != 0.0f)
+			{
+				// Calculate the new translation after the camera would be moved along the axis.
+				glm::vec3 oldTranslation = transform.getTranslation();
+				glm::vec3 deltaMovement = movementAlongAxis * controller.getAxis();
+				glm::vec3 newTranslation = oldTranslation - deltaMovement;
+
+				// Calculate the value along the axis (assuming the axis to be normalized) and constrain the value to be
+				// within the defined range.
+				float valueOnAxis = glm::dot(newTranslation, controller.getAxis());
+
+				float distanceToMinimum = valueOnAxis - controller.getMinValue();
+				float distanceToMaximum = controller.getMaxValue() - valueOnAxis;
+
+				if (distanceToMinimum < 0.0f)
+					newTranslation -= distanceToMinimum * controller.getAxis();
+				else if (distanceToMaximum < 0.0f)
+					newTranslation += distanceToMaximum * controller.getAxis();
+
+				// Update the transform component.
+				registry.patch<EulerComponentwiseTransform>(entity, [newTranslation](auto& transform)
+				{
+					transform.setTranslation(newTranslation);
+				});
+			}
+		});
+	}
+
 	void updateFirstPersonRotateControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry,
 		double deltaTime)
 	{
@@ -173,6 +207,7 @@ namespace game::systems
 
 		updateFreeFlyingMoveControllers(renderingEngine, registry, deltaTime);
 		updateHeightConstrainedMoveControllers(renderingEngine, registry, deltaTime, heightGenerator);
+		updateAxisConstrainedMoveControllers(renderingEngine, registry, deltaTime);
 		updateFirstPersonRotateControllers(renderingEngine, registry, deltaTime);
 
 		if (lockMouse)

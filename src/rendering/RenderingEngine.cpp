@@ -20,6 +20,12 @@ namespace rendering
         engine->_updateSize(width, height);
     }
 
+    void scrollCallback(GLFWwindow* window, double xOffset, double yOffset)
+    {
+        RenderingEngine* engine = (RenderingEngine*)glfwGetWindowUserPointer(window);
+        engine->scrollDelta += glm::vec2(xOffset, yOffset);
+    }
+
     int RenderingEngine::start()
     {
         // Try to create a window.
@@ -36,6 +42,7 @@ namespace rendering
         // Set up the input devices.
         glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
         glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GL_TRUE);
+        glfwSetScrollCallback(window, scrollCallback);
 
         // The last time when the update loop was called. Used for calculating the time delta.
         double lastLoopTime = glfwGetTime();
@@ -160,6 +167,9 @@ namespace rendering
         mousePosition = newPos;
 
         game->input(this, deltaTime);
+
+        // Reset the scroll delta back to zero so that we can accumulate the scroll inputs until the next frame.
+        scrollDelta = glm::vec2(0.0f, 0.0f);
     }
 
     void RenderingEngine::update(double deltaTime)

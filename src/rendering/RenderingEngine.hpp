@@ -64,6 +64,11 @@ namespace rendering
 			return mouseDelta;
 		}
 
+		glm::vec2 getScrollDelta()
+		{
+			return scrollDelta;
+		}
+
 		void lockMouseCursorToCenter(bool _lockMouseCursor);
 
 		bool isMouseCursorLockedToCenter()
@@ -114,6 +119,7 @@ namespace rendering
 
 		glm::vec2 mousePosition = glm::vec2(0.0f);
 		glm::vec2 mouseDelta = glm::vec2(0.0f);
+		glm::vec2 scrollDelta = glm::vec2(0.0f);
 		bool lockMouseCursor = false;
 
 		entt::registry registry;
@@ -145,5 +151,6 @@ namespace rendering
 		void _updateSize(int _width, int _height);
 
 		friend void frameBufferSizeCallback(GLFWwindow* window, int width, int height);
+		friend void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
 	};
 }

@@ -8,6 +8,7 @@
 #include "../rendering/model/Mesh.hpp"
 #include "../rendering/shading/Shader.hpp"
 #include "../rendering/Skybox.hpp"
+#include "components/AxisConstrainedMoveController.hpp"
 #include "components/FirstPersonRotateController.hpp"
 #include "components/FreeFlyingMoveController.hpp"
 #include "components/HeightConstrainedMoveController.hpp"
@@ -89,6 +90,7 @@ namespace game
 
 		entt::entity camera = renderingEngine->getMainCamera();
 		registry.emplace<EulerComponentwiseTransform>(camera, glm::vec3(0, 0, 100), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<components::AxisConstrainedMoveController>(camera, glm::vec3(0, 0, 1), 1000.0f, 50.0f, 500.0f);
 		registry.emplace<rendering::components::Relationship>(camera);
 
 		rendering::systems::relationship(registry, cameraBase, camera);
