@@ -51,7 +51,28 @@ namespace rendering
 				GLboolean normalized,
 				GLsizei stride,
 				const void* pointer
-			);
+			) {
+				// Ensure that the given location is not already used by some other vertex attribute.
+				if (usedAttributeLocations.find(location) != usedAttributeLocations.end())
+					throw std::invalid_argument("Location already in use!");
+				usedAttributeLocations.insert(location);
+
+				// Bind the VAO as we're about to add a new VBO to it.
+				glBindVertexArray(vao);
+
+				// Create a VBO, fill it with the given data and bind it to the given vertex attribute location.
+				GLuint vbo;
+				glGenBuffers(1, &vbo);
+				additionalVbos.push_back(vbo);
+
+				glBindBuffer(GL_ARRAY_BUFFER, vbo);
+				glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(DataType), &data[0], GL_STATIC_DRAW);
+				glEnableVertexAttribArray(location);
+				glVertexAttribPointer(location, size, type, normalized, stride, pointer);
+
+				// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
+				glBindVertexArray(0);
+			}
 
 			void render(shading::Shader& shader);
 

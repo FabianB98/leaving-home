@@ -430,28 +430,20 @@ namespace game::world
 		std::vector<glm::vec3>& vertices,
 		std::vector<glm::vec2>& uvs,
 		std::vector<glm::vec3>& normals,
+		std::vector<uint32_t>& cellIds,
 		std::unordered_map<DirectedEdge*, glm::vec2>& facePositionMap,
-		std::unordered_map<std::pair<glm::vec2, float>, unsigned int>& vertexIndexMap,
 		unsigned int& currentIndex,
 		Cell* cell,
 		DirectedEdge* edge
 	) {
 		glm::vec2& position = facePositionMap[edge];
-		std::pair<glm::vec2, float> pair = std::make_pair(position, cell->height);
 
-		if (vertexIndexMap.find(pair) == vertexIndexMap.end())
-		{
-			vertices.push_back(glm::vec3(position.x, cell->height, position.y));
-			uvs.push_back(glm::vec2(0.0f, 0.0f));
-			normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+		vertices.push_back(glm::vec3(position.x, cell->height, position.y));
+		uvs.push_back(glm::vec2(0.0f, 0.0f));
+		normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+		cellIds.push_back(cell->completeId);
 
-			vertexIndexMap.insert(std::make_pair(pair, currentIndex));
-			return currentIndex++;
-		}
-		else
-		{
-			return vertexIndexMap[pair];
-		}
+		return currentIndex++;
 	}
 
 	rendering::model::Mesh* Chunk::Generator::generateLandscapeMesh()
@@ -519,8 +511,8 @@ namespace game::world
 		std::vector<glm::vec3> vertices;
 		std::vector<glm::vec2> uvs;
 		std::vector<glm::vec3> normals;
+		std::vector<uint32_t> cellIds;
 
-		std::unordered_map<std::pair<glm::vec2, float>, unsigned int> vertexIndexMap;
 		std::vector<unsigned int> indices;
 		unsigned int index = 0;
 
@@ -539,15 +531,15 @@ namespace game::world
 			{
 				// Add triangles for the upwards facing face of the cell.
 				DirectedEdge* startingEdge = cell->node->getEdges().begin()->second;
-				int startIndex = addCellCorner(vertices, uvs, normals, facePositionMap, vertexIndexMap, index, cell, startingEdge);
+				int startIndex = addCellCorner(vertices, uvs, normals, cellIds, facePositionMap, index, cell, startingEdge);
 
 				DirectedEdge* currentEdge = startingEdge->getNextClockwise();
-				int lastIndex = addCellCorner(vertices, uvs, normals, facePositionMap, vertexIndexMap, index, cell, currentEdge);
+				int lastIndex = addCellCorner(vertices, uvs, normals, cellIds, facePositionMap, index, cell, currentEdge);
 
 				currentEdge = currentEdge->getNextClockwise();
 				while (currentEdge != startingEdge)
 				{
-					int currentIndex = addCellCorner(vertices, uvs, normals, facePositionMap, vertexIndexMap, index, cell, currentEdge);
+					int currentIndex = addCellCorner(vertices, uvs, normals, cellIds, facePositionMap, index, cell, currentEdge);
 
 					indices.push_back(startIndex);
 					indices.push_back(lastIndex);
@@ -562,8 +554,10 @@ namespace game::world
 				currentEdge = lastEdge->getNextClockwise();
 				do
 				{
+					Cell* otherCell = (Cell*)currentEdge->getTo()->getAdditionalData();
+
 					float ownHeight = cell->getHeight();
-					float otherHeight = ((Cell*)(currentEdge->getTo()->getAdditionalData()))->getHeight();
+					float otherHeight = otherCell->getHeight();
 					if (ownHeight != otherHeight && traversedEdges.find(currentEdge) == traversedEdges.end())
 					{
 						traversedEdges.insert(currentEdge);
@@ -574,24 +568,36 @@ namespace game::world
 
 						glm::vec3 cornerPosDiff = glm::vec3(cornerPosA.x, 0, cornerPosA.y) - glm::vec3(cornerPosB.x, 0, cornerPosB.y);
 						glm::vec3 normal = glm::normalize(glm::cross(cornerPosDiff, glm::vec3(0, 1, 0)));
+						uint32_t cellId;
 						if (ownHeight < otherHeight)
+						{
 							normal = -normal;
+							cellId = otherCell->completeId;
+						}
+						else
+						{
+							cellId = cell->completeId;
+						}
 
 						vertices.push_back(glm::vec3(cornerPosA.x, ownHeight, cornerPosA.y));
 						uvs.push_back(glm::vec2(0.0f, 0.0f));
 						normals.push_back(normal);
+						cellIds.push_back(cellId);
 
 						vertices.push_back(glm::vec3(cornerPosB.x, ownHeight, cornerPosB.y));
 						uvs.push_back(glm::vec2(0.0f, 0.0f));
 						normals.push_back(normal);
+						cellIds.push_back(cellId);
 
 						vertices.push_back(glm::vec3(cornerPosB.x, otherHeight, cornerPosB.y));
 						uvs.push_back(glm::vec2(0.0f, 0.0f));
 						normals.push_back(normal);
+						cellIds.push_back(cellId);
 
 						vertices.push_back(glm::vec3(cornerPosA.x, otherHeight, cornerPosA.y));
 						uvs.push_back(glm::vec2(0.0f, 0.0f));
 						normals.push_back(normal);
+						cellIds.push_back(cellId);
 
 						indices.push_back(index);
 						indices.push_back(index + 1);
@@ -618,7 +624,9 @@ namespace game::world
 			);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
-		return new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+		rendering::model::Mesh* mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+		mesh->addAdditionalVertexAttribute<uint32_t>(CELL_ID_ATTRIBUTE_LOCATION, cellIds, 1, GL_UNSIGNED_INT);
+		return mesh;
 	}
 
 	rendering::model::Mesh* Chunk::Generator::generateWaterMesh()

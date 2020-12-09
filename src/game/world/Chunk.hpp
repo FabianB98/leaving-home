@@ -19,6 +19,8 @@
 #define CHUNK_SIZE 5
 #define CELL_SIZE 8
 
+#define CELL_ID_ATTRIBUTE_LOCATION 14
+
 namespace game::world 
 {
 	class Cell;
@@ -193,8 +195,8 @@ namespace game::world
 				std::vector<glm::vec3>& vertices,
 				std::vector<glm::vec2>& uvs,
 				std::vector<glm::vec3>& normals,
+				std::vector<uint32_t>& cellIds,
 				std::unordered_map<DirectedEdge*, glm::vec2>& facePositionMap,
-				std::unordered_map<std::pair<glm::vec2, float>, unsigned int>& vertexIndexMap,
 				unsigned int& currentIndex,
 				Cell* cell,
 				DirectedEdge* edge
