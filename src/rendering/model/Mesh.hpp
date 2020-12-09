@@ -3,9 +3,11 @@
 // Standard headers
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdexcept>
 #include <iostream>
 #include <vector>
 #include <map>
+#include <unordered_set>
 #include <memory>
 
 // OpenGL related headers
@@ -33,6 +35,23 @@ namespace rendering
 			Mesh(std::string assetName);
 
 			~Mesh();
+
+			template <typename DataType>
+			void addAdditionalVertexAttribute(GLuint location, std::vector<DataType> data, GLint size, GLenum type)
+			{
+				addAdditionalVertexAttribute(location, data, size, type, GL_FALSE, 0, (void*)0);
+			}
+
+			template <typename DataType>
+			void addAdditionalVertexAttribute(
+				GLuint location,
+				std::vector<DataType> data,
+				GLint size,
+				GLenum type,
+				GLboolean normalized,
+				GLsizei stride,
+				const void* pointer
+			);
 
 			void render(shading::Shader& shader);
 
@@ -63,6 +82,9 @@ namespace rendering
 			GLuint modelMatrixVbo;
 			GLuint normalMatrixVbo;
 			GLuint mvpMatrixVbo;
+
+			std::vector<GLuint> additionalVbos;
+			std::unordered_set<GLuint> usedAttributeLocations;
 
 			std::vector<std::shared_ptr<MeshPart>> parts;
 
