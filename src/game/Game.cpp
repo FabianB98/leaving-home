@@ -71,7 +71,7 @@ namespace game
 		wrld->generateChunk(1, 0);	// Right
 		for (auto& chunk : wrld->getChunks()) {
 			entt::entity chunkEntity = registry.create();
-			registry.emplace<MeshRenderer>(chunkEntity, chunk.second->getMesh());
+			registry.emplace<MeshRenderer>(chunkEntity, chunk.second->getLandscapeMesh());
 			registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 0, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 		}
 

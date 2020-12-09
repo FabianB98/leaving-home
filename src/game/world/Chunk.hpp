@@ -16,10 +16,13 @@
 #include "PlanarGraph.hpp"
 #include "HeightGenerator.hpp"
 
-#define CHUNK_SIZE 5
-#define CELL_SIZE 8
+constexpr int CHUNK_SIZE = 5;
+constexpr float CELL_SIZE = 8.0f;
 
-#define CELL_ID_ATTRIBUTE_LOCATION 14
+constexpr bool GENERATE_TOPOLOGY_MESH_BY_DEFAULT = false;
+constexpr bool GENERATE_LANDSCAPE_MESH_BY_DEFAULT = true;
+
+constexpr unsigned int CELL_ID_ATTRIBUTE_LOCATION = 14;
 
 namespace game::world 
 {
@@ -79,10 +82,9 @@ namespace game::world
 			return cellsAlongChunkBorder;
 		}
 
-		rendering::model::Mesh* getMesh()
-		{
-			return mesh;
-		}
+		rendering::model::Mesh* getTopologyMesh();
+
+		rendering::model::Mesh* getLandscapeMesh();
 
 	private:
 		size_t chunkSeed;
@@ -95,7 +97,8 @@ namespace game::world
 		std::vector<Cell*> cells;
 		std::vector<Cell*> cellsAlongChunkBorder;
 
-		rendering::model::Mesh* mesh;
+		rendering::model::Mesh* topologyMesh;
+		rendering::model::Mesh* landscapeMesh;
 
 		HeightGenerator& heightGenerator;
 
@@ -151,6 +154,10 @@ namespace game::world
 
 			rendering::model::Mesh* generateWaterMesh();
 
+			rendering::model::Mesh* generateTopologyGridMesh();
+
+			rendering::model::Mesh* generateLandscapeMesh();
+
 		private:
 			Chunk* chunk;
 			Chunk* neighbors[6];
@@ -177,10 +184,6 @@ namespace game::world
 			void subdivideSurfaces();
 
 			void setChunkTopologyData();
-
-			rendering::model::Mesh* generateTopologyGridMesh();
-
-			rendering::model::Mesh* generateLandscapeMesh();
 
 			void addCell(
 				std::vector<glm::vec3>& vertices,

@@ -6,8 +6,8 @@
 #include "HeightGenerator.hpp"
 #include "PlanarGraph.hpp"
 
-#define WATER_HEIGHT 2.0f
-#define WATER_RELATIVE_VERTEX_DENSITY 4
+constexpr float WATER_HEIGHT = 2.5f * HEIGHT_QUANTIZATION_STEP_SIZE;
+constexpr int WATER_RELATIVE_VERTEX_DENSITY = 4;
 
 namespace std
 {

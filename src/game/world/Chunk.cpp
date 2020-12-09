@@ -40,7 +40,8 @@ namespace game::world
 		chunkHeight(2.0f * chunkBorderLength),
 		chunkHorizontalDistance(chunkWidth),
 		chunkVerticalDistance(0.75f * chunkHeight),
-		mesh(nullptr)
+		topologyMesh(nullptr),
+		landscapeMesh(nullptr)
 	{
 		float xPos = (column + (row % 2) * 0.5f) * chunkHorizontalDistance;
 		float yPos = row * chunkVerticalDistance;
@@ -74,9 +75,37 @@ namespace game::world
 		return generator.generateWaterMesh();
 	}
 
+	rendering::model::Mesh* Chunk::getTopologyMesh()
+	{
+		if (topologyMesh == nullptr)
+		{
+			Chunk* neighbors[6]{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+			Generator generator = Generator(this, neighbors, nullptr);
+			topologyMesh = generator.generateTopologyGridMesh();
+		}
+
+		return topologyMesh;
+	}
+
+	rendering::model::Mesh* Chunk::getLandscapeMesh()
+	{
+		if (landscapeMesh == nullptr)
+		{
+			Chunk* neighbors[6]{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+			Generator generator = Generator(this, neighbors, nullptr);
+			landscapeMesh = generator.generateLandscapeMesh();
+		}
+
+		return landscapeMesh;
+	}
+
 	Chunk::~Chunk()
 	{
-		delete mesh;
+		if (topologyMesh != nullptr)
+			delete topologyMesh;
+
+		if (landscapeMesh != nullptr)
+			delete landscapeMesh;
 
 		for (auto& cell : cells)
 			delete cell;
@@ -91,8 +120,12 @@ namespace game::world
 		subdivideSurfaces();
 
 		setChunkTopologyData();
-		//chunk->mesh = generateTopologyGridMesh();
-		chunk->mesh = generateLandscapeMesh();
+
+		if (GENERATE_TOPOLOGY_MESH_BY_DEFAULT)
+			chunk->topologyMesh = generateTopologyGridMesh();
+
+		if (GENERATE_LANDSCAPE_MESH_BY_DEFAULT)
+			chunk->landscapeMesh = generateLandscapeMesh();
 	}
 
 	void Chunk::Generator::generateInitialPositions()

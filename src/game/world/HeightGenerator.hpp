@@ -1,11 +1,18 @@
 #pragma once
 
+#include <math.h>
+
 #include <glm/glm.hpp>
 #include <FastNoiseLite.h>
 
 #include "PlanarGraph.hpp"
 
-#define HEIGHT_QUANTIZATION_STEP_SIZE 4.0f
+constexpr float LANDSCAPE_SCALE = 0.25f;
+constexpr float HEIGHT_SCALE = 20.0f;
+
+constexpr float HEIGHT_REDISTRIBUTION_EXPONENT = 1.8f;
+
+constexpr float HEIGHT_QUANTIZATION_STEP_SIZE = 4.0f;
 
 namespace game::world
 {
@@ -35,5 +42,9 @@ namespace game::world
 
 	private:
 		FastNoiseLite heightNoise;
+
+		float getNoise(float x, float y);
+
+		float getOctave(float x, float y, float octave);
 	};
 }
