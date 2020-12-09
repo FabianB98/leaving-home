@@ -62,13 +62,10 @@ namespace game
 		auto start = std::chrono::high_resolution_clock::now();
 
 		wrld = new world::World(1337);
-		wrld->generateChunk(0, 0);	// Center
-		wrld->generateChunk(0, 1);	// Diag down right
-		wrld->generateChunk(-1, 1);	// Diag down left
-		wrld->generateChunk(-1, 0);	// Left
-		wrld->generateChunk(0, -1); // Diag up left
-		wrld->generateChunk(1, -1); // Diag up right
-		wrld->generateChunk(1, 0);	// Right
+		for (int column = -5; column < 5; column++)
+			for (int row = -5; row < 5; row++)
+				wrld->generateChunk(column, row);
+
 		for (auto& chunk : wrld->getChunks()) {
 			entt::entity chunkEntity = registry.create();
 			registry.emplace<MeshRenderer>(chunkEntity, chunk.second->getLandscapeMesh());
@@ -80,7 +77,7 @@ namespace game
 		registry.emplace<MatrixTransform>(waterEntity, EulerComponentwiseTransform(glm::vec3(0, WATER_HEIGHT, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
 
 		auto finish = std::chrono::high_resolution_clock::now();
-		std::cout << "Generated 7 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
+		std::cout << "Generated 100 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
 
 		entt::entity cameraBase = registry.create();
 		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, 0, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));
