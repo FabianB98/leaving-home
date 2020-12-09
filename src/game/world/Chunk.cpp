@@ -661,7 +661,7 @@ namespace game::world
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
 		rendering::model::Mesh* mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
-		mesh->addAdditionalVertexAttribute<uint32_t>(CELL_ID_ATTRIBUTE_LOCATION, cellIds, 1, GL_UNSIGNED_INT);
+		mesh->addAdditionalVertexAttributeI<uint32_t>(CELL_ID_ATTRIBUTE_LOCATION, cellIds, 1, GL_UNSIGNED_INT);
 		return mesh;
 	}
 
