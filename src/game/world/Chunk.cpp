@@ -38,14 +38,14 @@ namespace game::world
 		chunkBorderLength(chunkSize * initialCellSize),
 		chunkWidth(sqrt(3.0f) * chunkBorderLength),
 		chunkHeight(2.0f * chunkBorderLength),
+		columnDirection(glm::vec2(chunkWidth, 0.0f)),
+		rowDirection(chunkWidth * glm::vec2(cos(glm::radians(60.0f)), sin(glm::radians(60.0f)))),
 		chunkHorizontalDistance(chunkWidth),
 		chunkVerticalDistance(0.75f * chunkHeight),
 		topologyMesh(nullptr),
 		landscapeMesh(nullptr)
 	{
-		float xPos = (column + (row % 2) * 0.5f) * chunkHorizontalDistance;
-		float yPos = row * chunkVerticalDistance;
-		centerPos = glm::vec2(xPos, yPos);
+		centerPos = (float)column * columnDirection + (float)row * rowDirection;
 
 		chunkSeed = worldSeed ^ std::hash<glm::vec2>()(centerPos);
 
@@ -287,6 +287,7 @@ namespace game::world
 		// Create a map mapping from the local nodes along the chunk border to their corresponding index within the
 		// cellsAlongChunkBorder array. 
 		std::unordered_map<Node*, int> borderIndexMap;
+		std::unordered_map<int, Node*> indexBorderMap;
 		std::unordered_set<DirectedEdge*> traversedEdges;
 
 		Node* topNode = nodesOrdered[lineIndexPrefixsum[1] - 1];
@@ -300,6 +301,7 @@ namespace game::world
 		{
 			int index = (i + 3 * chunk->numCellsAlongOneChunkEdge) % chunk->numCellsAlongChunkBorder;
 			borderIndexMap.insert(std::make_pair(edge->getFrom(), index));
+			indexBorderMap.insert(std::make_pair(index, edge->getFrom()));
 			edge = edge->getOtherDirection()->getNextCounterclockwise();
 		}
 
@@ -321,10 +323,11 @@ namespace game::world
 					int neighborIndexWithOverflow = cellsAlongBorderStart + 4 * chunk->numCellsAlongOneChunkEdge - i;
 					int neighborIndex = neighborIndexWithOverflow % chunk->numCellsAlongChunkBorder;
 					Cell* cell = neighbors[chunkEdge]->cellsAlongChunkBorder[neighborIndex];
-					chunk->cellsAlongChunkBorder[(cellsAlongBorderStart + i) % chunk->numCellsAlongChunkBorder] = cell;
+					int ownIndex = (cellsAlongBorderStart + i) % chunk->numCellsAlongChunkBorder;
+					chunk->cellsAlongChunkBorder[ownIndex] = cell;
 
 					// Store that this local node will be mapped to the shared global node of the shared cell.
-					Node* localNode = localGraph.getNodeAt(cell->node->getPosition());
+					Node* localNode = indexBorderMap[ownIndex];
 					nodeLocalToGlobalMap.insert(std::make_pair(localNode, cell->node));
 
 					// As we're already sharing all nodes on this chunk edge with the neighboring chunk, we don't need
@@ -658,7 +661,7 @@ namespace game::world
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
 		rendering::model::Mesh* mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
-		mesh->addAdditionalVertexAttribute<uint32_t>(CELL_ID_ATTRIBUTE_LOCATION, cellIds, 1, GL_UNSIGNED_INT);
+		mesh->addAdditionalVertexAttributeI<uint32_t>(CELL_ID_ATTRIBUTE_LOCATION, cellIds, 1, GL_UNSIGNED_INT);
 		return mesh;
 	}
 

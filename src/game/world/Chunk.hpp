@@ -117,6 +117,9 @@ namespace game::world
 		const float chunkHorizontalDistance;
 		const float chunkVerticalDistance;
 
+		const glm::vec2 columnDirection;
+		const glm::vec2 rowDirection;
+
 		Chunk(
 			size_t worldSeed,
 			int32_t _column,

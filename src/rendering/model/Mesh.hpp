@@ -9,6 +9,7 @@
 #include <map>
 #include <unordered_set>
 #include <memory>
+#include <functional>
 
 // OpenGL related headers
 #include <GL/glew.h>
@@ -37,13 +38,13 @@ namespace rendering
 			~Mesh();
 
 			template <typename DataType>
-			void addAdditionalVertexAttribute(GLuint location, std::vector<DataType> data, GLint size, GLenum type)
+			void addAdditionalVertexAttributeF(GLuint location, std::vector<DataType> data, GLint size, GLenum type)
 			{
-				addAdditionalVertexAttribute(location, data, size, type, GL_FALSE, 0, (void*)0);
+				addAdditionalVertexAttributeF(location, data, size, type, GL_FALSE, 0, (void*)0);
 			}
 
 			template <typename DataType>
-			void addAdditionalVertexAttribute(
+			void addAdditionalVertexAttributeF(
 				GLuint location,
 				std::vector<DataType> data,
 				GLint size,
@@ -52,26 +53,49 @@ namespace rendering
 				GLsizei stride,
 				const void* pointer
 			) {
-				// Ensure that the given location is not already used by some other vertex attribute.
-				if (usedAttributeLocations.find(location) != usedAttributeLocations.end())
-					throw std::invalid_argument("Location already in use!");
-				usedAttributeLocations.insert(location);
+				addAdditionalVertexAttribute(location, data, [location, size, type, normalized, stride, pointer]() {
+					glVertexAttribPointer(location, size, type, normalized, stride, pointer);
+				});
+			}
 
-				// Bind the VAO as we're about to add a new VBO to it.
-				glBindVertexArray(vao);
+			template <typename DataType>
+			void addAdditionalVertexAttributeI(GLuint location, std::vector<DataType> data, GLint size, GLenum type)
+			{
+				addAdditionalVertexAttributeI(location, data, size, type, 0, (void*)0);
+			}
 
-				// Create a VBO, fill it with the given data and bind it to the given vertex attribute location.
-				GLuint vbo;
-				glGenBuffers(1, &vbo);
-				additionalVbos.push_back(vbo);
+			template <typename DataType>
+			void addAdditionalVertexAttributeI(
+				GLuint location,
+				std::vector<DataType> data,
+				GLint size,
+				GLenum type,
+				GLsizei stride,
+				const void* pointer
+			) {
+				addAdditionalVertexAttribute(location, data, [location, size, type, stride, pointer]() {
+					glVertexAttribIPointer(location, size, type, stride, pointer);
+				});
+			}
 
-				glBindBuffer(GL_ARRAY_BUFFER, vbo);
-				glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(DataType), &data[0], GL_STATIC_DRAW);
-				glEnableVertexAttribArray(location);
-				glVertexAttribPointer(location, size, type, normalized, stride, pointer);
+			template <typename DataType>
+			void addAdditionalVertexAttributeL(GLuint location, std::vector<DataType> data, GLint size, GLenum type)
+			{
+				addAdditionalVertexAttributeL(location, data, size, type, 0, (void*)0);
+			}
 
-				// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
-				glBindVertexArray(0);
+			template <typename DataType>
+			void addAdditionalVertexAttributeL(
+				GLuint location,
+				std::vector<DataType> data,
+				GLint size,
+				GLenum type,
+				GLsizei stride,
+				const void* pointer
+			) {
+				addAdditionalVertexAttribute(location, data, [location, size, type, stride, pointer]() {
+					glVertexAttribLPointer(location, size, type, stride, pointer);
+				});
 			}
 
 			void render(shading::Shader& shader);
@@ -114,6 +138,34 @@ namespace rendering
 				const std::vector<glm::vec2>& uvs,
 				const std::vector<glm::vec3>& normals
 			);
+
+			template <typename DataType>
+			void addAdditionalVertexAttribute(
+				GLuint location,
+				std::vector<DataType> data,
+				std::function<void()> const& setVertexAttribPointer
+			) {
+				// Ensure that the given location is not already used by some other vertex attribute.
+				if (usedAttributeLocations.find(location) != usedAttributeLocations.end())
+					throw std::invalid_argument("Location already in use!");
+				usedAttributeLocations.insert(location);
+
+				// Bind the VAO as we're about to add a new VBO to it.
+				glBindVertexArray(vao);
+
+				// Create a VBO, fill it with the given data and bind it to the given vertex attribute location.
+				GLuint vbo;
+				glGenBuffers(1, &vbo);
+				additionalVbos.push_back(vbo);
+
+				glBindBuffer(GL_ARRAY_BUFFER, vbo);
+				glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(DataType), &data[0], GL_STATIC_DRAW);
+				glEnableVertexAttribArray(location);
+				setVertexAttribPointer();
+
+				// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
+				glBindVertexArray(0);
+			}
 		};
 	}
 }
