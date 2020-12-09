@@ -38,6 +38,7 @@ namespace game
 	rendering::Skybox* skybox;
 	rendering::shading::Shader* simple;
 	rendering::shading::Shader* waterShader;
+	rendering::shading::Shader* terrainShader;
 
 	double randomDouble()
 	{
@@ -50,6 +51,7 @@ namespace game
 
 		simple = new rendering::shading::Shader("simpleInstanced");
 		waterShader = new rendering::shading::LightSupportingShader("waterInstanced", true);
+		terrainShader = new rendering::shading::LightSupportingShader("terrainInstanced");
 
 		skybox = new rendering::Skybox("skybox", "skybox");
 
@@ -58,6 +60,7 @@ namespace game
 		using namespace rendering::components;
 
 		auto& registry = renderingEngine->getRegistry();
+		auto& shading = registry.ctx<rendering::systems::MeshShading>();
 
 		auto start = std::chrono::high_resolution_clock::now();
 
@@ -70,6 +73,8 @@ namespace game
 			entt::entity chunkEntity = registry.create();
 			registry.emplace<MeshRenderer>(chunkEntity, chunk.second->getLandscapeMesh());
 			registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 0, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
+			
+			shading.shaders.insert(std::make_pair(chunk.second->getLandscapeMesh(), terrainShader));
 
 			entt::entity waterEntity = registry.create();
 			registry.emplace<MeshRenderer>(waterEntity, wrld->getWaterMesh());
@@ -106,8 +111,6 @@ namespace game
 
 
 
-
-		auto& shading = registry.ctx<rendering::systems::MeshShading>();
 		/*shading.shaders.insert(std::make_pair(wrld->getChunk(0, 0)->getMesh(), simple));
 		shading.shaders.insert(std::make_pair(wrld->getChunk(-1, 1)->getMesh(), simple));
 		shading.shaders.insert(std::make_pair(wrld->getChunk(0, -1)->getMesh(), simple));*/
