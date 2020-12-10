@@ -4,7 +4,7 @@ namespace game::world
 {
 	// Constants related to the size of the world (size of chunks and individual cells).
 	constexpr int CHUNK_SIZE = 5;
-	constexpr float CELL_SIZE = 8.0f;
+	constexpr float CELL_SIZE = 6.0f;
 
 	// Constants related to the height generation.
 	constexpr float LANDSCAPE_SCALE = 0.25f;
