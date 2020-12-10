@@ -16,6 +16,7 @@
 #include "DayNightCycle.hpp"
 #include "world/Chunk.hpp"
 #include "world/World.hpp"
+#include "world/Resource.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -64,32 +65,19 @@ namespace game
 
 		auto start = std::chrono::high_resolution_clock::now();
 
-		wrld = new world::World(1337);
+		wrld = new world::World(1337, registry, terrainShader, waterShader);
 		for (int column = -5; column < 5; column++)
 			for (int row = -5; row < 5; row++)
 				wrld->generateChunk(column, row);
 
-		for (auto& chunk : wrld->getChunks()) {
-			entt::entity chunkEntity = registry.create();
-			registry.emplace<MeshRenderer>(chunkEntity, chunk.second->getLandscapeMesh());
-			registry.emplace<MatrixTransform>(chunkEntity, EulerComponentwiseTransform(glm::vec3(0, 0, 0), 0, 0, 0, glm::vec3(1)).toTransformationMatrix());
-			
-			shading.shaders.insert(std::make_pair(chunk.second->getLandscapeMesh(), terrainShader));
-
-			entt::entity waterEntity = registry.create();
-			registry.emplace<MeshRenderer>(waterEntity, wrld->getWaterMesh());
-			registry.emplace<MatrixTransform>(
-				waterEntity,
-				EulerComponentwiseTransform(
-					glm::vec3(chunk.second->getCenterPos().x, WATER_HEIGHT, chunk.second->getCenterPos().y),
-					0, 0, 0,
-					glm::vec3(1)
-				).toTransformationMatrix()
-			);
-		}
-
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::cout << "Generated 100 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
+
+		world::Cell* cell = *(wrld->getChunk(0, 0)->getCells().begin());
+		cell->setContent(new world::Tree());
+		entt::entity content = registry.create();
+		registry.emplace<MeshRenderer>(content, cell->getContent()->getMesh());
+		registry.emplace<MatrixTransform>(content, cell->getContent()->getTransform());
 
 		entt::entity cameraBase = registry.create();
 		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, 0, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));
@@ -104,21 +92,9 @@ namespace game
 
 		rendering::systems::relationship(registry, cameraBase, camera);
 
-
 		sun = registry.create();
 		registry.emplace<MatrixTransform>(sun, glm::mat4(1.f));
 		registry.emplace<DirectionalLight>(sun, glm::vec3(1), glm::vec3(2, 1, 1));
-
-
-
-		/*shading.shaders.insert(std::make_pair(wrld->getChunk(0, 0)->getMesh(), simple));
-		shading.shaders.insert(std::make_pair(wrld->getChunk(-1, 1)->getMesh(), simple));
-		shading.shaders.insert(std::make_pair(wrld->getChunk(0, -1)->getMesh(), simple));*/
-
-		shading.shaders.insert(std::make_pair(wrld->getWaterMesh(), waterShader));
-
-
-		shading.priorities.insert(std::make_pair(waterShader, 1));
 	}
 
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)

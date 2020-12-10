@@ -2,12 +2,12 @@
 
 #include <unordered_map>
 
+#include <entt/entt.hpp>
+
 #include "Chunk.hpp"
+#include "Constants.hpp"
 #include "HeightGenerator.hpp"
 #include "PlanarGraph.hpp"
-
-constexpr float WATER_HEIGHT = 2.5f * HEIGHT_QUANTIZATION_STEP_SIZE;
-constexpr int WATER_RELATIVE_VERTEX_DENSITY = 4;
 
 namespace std
 {
@@ -29,7 +29,12 @@ namespace game::world
 	class World
 	{
 	public:
-		World(size_t _worldSeed);
+		World(
+			size_t _worldSeed,
+			entt::registry& _registry,
+			rendering::shading::Shader* _terrainShader,
+			rendering::shading::Shader* _waterShader
+		);
 
 		~World();
 
@@ -47,11 +52,6 @@ namespace game::world
 			return chunks;
 		}
 
-		rendering::model::Mesh* getWaterMesh()
-		{
-			return waterMesh;
-		}
-
 		HeightGenerator& getHeightGenerator()
 		{
 			return heightGenerator;
@@ -65,6 +65,9 @@ namespace game::world
 
 		HeightGenerator heightGenerator;
 
-		rendering::model::Mesh* waterMesh;
+		entt::registry& registry;
+
+		rendering::shading::Shader* terrainShader;
+		rendering::shading::Shader* waterShader;
 	};
 }

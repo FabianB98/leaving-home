@@ -1,9 +1,5 @@
 #pragma once
 
-#include "../../rendering/model/Material.hpp"
-#include "../../rendering/model/Mesh.hpp"
-#include "../../rendering/model/MeshPart.hpp"
-
 #include <algorithm>
 #include <random>
 #include <stdlib.h>
@@ -11,22 +7,23 @@
 #include <unordered_set>
 #include <vector>
 
+#include <entt/entt.hpp>
 #include <glm/glm.hpp>
 
+#include "../../rendering/components/MeshRenderer.hpp"
+#include "../../rendering/components/Transform.hpp"
+#include "../../rendering/systems/RenderingSystem.hpp"
+#include "../../rendering/model/Material.hpp"
+#include "../../rendering/model/Mesh.hpp"
+#include "../../rendering/model/MeshPart.hpp"
+#include "Constants.hpp"
 #include "PlanarGraph.hpp"
 #include "HeightGenerator.hpp"
-
-constexpr int CHUNK_SIZE = 5;
-constexpr float CELL_SIZE = 8.0f;
-
-constexpr bool GENERATE_TOPOLOGY_MESH_BY_DEFAULT = false;
-constexpr bool GENERATE_LANDSCAPE_MESH_BY_DEFAULT = true;
-
-constexpr unsigned int CELL_ID_ATTRIBUTE_LOCATION = 14;
 
 namespace game::world 
 {
 	class Cell;
+	class CellContent;
 
 	class Chunk
 	{
@@ -35,12 +32,18 @@ namespace game::world
 			size_t worldSeed,
 			int32_t _column,
 			int32_t _row,
-			HeightGenerator& _heightGenerator
+			HeightGenerator& _heightGenerator,
+			entt::registry& _registry,
+			rendering::shading::Shader* _terrainShader,
+			rendering::shading::Shader* _waterShader
 		) : Chunk(
 			worldSeed,
 			_column,
 			_row,
 			_heightGenerator,
+			_registry,
+			_terrainShader,
+			_waterShader,
 			CHUNK_SIZE,
 			CELL_SIZE
 		) {};
@@ -102,6 +105,11 @@ namespace game::world
 
 		HeightGenerator& heightGenerator;
 
+		entt::registry& registry;
+
+		rendering::shading::Shader* terrainShader;
+		rendering::shading::Shader* waterShader;
+
 		const int chunkSize;
 		const float cellSize;
 
@@ -125,6 +133,9 @@ namespace game::world
 			int32_t _column,
 			int32_t _row,
 			HeightGenerator& _heightGenerator,
+			entt::registry& _registry,
+			rendering::shading::Shader* _terrainShader,
+			rendering::shading::Shader* _waterShader,
 			int _chunkSize,
 			float _cellSize
 		);
@@ -219,7 +230,7 @@ namespace game::world
 	{
 	public:
 		Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)
-			: chunk(_chunk), cellId(_cellId), node(_node)
+			: chunk(_chunk), content(nullptr), cellId(_cellId), node(_node)
 		{
 			completeId = (chunk->getChunkId() << 14) + cellId;
 
@@ -234,6 +245,13 @@ namespace game::world
 		{
 			return chunk;
 		}
+
+		CellContent* getContent()
+		{
+			return content;
+		}
+
+		void setContent(CellContent* _content);
 
 		uint16_t getCellId()
 		{
@@ -264,6 +282,7 @@ namespace game::world
 
 	private:
 		Chunk* chunk;
+		CellContent* content;
 
 		uint16_t cellId;
 		uint32_t completeId;
@@ -273,5 +292,39 @@ namespace game::world
 		float height;
 
 		friend Chunk;
+	};
+
+	class CellContent
+	{
+	public:
+		CellContent(rendering::model::Mesh* _mesh) : 
+			cell(nullptr),
+			mesh(_mesh), 
+			transform(rendering::components::MatrixTransform(glm::mat4(1.0f))) {}
+
+		Cell* getCell()
+		{
+			return cell;
+		}
+
+		rendering::model::Mesh* getMesh()
+		{
+			return mesh;
+		}
+
+		rendering::components::MatrixTransform& getTransform()
+		{
+			return transform;
+		}
+
+	protected:
+		Cell* cell;
+
+		rendering::model::Mesh* mesh;
+		rendering::components::MatrixTransform transform;
+
+		virtual void addedToCell() = 0;
+
+		friend Cell;
 	};
 }

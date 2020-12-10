@@ -10,8 +10,8 @@
 #include "../components/FirstPersonRotateController.hpp"
 #include "../components/FreeFlyingMoveController.hpp"
 #include "../components/HeightConstrainedMoveController.hpp"
+#include "../world/Constants.hpp"
 #include "../world/HeightGenerator.hpp"
-#include "../world/World.hpp"
 
 #include <glfw/glfw3.h>
 

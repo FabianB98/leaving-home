@@ -5,14 +5,8 @@
 #include <glm/glm.hpp>
 #include <FastNoiseLite.h>
 
+#include "Constants.hpp"
 #include "PlanarGraph.hpp"
-
-constexpr float LANDSCAPE_SCALE = 0.25f;
-constexpr float HEIGHT_SCALE = 20.0f;
-
-constexpr float HEIGHT_REDISTRIBUTION_EXPONENT = 1.8f;
-
-constexpr float HEIGHT_QUANTIZATION_STEP_SIZE = 4.0f;
 
 namespace game::world
 {
@@ -46,5 +40,7 @@ namespace game::world
 		float getNoise(float x, float y);
 
 		float getOctave(float x, float y, float octave);
+
+		float getBlueNoise(float x, float y);
 	};
 }

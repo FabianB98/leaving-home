@@ -2,6 +2,8 @@
 
 #define GRASS_COLOR glm::vec3(0.16863f, 0.54902f, 0.15294f)
 
+static rendering::model::Mesh* waterMesh;
+
 namespace std
 {
 	template <>
@@ -24,12 +26,18 @@ namespace game::world
 		int32_t _column,
 		int32_t _row,
 		HeightGenerator& _heightGenerator,
+		entt::registry& _registry,
+		rendering::shading::Shader* _terrainShader,
+		rendering::shading::Shader* _waterShader,
 		int _chunkSize,
 		float _cellSize
 	) :
 		column(_column),
 		row(_row),
 		heightGenerator(_heightGenerator),
+		registry(_registry),
+		terrainShader(_terrainShader),
+		waterShader(_waterShader),
 		chunkSize(_chunkSize),
 		cellSize(_cellSize),
 		numCellsAlongOneChunkEdge(2 * chunkSize),
@@ -66,13 +74,44 @@ namespace game::world
 			_worldGraph
 		);
 		generator.generateChunkTopology();
+
+		// Add an entity for the chunk's landscape mesh.
+		entt::entity chunkEntity = registry.create();
+		registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh());
+		registry.emplace<rendering::components::MatrixTransform>(
+			chunkEntity,
+			rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
+			);
+
+		auto& shading = registry.ctx<rendering::systems::MeshShading>();
+		shading.shaders.insert(std::make_pair(getLandscapeMesh(), terrainShader));
+
+		// Add an entity for the chunk's water mesh.
+		entt::entity waterEntity = registry.create();
+		registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
+		registry.emplace<rendering::components::MatrixTransform>(
+			waterEntity,
+			rendering::components::EulerComponentwiseTransform(
+				glm::vec3(centerPos.x, WATER_HEIGHT, centerPos.y),
+				0, 0, 0,
+				glm::vec3(1)
+			).toTransformationMatrix()
+			);
+
+		shading.shaders.insert(std::make_pair(waterMesh, waterShader));
+		shading.priorities.insert(std::make_pair(waterShader, 1));
 	}
 
 	rendering::model::Mesh* Chunk::generateWaterMesh()
 	{
+		if (waterMesh != nullptr)
+			delete waterMesh;
+
 		Chunk* neighbors[6]{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 		Generator generator = Generator(this, neighbors, nullptr);
-		return generator.generateWaterMesh();
+		waterMesh = generator.generateWaterMesh();
+
+		return waterMesh;
 	}
 
 	rendering::model::Mesh* Chunk::getTopologyMesh()
@@ -720,7 +759,26 @@ namespace game::world
 
 	Cell::~Cell()
 	{
+		if (content != nullptr)
+			delete content;
+
 		delete node;
+	}
+
+	void Cell::setContent(CellContent* _content)
+	{
+		if (_content != nullptr && _content->cell != nullptr)
+			return;
+
+		if (content != nullptr)
+			delete content;
+
+		content = _content;
+		if (content != nullptr)
+		{
+			content->cell = this;
+			content->addedToCell();
+		}
 	}
 
 	const std::vector<Cell*> Cell::getNeighbors()

@@ -114,8 +114,8 @@ namespace game::systems
 						}
 
 						// Ensure that the camera won't be under water.
-						if (newPosition.y < WATER_HEIGHT)
-							newPosition.y = WATER_HEIGHT;
+						if (newPosition.y < game::world::WATER_HEIGHT)
+							newPosition.y = game::world::WATER_HEIGHT;
 						
 						transform.setTranslation(newPosition);
 					});

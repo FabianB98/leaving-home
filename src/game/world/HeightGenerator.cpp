@@ -19,6 +19,11 @@ namespace game::world
 		return getNoise(x * octave, y * octave) / octave;
 	}
 
+	float HeightGenerator::getBlueNoise(float x, float y)
+	{
+		return getNoise(50.0f * x, 50.0f * y);
+	}
+
 	float HeightGenerator::getHeight(float x, float y)
 	{
 		// Apply landscape scale (i.e. stretch or squeeze the landscape)
