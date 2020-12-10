@@ -15,6 +15,20 @@ namespace game::world
 	public:
 		HeightGenerator(size_t seed);
 
+		float getNoise(glm::vec2 pos)
+		{
+			return getNoise(pos.x, pos.y);
+		}
+
+		float getNoise(float x, float y);
+
+		float getBlueNoise(glm::vec2 pos)
+		{
+			return getBlueNoise(pos.x, pos.y);
+		}
+
+		float getBlueNoise(float x, float y);
+
 		float getHeight(glm::vec2 pos)
 		{
 			return getHeight(pos.x, pos.y);
@@ -37,10 +51,6 @@ namespace game::world
 	private:
 		FastNoiseLite heightNoise;
 
-		float getNoise(float x, float y);
-
 		float getOctave(float x, float y, float octave);
-
-		float getBlueNoise(float x, float y);
 	};
 }

@@ -8,6 +8,7 @@
 #include "Constants.hpp"
 #include "HeightGenerator.hpp"
 #include "PlanarGraph.hpp"
+#include "ResourceGenerator.hpp"
 
 namespace std
 {

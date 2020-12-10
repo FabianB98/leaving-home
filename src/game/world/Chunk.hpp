@@ -89,6 +89,11 @@ namespace game::world
 
 		rendering::model::Mesh* getLandscapeMesh();
 
+		HeightGenerator& getHeightGenerator()
+		{
+			return heightGenerator;
+		}
+
 	private:
 		size_t chunkSeed;
 		uint16_t chunkId;
@@ -229,15 +234,7 @@ namespace game::world
 	class Cell
 	{
 	public:
-		Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)
-			: chunk(_chunk), content(nullptr), cellId(_cellId), node(_node)
-		{
-			completeId = (chunk->getChunkId() << 14) + cellId;
-
-			node->setAdditionalData(this);
-
-			height = chunk->heightGenerator.getHeightQuantized(node->getPosition());
-		}
+		Cell(Chunk* _chunk, uint16_t _cellId, Node* _node);
 
 		~Cell();
 
@@ -283,6 +280,7 @@ namespace game::world
 	private:
 		Chunk* chunk;
 		CellContent* content;
+		entt::entity entity;
 
 		uint16_t cellId;
 		uint32_t completeId;

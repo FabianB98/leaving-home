@@ -65,6 +65,9 @@ namespace game::world
 		};
 		chunk->generateChunkTopology(neighbors, &graph);
 
+		ResourceGenerator resourceGenerator = ResourceGenerator(chunk);
+		resourceGenerator.generateResources();
+
 		return chunk;
 	}
 }

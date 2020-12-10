@@ -17,6 +17,9 @@ namespace game::world
 	constexpr float WATER_HEIGHT = 2.5f * HEIGHT_QUANTIZATION_STEP_SIZE;
 	constexpr int WATER_RELATIVE_VERTEX_DENSITY = 4;
 
+	// Constants related to the density of resources.
+	constexpr int TREE_DENSITY = 1;
+
 	// Constants related to the mesh generation of chunks.
 	constexpr bool GENERATE_TOPOLOGY_MESH_BY_DEFAULT = false;
 	constexpr bool GENERATE_LANDSCAPE_MESH_BY_DEFAULT = true;

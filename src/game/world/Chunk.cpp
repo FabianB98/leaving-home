@@ -757,6 +757,17 @@ namespace game::world
 		return new rendering::model::Mesh(vertices, uvs, normals, meshParts);
 	}
 
+	Cell::Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)
+		: chunk(_chunk), content(nullptr), cellId(_cellId), node(_node)
+	{
+		completeId = (chunk->getChunkId() << 14) + cellId;
+		entity = chunk->registry.create();
+
+		node->setAdditionalData(this);
+
+		height = chunk->heightGenerator.getHeightQuantized(node->getPosition());
+	}
+
 	Cell::~Cell()
 	{
 		if (content != nullptr)
@@ -778,6 +789,10 @@ namespace game::world
 		{
 			content->cell = this;
 			content->addedToCell();
+
+			entt::entity entity = chunk->registry.create();
+			chunk->registry.emplace<rendering::components::MeshRenderer>(entity, content->getMesh());
+			chunk->registry.emplace<rendering::components::MatrixTransform>(entity, content->getTransform());
 		}
 	}
 

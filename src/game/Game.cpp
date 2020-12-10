@@ -73,12 +73,6 @@ namespace game
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::cout << "Generated 100 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
 
-		world::Cell* cell = *(wrld->getChunk(0, 0)->getCells().begin());
-		cell->setContent(new world::Tree());
-		entt::entity content = registry.create();
-		registry.emplace<MeshRenderer>(content, cell->getContent()->getMesh());
-		registry.emplace<MatrixTransform>(content, cell->getContent()->getTransform());
-
 		entt::entity cameraBase = registry.create();
 		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, 0, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));
 		registry.emplace<components::HeightConstrainedMoveController>(cameraBase, GLFW_MOUSE_BUTTON_RIGHT, 8.0f);
