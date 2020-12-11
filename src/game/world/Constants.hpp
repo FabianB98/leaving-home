@@ -6,6 +6,10 @@ namespace game::world
 	constexpr int CHUNK_SIZE = 5;
 	constexpr float CELL_SIZE = 6.0f;
 
+	// Constants related to the cluster relaxation.
+	constexpr int CLUSTER_RELAXATION_ITERATIONS = 256;
+	constexpr float CLUSTER_RELAXATION_UPDATE_WEIGHT = 0.1f;
+
 	// Constants related to the height generation.
 	constexpr float LANDSCAPE_SCALE = 0.25f;
 	constexpr float HEIGHT_SCALE = 20.0f;
@@ -22,6 +26,6 @@ namespace game::world
 
 	// Constants related to the mesh generation of chunks.
 	constexpr bool GENERATE_TOPOLOGY_MESH_BY_DEFAULT = false;
-	constexpr bool GENERATE_LANDSCAPE_MESH_BY_DEFAULT = true;
+	constexpr bool GENERATE_LANDSCAPE_MESH_BY_DEFAULT = false;
 	constexpr unsigned int CELL_ID_ATTRIBUTE_LOCATION = 14;
 }

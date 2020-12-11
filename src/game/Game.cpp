@@ -66,9 +66,10 @@ namespace game
 		auto start = std::chrono::high_resolution_clock::now();
 
 		wrld = new world::World(1337, registry, terrainShader, waterShader);
-		for (int column = -5; column < 5; column++)
-			for (int row = -5; row < 5; row++)
-				wrld->generateChunk(column, row);
+		//for (int column = -5; column < 5; column++)
+		//	for (int row = -5; row < 5; row++)
+		//		wrld->generateChunk(column, row);
+		wrld->generateChunk(0, 0);
 
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::cout << "Generated 100 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;

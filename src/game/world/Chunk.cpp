@@ -74,7 +74,10 @@ namespace game::world
 			_worldGraph
 		);
 		generator.generateChunkTopology();
+	}
 
+	void Chunk::addedToWorld()
+	{
 		// Add an entity for the chunk's landscape mesh.
 		entt::entity chunkEntity = registry.create();
 		registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh());
@@ -471,12 +474,25 @@ namespace game::world
 					// want to render).
 					if (face.getNumEdges() == 4)
 					{
-						for (DirectedEdge* edge : face.getEdges())
+						bool allNodesWithinChunk = true;
+						for (Node* node : face.getNodes())
 						{
-							indices.push_back(nodeIndices[edge->getFrom()]);
-							indices.push_back(nodeIndices[edge->getTo()]);
+							if (nodeIndices.find(node) == nodeIndices.end())
+							{
+								allNodesWithinChunk = false;
+								break;
+							}
+						}
 
-							traversedEdges.insert(edge);
+						if (allNodesWithinChunk)
+						{
+							for (DirectedEdge* edge : face.getEdges())
+							{
+								indices.push_back(nodeIndices[edge->getFrom()]);
+								indices.push_back(nodeIndices[edge->getTo()]);
+
+								traversedEdges.insert(edge);
+							}
 						}
 					}
 					else

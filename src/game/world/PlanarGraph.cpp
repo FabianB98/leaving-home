@@ -17,7 +17,7 @@ namespace game::world
 	void Node::setPosition(glm::vec2 _position)
 	{
 		glm::vec2 oldPosition = position;
-		_position = position;
+		position = _position;
 
 		if (graph != nullptr)
 		{

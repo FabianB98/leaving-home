@@ -33,14 +33,45 @@ namespace game::world
 
 	World::~World()
 	{
-		for (auto& chunk : chunks)
+		for (auto& chunk : allChunks)
 			delete chunk.second;
+	}
+
+	Chunk* World::getChunkFromAllChunks(int32_t column, int32_t row)
+	{
+		auto& chunk = allChunks.find(std::make_pair(column, row));
+		if (chunk != allChunks.end())
+			return chunk->second;
+		else
+			return nullptr;
+	}
+
+	Chunk* World::getOrGenerateChunkFromAllChunks(int32_t column, int32_t row)
+	{
+		Chunk* chunk = getChunkFromAllChunks(column, row);
+		if (chunk != nullptr)
+			return chunk;
+
+		chunk = new Chunk(worldSeed, column, row, heightGenerator, registry, terrainShader, waterShader);
+		allChunks.insert(std::make_pair(std::make_pair(column, row), chunk));
+
+		Chunk* neighbors[6]{
+				getChunkFromAllChunks(column + 1, row - 1),	// Neighbor chunk to the diagonal up right
+				getChunkFromAllChunks(column + 1, row + 0),	// Neighbor chunk to the right
+				getChunkFromAllChunks(column + 0, row + 1),	// Neighbor chunk to the diagonal down right
+				getChunkFromAllChunks(column - 1, row + 1),	// Neighbor chunk to the diagonal down left
+				getChunkFromAllChunks(column - 1, row + 0),	// Neighbor chunk to the left
+				getChunkFromAllChunks(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
+		};
+		chunk->generateChunkTopology(neighbors, &graph);
+
+		return chunk;
 	}
 
 	Chunk* World::getChunk(int32_t column, int32_t row)
 	{
-		auto& chunk = chunks.find(std::make_pair(column, row));
-		if (chunk != chunks.end())
+		auto& chunk = relaxedChunks.find(std::make_pair(column, row));
+		if (chunk != relaxedChunks.end())
 			return chunk->second;
 		else
 			return nullptr;
@@ -52,20 +83,40 @@ namespace game::world
 		if (chunk != nullptr)
 			return chunk;
 
-		chunk = new Chunk(worldSeed, column, row, heightGenerator, registry, terrainShader, waterShader);
-		chunks.insert(std::make_pair(std::make_pair(column, row), chunk));
+		// TODO: This is just some temporary test code to check whether the relaxation of a single cluster works, and
+		// not the correct way of relaxing chunks. Finish implementing chunk relaxation and change everything between
+		// this comment and the end of this method to use the correct chunk relaxation.
+		chunk = getOrGenerateChunkFromAllChunks(column, row);
+		Chunk* chunk1 = getOrGenerateChunkFromAllChunks(column, row - 1);
+		Chunk* chunk2 = getOrGenerateChunkFromAllChunks(column + 1, row - 1);
 
-		Chunk* neighbors[6]{
-				getChunk(column + 1, row - 1),	// Neighbor chunk to the diagonal up right
-				getChunk(column + 1, row + 0),	// Neighbor chunk to the right
-				getChunk(column + 0, row + 1),	// Neighbor chunk to the diagonal down right
-				getChunk(column - 1, row + 1),	// Neighbor chunk to the diagonal down left
-				getChunk(column - 1, row + 0),	// Neighbor chunk to the left
-				getChunk(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
-		};
-		chunk->generateChunkTopology(neighbors, &graph);
+		ChunkCluster cluster = ChunkCluster(std::vector<Chunk*>{chunk, chunk1, chunk2}, true);
+		cluster.relax();
+
+		for (auto& cell : chunk->getCells())
+			cell->node->setPosition(cluster.getRelaxedPosition(cell));
+
+		for (auto& cell : chunk1->getCells())
+			cell->node->setPosition(cluster.getRelaxedPosition(cell));
+
+		for (auto& cell : chunk2->getCells())
+			cell->node->setPosition(cluster.getRelaxedPosition(cell));
+
+		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunk));
+		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunk1));
+		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunk2));
+
+		chunk->addedToWorld();
+		chunk1->addedToWorld();
+		chunk2->addedToWorld();
 
 		ResourceGenerator resourceGenerator = ResourceGenerator(chunk);
+		resourceGenerator.generateResources();
+
+		resourceGenerator = ResourceGenerator(chunk1);
+		resourceGenerator.generateResources();
+
+		resourceGenerator = ResourceGenerator(chunk2);
 		resourceGenerator.generateResources();
 
 		return chunk;

@@ -147,6 +147,8 @@ namespace game::world
 
 		void generateChunkTopology(Chunk* _neighbors[6], PlanarGraph* _worldGraph);
 
+		void addedToWorld();
+
 		rendering::model::Mesh* generateWaterMesh();
 
 		class Generator
@@ -290,6 +292,8 @@ namespace game::world
 		float height;
 
 		friend Chunk;
+		friend class ChunkCluster;
+		friend class World;
 	};
 
 	class CellContent
