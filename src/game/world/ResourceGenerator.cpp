@@ -4,6 +4,8 @@ namespace game::world
 {
 	void ResourceGenerator::generateResources()
 	{
+		// Determine the noise for all cells of the chunk and all neighboring cells that can be reached within
+		// TREE_DENSITY moves.
 		std::unordered_set<Cell*> cellsToCalculateNoiseFor;
 		for (Cell* cell : chunk->getCells())
 			getCellsWithinDistance(cell, TREE_DENSITY, cellsToCalculateNoiseFor);
@@ -12,10 +14,18 @@ namespace game::world
 		for (Cell* cell : cellsToCalculateNoiseFor)
 			noiseMap.insert(std::make_pair(cell, chunk->getHeightGenerator().getBlueNoise(cell->getPosition())));
 
+		// Generate resources for all cells of the chunk that are not located on the chunk's border.
+		std::unordered_set<Cell*> cellsToGenerateResourcesFor;
 		for (Cell* cell : chunk->getCells())
+			cellsToGenerateResourcesFor.insert(cell);
+		for (Cell* cell : chunk->getCellsAlongChunkBorder())
+			cellsToGenerateResourcesFor.erase(cell);
+
+		for (Cell* cell : cellsToGenerateResourcesFor)
 		{
 			if (cell->getHeight() > WATER_HEIGHT && cell->getHeight() <= GRASS_STONE_BORDER_HEIGHT)
 			{
+				// Cell is a grass cell, so it is eligible for being populated with a tree.
 				std::unordered_set<Cell*> cellsWithinDistance;
 				getCellsWithinDistance(cell, TREE_DENSITY, cellsWithinDistance);
 
