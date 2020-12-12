@@ -8,6 +8,8 @@
 
 #include <glm/glm.hpp>
 
+#include "../../util/MathUtil.hpp"
+
 #define NODE_POS_ROUNDING_PRECISION 0.001f
 
 namespace std
@@ -25,23 +27,14 @@ namespace std
 	};
 }
 
-// floor, ceil and round functions from the standard library are extremely slow for some reason, so we're going to
-// implement a faster round function by ourselves.
-static inline long fastRound(const float value)
-{
-	float valueOffset = value + 0.5f;
-	long l = (long)valueOffset;
-	return l - (l > valueOffset);
-}
-
 class Hasher
 {
 public:
 	std::size_t operator()(const glm::vec2& vector) const
 	{
 		size_t res = 17;
-		res = res * 31 + std::hash<long>()(fastRound(vector.x * NODE_POS_ROUNDING_PRECISION));
-		res = res * 31 + std::hash<long>()(fastRound(vector.y * NODE_POS_ROUNDING_PRECISION));
+		res = res * 31 + std::hash<long>()(util::fastRound(vector.x * NODE_POS_ROUNDING_PRECISION));
+		res = res * 31 + std::hash<long>()(util::fastRound(vector.y * NODE_POS_ROUNDING_PRECISION));
 		return res;
 	}
 };
@@ -51,8 +44,8 @@ class EqualFn
 public:
 	bool operator()(const glm::vec2& a, const glm::vec2& b) const
 	{
-		return fastRound(a.x / NODE_POS_ROUNDING_PRECISION) == fastRound(b.x / NODE_POS_ROUNDING_PRECISION)
-			&& fastRound(a.y / NODE_POS_ROUNDING_PRECISION) == fastRound(b.y / NODE_POS_ROUNDING_PRECISION);
+		return util::fastRound(a.x / NODE_POS_ROUNDING_PRECISION) == util::fastRound(b.x / NODE_POS_ROUNDING_PRECISION)
+			&& util::fastRound(a.y / NODE_POS_ROUNDING_PRECISION) == util::fastRound(b.y / NODE_POS_ROUNDING_PRECISION);
 	}
 };
 

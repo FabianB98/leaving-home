@@ -2,6 +2,10 @@
 
 namespace game::world
 {
+	constexpr float TWO_PI = 2.0f * M_PI;
+	constexpr float THREE_PI = 3.0f * M_PI;
+	constexpr float THIRD_PI = M_PI / 3.0f;
+
 	const float DESIRED_DIFF_TO_CENTER_LENGTH = sqrt(2.0f) * CELL_SIZE / 2.0f;
 
 	void ChunkCluster::relax()
@@ -54,7 +58,7 @@ namespace game::world
 		}
 
 		for (Cell* cell : cellsInCluster)
-			relaxedPositions.insert(std::make_pair(cell->node, cell->getPosition()));
+			relaxedPositions.insert(std::make_pair(cell->node, cell->getUnrelaxedPosition()));
 	}
 
 	void ChunkCluster::findBorder(std::unordered_set<Node*>& border) {
@@ -171,5 +175,58 @@ namespace game::world
 		std::pair<glm::vec2, unsigned int>& forceD = relaxationForces[nodes[3]];
 		forceD.first += newPosD - diffToCenterD;
 		forceD.second++;
+	}
+
+	void ChunkCluster::updateChunkCells(Chunk* chunk, std::array<ChunkCluster*, 6> clusters)
+	{
+		for (Cell* cell : chunk->getCells())
+		{
+			glm::vec2 positionInChunk = cell->getUnrelaxedPosition() - chunk->getCenterPos();
+			float angle = atan2(positionInChunk.x, positionInChunk.y);
+			float angleRotated = fmodf(-angle + THREE_PI, TWO_PI);
+			long indexOne = util::fastFloor(angleRotated / THIRD_PI);
+			long indexTwo = (indexOne + 1) % 6;
+
+			glm::vec2 cellPos = cell->getUnrelaxedPosition();
+			glm::vec2 centerPos = chunk->getCenterPos();
+			glm::vec2 cornerA = chunk->cornerPositions[indexOne];
+			glm::vec2 cornerB = chunk->cornerPositions[indexTwo];
+
+			float totalAreaRelative = calculateDeterminant(centerPos, cornerA, cornerB);
+			float lambda1 = calculateDeterminant(cellPos, cornerA, cornerB) / totalAreaRelative;
+			float lambda2 = calculateDeterminant(centerPos, cellPos, cornerB) / totalAreaRelative;
+			float lambda3 = 1.0f - lambda1 - lambda2;
+
+			cell->setRelaxedPosition(
+				lambda1 * cell->getUnrelaxedPosition()
+				+ lambda2 * clusters[indexOne]->getRelaxedPosition(cell)
+				+ lambda3 * clusters[indexTwo]->getRelaxedPosition(cell)
+			);
+		}
+	}
+
+	float ChunkCluster::calculateDeterminant(glm::vec2 a, glm::vec2 b, glm::vec2 c)
+	{
+		glm::vec2 ca = a - c;
+		glm::vec2 cb = b - c;
+
+		return ca.x * cb.y - ca.y * cb.x;
+	}
+
+	ChunkClusterIdentifier::ChunkClusterIdentifier(std::vector<Chunk*>& _chunks) : chunks(_chunks) 
+	{
+		std::sort(chunks.begin(), chunks.end());
+	}
+
+	bool ChunkClusterIdentifier::operator==(const ChunkClusterIdentifier& other) const
+	{
+		if (chunks.size() != other.chunks.size())
+			return false;
+
+		for (size_t i = 0; i < chunks.size(); i++)
+			if (chunks[i] != other.chunks[i])
+				return false;
+
+		return true;
 	}
 }

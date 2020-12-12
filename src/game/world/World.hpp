@@ -49,7 +49,7 @@ namespace game::world
 
 		Chunk* generateChunk(int32_t column, int32_t row);
 
-		const std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> getChunks()
+		const std::unordered_map<std::pair<int32_t, int32_t>, Chunk*>& getChunks()
 		{
 			return relaxedChunks;
 		}
@@ -64,6 +64,7 @@ namespace game::world
 
 		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> allChunks;
 		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> relaxedChunks;
+		std::unordered_map<ChunkClusterIdentifier, ChunkCluster*> chunkClusters;
 		PlanarGraph graph;
 
 		HeightGenerator heightGenerator;
@@ -76,5 +77,11 @@ namespace game::world
 		Chunk* getChunkFromAllChunks(int32_t column, int32_t row);
 
 		Chunk* getOrGenerateChunkFromAllChunks(int32_t column, int32_t row);
+
+		std::array<Chunk*, 6> getNeighborsFromAllChunks(int32_t column, int32_t row);
+
+		std::array<Chunk*, 6> World::getOrGenerateNeighborsFromAllChunks(int32_t column, int32_t row);
+
+		ChunkCluster* getOrGenerateChunkCluster(Chunk* chunkA, Chunk* chunkB, Chunk* chunkC);
 	};
 }

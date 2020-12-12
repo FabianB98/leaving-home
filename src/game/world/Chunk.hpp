@@ -104,6 +104,7 @@ namespace game::world
 
 		std::vector<Cell*> cells;
 		std::vector<Cell*> cellsAlongChunkBorder;
+		std::array<glm::vec2, 6> cornerPositions;
 
 		rendering::model::Mesh* topologyMesh;
 		rendering::model::Mesh* landscapeMesh;
@@ -145,7 +146,7 @@ namespace game::world
 			float _cellSize
 		);
 
-		void generateChunkTopology(Chunk* _neighbors[6], PlanarGraph* _worldGraph);
+		void generateChunkTopology(std::array<Chunk*, 6> _neighbors, PlanarGraph* _worldGraph);
 
 		void addedToWorld();
 
@@ -156,11 +157,11 @@ namespace game::world
 		public:
 			Generator(
 				Chunk* _chunk,
-				Chunk* _neighbors[6],
+				std::array<Chunk*, 6>& _neighbors,
 				PlanarGraph* _worldGraph
 			) : 
 				chunk(_chunk), 
-				neighbors{ _neighbors[0], _neighbors[1], _neighbors[2], _neighbors[3], _neighbors[4], _neighbors[5] },
+				neighbors(_neighbors),
 				worldGraph(_worldGraph),
 				localGraph(PlanarGraph()),
 				up(glm::vec2(0, chunk->initialCellSize)),
@@ -181,7 +182,7 @@ namespace game::world
 
 		private:
 			Chunk* chunk;
-			Chunk* neighbors[6];
+			std::array<Chunk*, 6> neighbors;
 
 			PlanarGraph* worldGraph;
 
@@ -231,6 +232,7 @@ namespace game::world
 
 		friend class Cell;
 		friend class World;
+		friend class ChunkCluster;
 	};
 
 	class Cell
@@ -262,9 +264,14 @@ namespace game::world
 			return completeId;
 		}
 
-		glm::vec2 getPosition()
+		glm::vec2 getUnrelaxedPosition()
 		{
 			return node->getPosition();
+		}
+
+		glm::vec2 getRelaxedPosition()
+		{
+			return relaxedPosition;
 		}
 
 		float getHeight()
@@ -272,9 +279,14 @@ namespace game::world
 			return height;
 		}
 
-		glm::vec3 getPositionAndHeight()
+		glm::vec3 getUnrelaxedPositionAndHeight()
 		{
 			return glm::vec3(node->getPosition().x, height, node->getPosition().y);
+		}
+
+		glm::vec3 getRelaxedPositionAndHeight()
+		{
+			return glm::vec3(relaxedPosition.x, height, relaxedPosition.y);
 		}
 
 		const std::vector<Cell*> getNeighbors();
@@ -289,7 +301,10 @@ namespace game::world
 
 		Node* node;
 
+		glm::vec2 relaxedPosition;
 		float height;
+
+		void setRelaxedPosition(glm::vec2 _relaxedPosition);
 
 		friend Chunk;
 		friend class ChunkCluster;

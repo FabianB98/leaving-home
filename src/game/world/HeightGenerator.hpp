@@ -7,6 +7,7 @@
 
 #include "Constants.hpp"
 #include "PlanarGraph.hpp"
+#include "../../util/MathUtil.hpp"
 
 namespace game::world
 {

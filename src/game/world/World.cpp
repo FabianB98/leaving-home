@@ -35,6 +35,9 @@ namespace game::world
 	{
 		for (auto& chunk : allChunks)
 			delete chunk.second;
+
+		for (auto& cluster : chunkClusters)
+			delete cluster.second;
 	}
 
 	Chunk* World::getChunkFromAllChunks(int32_t column, int32_t row)
@@ -56,14 +59,7 @@ namespace game::world
 		chunk = new Chunk(worldSeed, column, row, heightGenerator, registry, terrainShader, waterShader);
 		allChunks.insert(std::make_pair(std::make_pair(column, row), chunk));
 
-		Chunk* neighbors[6]{
-				getChunkFromAllChunks(column + 1, row - 1),	// Neighbor chunk to the diagonal up right
-				getChunkFromAllChunks(column + 1, row + 0),	// Neighbor chunk to the right
-				getChunkFromAllChunks(column + 0, row + 1),	// Neighbor chunk to the diagonal down right
-				getChunkFromAllChunks(column - 1, row + 1),	// Neighbor chunk to the diagonal down left
-				getChunkFromAllChunks(column - 1, row + 0),	// Neighbor chunk to the left
-				getChunkFromAllChunks(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
-		};
+		std::array<Chunk*, 6> neighbors = getNeighborsFromAllChunks(column, row);
 		chunk->generateChunkTopology(neighbors, &graph);
 
 		// Relax the positions of the cells within the chunk, but keep the positions of the cells along the chunk's
@@ -75,6 +71,49 @@ namespace game::world
 			cell->node->setPosition(cluster.getRelaxedPosition(cell));
 
 		return chunk;
+	}
+
+	std::array<Chunk*, 6> World::getNeighborsFromAllChunks(int32_t column, int32_t row)
+	{
+		return std::array<Chunk*, 6>{
+				getChunkFromAllChunks(column + 1, row - 1),	// Neighbor chunk to the diagonal up right
+				getChunkFromAllChunks(column + 1, row + 0),	// Neighbor chunk to the right
+				getChunkFromAllChunks(column + 0, row + 1),	// Neighbor chunk to the diagonal down right
+				getChunkFromAllChunks(column - 1, row + 1),	// Neighbor chunk to the diagonal down left
+				getChunkFromAllChunks(column - 1, row + 0),	// Neighbor chunk to the left
+				getChunkFromAllChunks(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
+		};
+	}
+
+	std::array<Chunk*, 6> World::getOrGenerateNeighborsFromAllChunks(int32_t column, int32_t row)
+	{
+		return std::array<Chunk*, 6>{
+			getOrGenerateChunkFromAllChunks(column + 1, row - 1),	// Neighbor chunk to the diagonal up right
+			getOrGenerateChunkFromAllChunks(column + 1, row + 0),	// Neighbor chunk to the right
+			getOrGenerateChunkFromAllChunks(column + 0, row + 1),	// Neighbor chunk to the diagonal down right
+			getOrGenerateChunkFromAllChunks(column - 1, row + 1),	// Neighbor chunk to the diagonal down left
+			getOrGenerateChunkFromAllChunks(column - 1, row + 0),	// Neighbor chunk to the left
+			getOrGenerateChunkFromAllChunks(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
+		};
+	}
+
+	ChunkCluster* World::getOrGenerateChunkCluster(Chunk* chunkA, Chunk* chunkB, Chunk* chunkC)
+	{
+		// Check whether we have already relaxed this cluster.
+		std::vector<Chunk*> chunks = std::vector<Chunk*>{ chunkA, chunkB, chunkC };
+		ChunkClusterIdentifier identifier = ChunkClusterIdentifier(chunks);
+		
+		auto& identifiedCluster = chunkClusters.find(identifier);
+		if (identifiedCluster != chunkClusters.end())
+			return identifiedCluster->second;
+		
+		// There is no cluster for the chunks yet. Create a new cluster for the chunks and relax it.
+		ChunkCluster* cluster = new ChunkCluster(chunks, false);
+		chunkClusters.insert(std::make_pair(identifier, cluster));
+
+		cluster->relax();
+
+		return cluster;
 	}
 
 	Chunk* World::getChunk(int32_t column, int32_t row)
@@ -92,40 +131,28 @@ namespace game::world
 		if (chunk != nullptr)
 			return chunk;
 
-		// TODO: This is just some temporary test code to check whether the relaxation of a single cluster works, and
-		// not the correct way of relaxing chunks. Finish implementing chunk relaxation and change everything between
-		// this comment and the end of this method to use the correct chunk relaxation.
+		// Chunk is not yet (fully) generated. Get (or generate if not yet generated) the unrelaxed chunk and its six
+		// neighboring chunks.
 		chunk = getOrGenerateChunkFromAllChunks(column, row);
-		Chunk* chunk1 = getOrGenerateChunkFromAllChunks(column, row - 1);
-		Chunk* chunk2 = getOrGenerateChunkFromAllChunks(column + 1, row - 1);
+		std::array<Chunk*, 6> neighbors = getOrGenerateNeighborsFromAllChunks(column, row);
 
-		ChunkCluster cluster = ChunkCluster(std::vector<Chunk*>{chunk, chunk1, chunk2}, false);
-		cluster.relax();
-
-		for (auto& cell : chunk->getCells())
-			cell->node->setPosition(cluster.getRelaxedPosition(cell));
-
-		for (auto& cell : chunk1->getCells())
-			cell->node->setPosition(cluster.getRelaxedPosition(cell));
-
-		for (auto& cell : chunk2->getCells())
-			cell->node->setPosition(cluster.getRelaxedPosition(cell));
+		// Get (or generate and relax if not yet generated) all six clusters around the chunk. A cluster is defined as
+		// the current chunk and two adjacent neighbor chunks such that the three chunks share a common corner. After
+		// each cluster was relaxed, the positions of the cells within the chunk need to be updated accordingly.
+		std::array<ChunkCluster*, 6> clusters{
+			getOrGenerateChunkCluster(chunk, neighbors[5], neighbors[0]),	// Cluster on the upper corner
+			getOrGenerateChunkCluster(chunk, neighbors[0], neighbors[1]),	// Cluster on the upper right corner
+			getOrGenerateChunkCluster(chunk, neighbors[1], neighbors[2]),	// Cluster on the lower right corner
+			getOrGenerateChunkCluster(chunk, neighbors[2], neighbors[3]),	// Cluster on the lower corner
+			getOrGenerateChunkCluster(chunk, neighbors[3], neighbors[4]),	// Cluster on the lower left corner
+			getOrGenerateChunkCluster(chunk, neighbors[4], neighbors[5]),	// Cluster on the upper left corner
+		};
+		ChunkCluster::updateChunkCells(chunk, clusters);
 
 		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunk));
-		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunk1));
-		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunk2));
-
 		chunk->addedToWorld();
-		chunk1->addedToWorld();
-		chunk2->addedToWorld();
 
 		ResourceGenerator resourceGenerator = ResourceGenerator(chunk);
-		resourceGenerator.generateResources();
-
-		resourceGenerator = ResourceGenerator(chunk1);
-		resourceGenerator.generateResources();
-
-		resourceGenerator = ResourceGenerator(chunk2);
 		resourceGenerator.generateResources();
 
 		return chunk;

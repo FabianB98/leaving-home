@@ -69,10 +69,19 @@ namespace game
 		//for (int column = -5; column < 5; column++)
 		//	for (int row = -5; row < 5; row++)
 		//		wrld->generateChunk(column, row);
+		//wrld->generateChunk(0, 0);
+		//wrld->generateChunk(1, -1);
+		//wrld->generateChunk(1, 0);
+		//wrld->generateChunk(0, 1);
+		//wrld->generateChunk(-1, 1);
+		//wrld->generateChunk(-1, 0);
+		//wrld->generateChunk(0, -1);
 		wrld->generateChunk(0, 0);
+		wrld->generateChunk(0, 1);
+		wrld->generateChunk(1, 0);
 
 		auto finish = std::chrono::high_resolution_clock::now();
-		std::cout << "Generated 100 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
+		std::cout << "Generated " << wrld->getChunks().size() << " chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
 
 		entt::entity cameraBase = registry.create();
 		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, 0, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));

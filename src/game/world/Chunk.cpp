@@ -66,7 +66,7 @@ namespace game::world
 			cellsAlongChunkBorder[i] = nullptr;
 	}
 
-	void Chunk::generateChunkTopology(Chunk* _neighbors[6], PlanarGraph* _worldGraph)
+	void Chunk::generateChunkTopology(std::array<Chunk*, 6> _neighbors, PlanarGraph* _worldGraph)
 	{
 		Generator generator = Generator(
 			this,
@@ -110,7 +110,7 @@ namespace game::world
 		if (waterMesh != nullptr)
 			delete waterMesh;
 
-		Chunk* neighbors[6]{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+		std::array<Chunk*, 6> neighbors{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 		Generator generator = Generator(this, neighbors, nullptr);
 		waterMesh = generator.generateWaterMesh();
 
@@ -121,7 +121,7 @@ namespace game::world
 	{
 		if (topologyMesh == nullptr)
 		{
-			Chunk* neighbors[6]{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+			std::array<Chunk*, 6> neighbors{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 			Generator generator = Generator(this, neighbors, nullptr);
 			topologyMesh = generator.generateTopologyGridMesh();
 		}
@@ -133,7 +133,7 @@ namespace game::world
 	{
 		if (landscapeMesh == nullptr)
 		{
-			Chunk* neighbors[6]{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+			std::array<Chunk*, 6> neighbors{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 			Generator generator = Generator(this, neighbors, nullptr);
 			landscapeMesh = generator.generateLandscapeMesh();
 		}
@@ -423,6 +423,13 @@ namespace game::world
 				}
 			}
 		}
+
+		// Set the positions of the corners.
+		for (size_t i = 0; i < 6; i++) 
+		{
+			size_t borderIndex = i * chunk->numCellsAlongOneChunkEdge;
+			chunk->cornerPositions[i] = chunk->cellsAlongChunkBorder[borderIndex]->getUnrelaxedPosition();
+		}
 	}
 
 	void Chunk::Generator::addCell(
@@ -435,7 +442,7 @@ namespace game::world
 	) {
 		if (nodeIndices.find(cell->node) == nodeIndices.end())
 		{
-			vertices.push_back(cell->getPositionAndHeight());
+			vertices.push_back(cell->getRelaxedPositionAndHeight());
 			uvs.push_back(glm::vec2(0, 0));
 			normals.push_back(glm::vec3(0, 1, 0));
 
@@ -564,7 +571,7 @@ namespace game::world
 					{
 						glm::vec2 faceCenterPos = glm::vec2(0.0f, 0.0f);
 						for (Node* node : face.getNodes())
-							faceCenterPos += node->getPosition();
+							faceCenterPos += ((Cell*)node->getAdditionalData())->getRelaxedPosition();
 						faceCenterPos /= 4.0f;
 
 						for (DirectedEdge* edge : face.getEdges())
@@ -782,6 +789,7 @@ namespace game::world
 		node->setAdditionalData(this);
 
 		height = chunk->heightGenerator.getHeightQuantized(node->getPosition());
+		relaxedPosition = node->getPosition();
 	}
 
 	Cell::~Cell()
@@ -820,5 +828,11 @@ namespace game::world
 			neighbors.push_back((Cell*)(edge.first->getAdditionalData()));
 
 		return neighbors;
+	}
+
+	void Cell::setRelaxedPosition(glm::vec2 _relaxedPosition)
+	{
+		relaxedPosition = _relaxedPosition;
+		height = chunk->heightGenerator.getHeightQuantized(relaxedPosition);
 	}
 }
