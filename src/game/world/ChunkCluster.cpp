@@ -149,8 +149,6 @@ namespace game::world
 			(diffToCenterRotatedA + diffToCenterRotatedB + diffToCenterRotatedC + diffToCenterRotatedD) / 4.0f;
 		glm::vec2 diffToCenterNormalized = glm::normalize(diffToCenterAveraged) * DESIRED_DIFF_TO_CENTER_LENGTH;
 
-		//std::cout << glm::length(diffToCenterA) << "\t" << glm::length(diffToCenterB) << "\t" << glm::length(diffToCenterC) << "\t" << glm::length(diffToCenterD) << "\t" << glm::length(diffToCenterAveraged) << std::endl;
-
 		// Rotate back
 		glm::vec2 newPosA = diffToCenterNormalized;
 		glm::vec2 newPosB = glm::vec2(diffToCenterNormalized.y, -diffToCenterNormalized.x);

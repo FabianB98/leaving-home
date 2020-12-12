@@ -52,6 +52,7 @@ namespace game::world
 		if (chunk != nullptr)
 			return chunk;
 
+		// Create a new chunk and generate its topology (i.e. cells and their neighborhood).
 		chunk = new Chunk(worldSeed, column, row, heightGenerator, registry, terrainShader, waterShader);
 		allChunks.insert(std::make_pair(std::make_pair(column, row), chunk));
 
@@ -64,6 +65,14 @@ namespace game::world
 				getChunkFromAllChunks(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
 		};
 		chunk->generateChunkTopology(neighbors, &graph);
+
+		// Relax the positions of the cells within the chunk, but keep the positions of the cells along the chunk's
+		// border as they are.
+		ChunkCluster cluster = ChunkCluster(std::vector<Chunk*>{chunk}, true);
+		cluster.relax();
+
+		for (auto& cell : chunk->getCells())
+			cell->node->setPosition(cluster.getRelaxedPosition(cell));
 
 		return chunk;
 	}

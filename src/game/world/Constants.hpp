@@ -7,7 +7,7 @@ namespace game::world
 	constexpr float CELL_SIZE = 6.0f;
 
 	// Constants related to the cluster relaxation.
-	constexpr int CLUSTER_RELAXATION_ITERATIONS = 256;
+	constexpr int CLUSTER_RELAXATION_ITERATIONS = 128;
 	constexpr float CLUSTER_RELAXATION_UPDATE_WEIGHT = 0.1f;
 
 	// Constants related to the height generation.

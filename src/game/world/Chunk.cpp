@@ -84,7 +84,7 @@ namespace game::world
 		registry.emplace<rendering::components::MatrixTransform>(
 			chunkEntity,
 			rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
-			);
+		);
 
 		auto& shading = registry.ctx<rendering::systems::MeshShading>();
 		shading.shaders.insert(std::make_pair(getLandscapeMesh(), terrainShader));
@@ -99,7 +99,7 @@ namespace game::world
 				0, 0, 0,
 				glm::vec3(1)
 			).toTransformationMatrix()
-			);
+		);
 
 		shading.shaders.insert(std::make_pair(waterMesh, waterShader));
 		shading.priorities.insert(std::make_pair(waterShader, 1));
