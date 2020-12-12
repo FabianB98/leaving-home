@@ -90,7 +90,7 @@ namespace game::world
 		Chunk* chunk1 = getOrGenerateChunkFromAllChunks(column, row - 1);
 		Chunk* chunk2 = getOrGenerateChunkFromAllChunks(column + 1, row - 1);
 
-		ChunkCluster cluster = ChunkCluster(std::vector<Chunk*>{chunk, chunk1, chunk2}, true);
+		ChunkCluster cluster = ChunkCluster(std::vector<Chunk*>{chunk, chunk1, chunk2}, false);
 		cluster.relax();
 
 		for (auto& cell : chunk->getCells())

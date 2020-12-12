@@ -2,6 +2,8 @@
 
 namespace game::world
 {
+	const float DESIRED_DIFF_TO_CENTER_LENGTH = sqrt(2.0f) * CELL_SIZE / 2.0f;
+
 	void ChunkCluster::relax()
 	{
 		initializeRelaxedPositions();
@@ -123,10 +125,10 @@ namespace game::world
 		// on how the relaxation forces are calculated. All variables ending with an A correspond to the red
 		// point, variables ending with B to the yellow point, variables ending with C to the blue point and
 		// variables ending with D to the green point.
-		glm::vec2& positionA = relaxedPositions[nodes[3]];
-		glm::vec2& positionB = relaxedPositions[nodes[2]];
-		glm::vec2& positionC = relaxedPositions[nodes[1]];
-		glm::vec2& positionD = relaxedPositions[nodes[0]];
+		glm::vec2& positionA = relaxedPositions[nodes[0]];
+		glm::vec2& positionB = relaxedPositions[nodes[1]];
+		glm::vec2& positionC = relaxedPositions[nodes[2]];
+		glm::vec2& positionD = relaxedPositions[nodes[3]];
 
 		// Diff to center
 		glm::vec2 centerPosition = (positionA + positionB + positionC + positionD) / 4.0f;
@@ -145,27 +147,30 @@ namespace game::world
 		// Average
 		glm::vec2 diffToCenterAveraged =
 			(diffToCenterRotatedA + diffToCenterRotatedB + diffToCenterRotatedC + diffToCenterRotatedD) / 4.0f;
+		glm::vec2 diffToCenterNormalized = glm::normalize(diffToCenterAveraged) * DESIRED_DIFF_TO_CENTER_LENGTH;
+
+		//std::cout << glm::length(diffToCenterA) << "\t" << glm::length(diffToCenterB) << "\t" << glm::length(diffToCenterC) << "\t" << glm::length(diffToCenterD) << "\t" << glm::length(diffToCenterAveraged) << std::endl;
 
 		// Rotate back
-		glm::vec2 newPosA = diffToCenterAveraged;
-		glm::vec2 newPosB = glm::vec2(diffToCenterAveraged.y, -diffToCenterAveraged.x);
-		glm::vec2 newPosC = -diffToCenterAveraged;
-		glm::vec2 newPosD = glm::vec2(-diffToCenterAveraged.y, diffToCenterAveraged.x);
+		glm::vec2 newPosA = diffToCenterNormalized;
+		glm::vec2 newPosB = glm::vec2(diffToCenterNormalized.y, -diffToCenterNormalized.x);
+		glm::vec2 newPosC = -diffToCenterNormalized;
+		glm::vec2 newPosD = glm::vec2(-diffToCenterNormalized.y, diffToCenterNormalized.x);
 
 		// Move towards (not the actual movement, just the calculation of the relaxation forces)
-		std::pair<glm::vec2, unsigned int>& forceA = relaxationForces[nodes[3]];
+		std::pair<glm::vec2, unsigned int>& forceA = relaxationForces[nodes[0]];
 		forceA.first += newPosA - diffToCenterA;
 		forceA.second++;
 
-		std::pair<glm::vec2, unsigned int>& forceB = relaxationForces[nodes[2]];
+		std::pair<glm::vec2, unsigned int>& forceB = relaxationForces[nodes[1]];
 		forceB.first += newPosB - diffToCenterB;
 		forceB.second++;
 
-		std::pair<glm::vec2, unsigned int>& forceC = relaxationForces[nodes[1]];
+		std::pair<glm::vec2, unsigned int>& forceC = relaxationForces[nodes[2]];
 		forceC.first += newPosC - diffToCenterC;
 		forceC.second++;
 
-		std::pair<glm::vec2, unsigned int>& forceD = relaxationForces[nodes[0]];
+		std::pair<glm::vec2, unsigned int>& forceD = relaxationForces[nodes[3]];
 		forceD.first += newPosD - diffToCenterD;
 		forceD.second++;
 	}
