@@ -51,11 +51,11 @@ void main() {
 
 
 	if (world_pos.y <= 24) {
-		kA = .0 * grassBase;
+		kA = .1 * grassBase;
 		kD = (.3 + 0.1*rand(vec2(float(a), float(b)))) * grassBase;
 		kS = .0 * grassBase;
 	} else {
-		kA = .0 * stoneBase;
+		kA = .1 * stoneBase;
 		kD = (.3 + 0.1*rand(vec2(float(a), float(b)))) * stoneBase;
 		kS = .3 * stoneBase;
 	}

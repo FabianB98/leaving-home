@@ -31,4 +31,16 @@ namespace rendering::textures
 
 		GLuint id;
 	};
+
+	class Texture2D
+	{
+	public:
+		Texture2D(std::string name);
+
+		void bind(rendering::shading::Shader& shader, std::string uniformName, unsigned int index = 0);
+
+		GLuint getId() { return id; }
+	private:
+		GLuint id;
+	};
 }

@@ -41,6 +41,8 @@ namespace game
 	rendering::shading::Shader* waterShader;
 	rendering::shading::Shader* terrainShader;
 
+	rendering::textures::Texture2D* icon;
+
 	double randomDouble()
 	{
 		return (double) rand() / (double) RAND_MAX;
@@ -56,6 +58,8 @@ namespace game
 
 		skybox = new rendering::Skybox("skybox", "skybox");
 
+		icon = new rendering::textures::Texture2D("edit");
+
 		renderingEngine->setClearColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.0f));
 
 		using namespace rendering::components;
@@ -66,12 +70,17 @@ namespace game
 		auto start = std::chrono::high_resolution_clock::now();
 
 		wrld = new world::World(1337, registry, terrainShader, waterShader);
-		for (int column = -5; column < 5; column++)
-			for (int row = -5; row < 5; row++)
-				wrld->generateChunk(column, row);
+		int worldSize = 3;
+		for (int column = -worldSize; column <= 0; column++)
+			for (int row = -worldSize - column; row <= worldSize; row++)
+				wrld->generateChunk(row, column);
+		for (int column = 1; column <= worldSize; column++)
+			for (int row = -worldSize; row <= worldSize - column; row++)
+				wrld->generateChunk(row, column);
+		
 
 		auto finish = std::chrono::high_resolution_clock::now();
-		std::cout << "Generated 100 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
+		std::cout << "Generated " << wrld->getChunks().size() << " chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
 
 		entt::entity cameraBase = registry.create();
 		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, 0, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));
@@ -81,7 +90,7 @@ namespace game
 
 		entt::entity camera = renderingEngine->getMainCamera();
 		registry.emplace<EulerComponentwiseTransform>(camera, glm::vec3(0, 0, 100), 0, 0, 0, glm::vec3(1.0f));
-		registry.emplace<components::AxisConstrainedMoveController>(camera, glm::vec3(0, 0, 1), 1000.0f, 50.0f, 500.0f);
+		registry.emplace<components::AxisConstrainedMoveController>(camera, glm::vec3(0, 0, 1), 1000.0f, 50.0f, 1000.0f);
 		registry.emplace<rendering::components::Relationship>(camera);
 
 		rendering::systems::relationship(registry, cameraBase, camera);
@@ -114,6 +123,8 @@ namespace game
 		skybox->render(renderingEngine);
 
 
+		//ImGui::ShowDemoWindow();
+
 		ImGui::Begin("Test window");
 
 		/*ImGui::SliderFloat("Red", &red, 0.f, 1.f);
@@ -125,6 +136,67 @@ namespace game
 		ImGui::SliderFloat("Day-Night speed", &daynight.speed, -1.f, 1.f);
 
 		ImGui::End();
+
+
+        /*bool open = true;
+        ShowExampleAppCustomRendering(&open);*/
+
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove;
+		bool open = true;
+		float size = 160.f;
+		float margin = 48.f;
+
+		ImGui::Begin("Tools", &open, flags);
+		ImGui::SetWindowSize("Tools", ImVec2(size * 5.1f, size * 1.1f));
+
+		ImGui::SetWindowPos("Tools", ImVec2(margin, renderingEngine->getFrameBufferHeight() - margin - size));
+
+		//ImGui::PushItemWidth(-ImGui::GetFontSize() * 10);
+		ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+		const ImVec2 p = ImGui::GetCursorScreenPos();
+		auto colf = ImVec4(0.0f, 0.0f, 0.0f, 0.85f);
+		const ImU32 col = ImColor(colf);
+
+		ImVec2 center(p.x + size * .5f, p.y + size * .5f);
+		draw_list->AddNgonFilled(center, size * .5f, col, 6);
+		
+
+		float cut = 16.f;
+		ImVec2 p1(center.x + size * .5f + 20.f - 0.577f*cut, center.y + cut);
+		ImVec2 p2(center.x + size * .25f + 20.f, center.y + 0.866f * 0.5f * size);
+		
+		ImVec2 points[] = { ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImVec2(p2.x + 200.f, p2.y), ImVec2(p1.x + 200.f, p1.y) };
+		const ImU32 col2 = ImColor(ImVec4(0, 0, 0, 0.85f));
+		draw_list->AddConvexPolyFilled(points, 4, col2);
+
+
+		
+		
+		//ImGui::Button("Test");
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
+
+		float iconSize = 26.f;
+
+		float angle = -M_PI * 1.f / 6.f;
+		for (int i = 0; i < 6; i++) {
+
+			float pX = size * .5f + sin(angle) * 48.f;
+			float pY = size * .5f + cos(angle) * 48.f;
+
+			ImGui::SetCursorPos(ImVec2(pX - iconSize * .5f, pY - iconSize * .5f));
+			ImGui::ImageButton((void*)icon->getId(), ImVec2(iconSize, iconSize), ImVec2(0.02, 0.02), ImVec2(0.98, 0.98), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1));
+
+			angle += M_PI / 3.f;
+		}
+
+		ImGui::PopStyleColor(3);
+
+		ImGui::End();
+
+
 	}
 
 	void Game::cleanUp(rendering::RenderingEngine* renderingEngine)

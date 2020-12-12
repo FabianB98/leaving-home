@@ -8,7 +8,7 @@ namespace rendering
         auto cameraEntity = registry.create();
         
         auto parameters = std::make_shared<components::PerspectiveCameraParameters>(
-            glm::radians(45.f), (float) width / (float) height, .1f, 1000.f);
+            glm::radians(45.f), (float) width / (float) height, .1f, 10000.f);
         registry.emplace<components::Camera>(cameraEntity, parameters);
         registry.emplace<components::MatrixTransform>(cameraEntity, glm::inverse(glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), glm::vec3(0, 1, 0))));
 

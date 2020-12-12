@@ -49,4 +49,39 @@ namespace rendering::textures
 		glBindTexture(GL_TEXTURE_CUBE_MAP, id);
 		shader.setUniformInt(uniformName, id);
 	}
+
+
+
+
+	Texture2D::Texture2D(std::string name)
+	{
+		GLuint textureID;
+		glGenTextures(1, &textureID);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+
+		int width, height, channels;
+		auto fileName = "res/textures/" + name + ".png";
+		unsigned char* data = stbi_load(fileName.c_str(), &width, &height, &channels, 0);
+
+		if (!data) {
+			stbi_image_free(data);
+			throw std::invalid_argument("Can't read texture " + fileName + "!");
+		}
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		stbi_image_free(data);
+
+		glGenerateMipmap(GL_TEXTURE_2D);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		id = textureID;
+	}
+
+	void Texture2D::bind(rendering::shading::Shader& shader, std::string uniformName, unsigned int index)
+	{
+		glActiveTexture(GL_TEXTURE0 + index);
+		glBindTexture(GL_TEXTURE_2D, id);
+		shader.setUniformInt(uniformName, id);
+	}
 }
