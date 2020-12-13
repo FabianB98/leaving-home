@@ -49,55 +49,34 @@ namespace game::world
 			return nullptr;
 	}
 
-	Chunk* World::getOrGenerateChunkFromAllChunks(int32_t column, int32_t row)
+	Chunk* World::getOrGenerateChunkFromAllChunks(int32_t column, int32_t row, bool& needsToBeRelaxed)
 	{
 		Chunk* chunk = getChunkFromAllChunks(column, row);
 		if (chunk != nullptr)
+		{
+			needsToBeRelaxed = false;
 			return chunk;
+		}
 
 		// Create a new chunk and generate its topology (i.e. cells and their neighborhood).
 		chunk = new Chunk(worldSeed, column, row, heightGenerator, registry, terrainShader, waterShader);
 		allChunks.insert(std::make_pair(std::make_pair(column, row), chunk));
 
-		std::array<Chunk*, 6> neighbors = getNeighborsFromAllChunks(column, row);
+		std::array<Chunk*, 6> neighbors{
+			getChunkFromAllChunks(column + 1, row - 1),	// Neighbor chunk to the diagonal up right
+			getChunkFromAllChunks(column + 1, row + 0),	// Neighbor chunk to the right
+			getChunkFromAllChunks(column + 0, row + 1),	// Neighbor chunk to the diagonal down right
+			getChunkFromAllChunks(column - 1, row + 1),	// Neighbor chunk to the diagonal down left
+			getChunkFromAllChunks(column - 1, row + 0),	// Neighbor chunk to the left
+			getChunkFromAllChunks(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
+		};
 		chunk->generateChunkTopology(neighbors, &graph);
 
-		// Relax the positions of the cells within the chunk, but keep the positions of the cells along the chunk's
-		// border as they are.
-		ChunkCluster cluster = ChunkCluster(std::vector<Chunk*>{chunk}, true);
-		cluster.relax();
-
-		for (auto& cell : chunk->getCells())
-			cell->node->setPosition(cluster.getRelaxedPosition(cell));
-
+		needsToBeRelaxed = true;
 		return chunk;
 	}
 
-	std::array<Chunk*, 6> World::getNeighborsFromAllChunks(int32_t column, int32_t row)
-	{
-		return std::array<Chunk*, 6>{
-				getChunkFromAllChunks(column + 1, row - 1),	// Neighbor chunk to the diagonal up right
-				getChunkFromAllChunks(column + 1, row + 0),	// Neighbor chunk to the right
-				getChunkFromAllChunks(column + 0, row + 1),	// Neighbor chunk to the diagonal down right
-				getChunkFromAllChunks(column - 1, row + 1),	// Neighbor chunk to the diagonal down left
-				getChunkFromAllChunks(column - 1, row + 0),	// Neighbor chunk to the left
-				getChunkFromAllChunks(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
-		};
-	}
-
-	std::array<Chunk*, 6> World::getOrGenerateNeighborsFromAllChunks(int32_t column, int32_t row)
-	{
-		return std::array<Chunk*, 6>{
-			getOrGenerateChunkFromAllChunks(column + 1, row - 1),	// Neighbor chunk to the diagonal up right
-			getOrGenerateChunkFromAllChunks(column + 1, row + 0),	// Neighbor chunk to the right
-			getOrGenerateChunkFromAllChunks(column + 0, row + 1),	// Neighbor chunk to the diagonal down right
-			getOrGenerateChunkFromAllChunks(column - 1, row + 1),	// Neighbor chunk to the diagonal down left
-			getOrGenerateChunkFromAllChunks(column - 1, row + 0),	// Neighbor chunk to the left
-			getOrGenerateChunkFromAllChunks(column + 0, row - 1)	// Neighbor chunk to the diagonal up left
-		};
-	}
-
-	ChunkCluster* World::getOrGenerateChunkCluster(Chunk* chunkA, Chunk* chunkB, Chunk* chunkC)
+	ChunkCluster* World::getOrGenerateChunkCluster(Chunk* chunkA, Chunk* chunkB, Chunk* chunkC, bool& needsToBeRelaxed)
 	{
 		// Check whether we have already relaxed this cluster.
 		std::vector<Chunk*> chunks = std::vector<Chunk*>{ chunkA, chunkB, chunkC };
@@ -105,14 +84,16 @@ namespace game::world
 		
 		auto& identifiedCluster = chunkClusters.find(identifier);
 		if (identifiedCluster != chunkClusters.end())
+		{
+			needsToBeRelaxed = false;
 			return identifiedCluster->second;
+		}
 		
-		// There is no cluster for the chunks yet. Create a new cluster for the chunks and relax it.
+		// There is no cluster for the chunks yet. Create a new cluster for the chunks.
 		ChunkCluster* cluster = new ChunkCluster(chunks, false);
 		chunkClusters.insert(std::make_pair(identifier, cluster));
 
-		cluster->relax();
-
+		needsToBeRelaxed = true;
 		return cluster;
 	}
 
@@ -127,39 +108,72 @@ namespace game::world
 
 	Chunk* World::generateChunk(int32_t column, int32_t row)
 	{
-		Chunk* chunk = getChunk(column, row);
-		if (chunk != nullptr)
-			return chunk;
+		Chunk* storedChunk = getChunk(column, row);
+		if (storedChunk != nullptr)
+			return storedChunk;
 
 		std::cout << "Generating chunk at (" << column << "|" << row << ")" << std::endl;
 
 		// Chunk is not yet (fully) generated. Get (or generate if not yet generated) the unrelaxed chunk and its six
 		// neighboring chunks.
-		chunk = getOrGenerateChunkFromAllChunks(column, row);
-		std::array<Chunk*, 6> neighbors = getOrGenerateNeighborsFromAllChunks(column, row);
-
-		// Get (or generate and relax if not yet generated) all six clusters around the chunk. A cluster is defined as
-		// the current chunk and two adjacent neighbor chunks such that the three chunks share a common corner. After
-		// each cluster was relaxed, the positions of the cells within the chunk need to be updated accordingly.
-		std::array<ChunkCluster*, 6> clusters{
-			getOrGenerateChunkCluster(chunk, neighbors[5], neighbors[0]),	// Cluster on the upper corner
-			getOrGenerateChunkCluster(chunk, neighbors[0], neighbors[1]),	// Cluster on the upper right corner
-			getOrGenerateChunkCluster(chunk, neighbors[1], neighbors[2]),	// Cluster on the lower right corner
-			getOrGenerateChunkCluster(chunk, neighbors[2], neighbors[3]),	// Cluster on the lower corner
-			getOrGenerateChunkCluster(chunk, neighbors[3], neighbors[4]),	// Cluster on the lower left corner
-			getOrGenerateChunkCluster(chunk, neighbors[4], neighbors[5]),	// Cluster on the upper left corner
+		bool chunksToRelax[7];
+		Chunk* chunks[7] {
+			getOrGenerateChunkFromAllChunks(column + 0, row + 0, chunksToRelax[0]),	// Chunk to generate
+			getOrGenerateChunkFromAllChunks(column + 1, row - 1, chunksToRelax[1]),	// Neighbor to the upper right
+			getOrGenerateChunkFromAllChunks(column + 1, row + 0, chunksToRelax[2]),	// Neighbor to the right
+			getOrGenerateChunkFromAllChunks(column + 0, row + 1, chunksToRelax[3]),	// Neighbor to the lower right
+			getOrGenerateChunkFromAllChunks(column - 1, row + 1, chunksToRelax[4]),	// Neighbor to the lower left
+			getOrGenerateChunkFromAllChunks(column - 1, row + 0, chunksToRelax[5]),	// Neighbor to the left
+			getOrGenerateChunkFromAllChunks(column + 0, row - 1, chunksToRelax[6])	// Neighbor to the upper left
 		};
-		ChunkCluster::updateChunkCells(chunk, clusters);
 
-		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunk));
-		chunk->addedToWorld();
+		// Relax all chunks which were not yet relaxed individually in parallel. This is the case for all chunks that
+		// had to be generated by getOrGenerateChunkFromAllChunks as they didn't exist before.
+		static const std::vector<int> chunkCount{ 0, 1, 2, 3, 4, 5, 6 };
+		std::for_each(std::execution::par_unseq, std::begin(chunkCount), std::end(chunkCount), [&](int i) {
+			if (chunksToRelax[i])
+			{
+				// Relax the positions of the cells within the chunk, but keep the positions of the cells along the
+				// chunk's border as they are.
+				ChunkCluster cluster = ChunkCluster(std::vector<Chunk*>{chunks[i]}, true);
+				cluster.relax();
+
+				for (auto& cell : chunks[i]->getCells())
+					cell->node->setPosition(cluster.getRelaxedPosition(cell));
+			}
+		});
+
+		// Get (or generate if not yet generated) all six clusters around the chunk. A cluster is defined as the current
+		// chunk and two adjacent neighbor chunks such that the three chunks share a common corner.
+		bool clustersToRelax[6];
+		std::array<ChunkCluster*, 6> clusters{
+			getOrGenerateChunkCluster(chunks[0], chunks[6], chunks[1], clustersToRelax[0]),	// Upper corner
+			getOrGenerateChunkCluster(chunks[0], chunks[1], chunks[2], clustersToRelax[1]),	// Upper right corner
+			getOrGenerateChunkCluster(chunks[0], chunks[2], chunks[3], clustersToRelax[2]),	// Lower right corner
+			getOrGenerateChunkCluster(chunks[0], chunks[3], chunks[4], clustersToRelax[3]),	// Lower corner
+			getOrGenerateChunkCluster(chunks[0], chunks[4], chunks[5], clustersToRelax[4]),	// Lower left corner
+			getOrGenerateChunkCluster(chunks[0], chunks[5], chunks[6], clustersToRelax[5]),	// Upper left corner
+		};
+
+		// Relax all clusters which were not yet relaxed in parallel. This the case for all clusters that had to be
+		// generated by getOrGenerateChunkCluster as they didn't exist before.
+		static const std::vector<int> clusterCount{ 0, 1, 2, 3, 4, 5 };
+		std::for_each(std::execution::par_unseq, std::begin(clusterCount), std::end(clusterCount), [&](int i) {
+			if (clustersToRelax[i])
+				clusters[i]->relax();
+		});
+
+		ChunkCluster::updateChunkCells(chunks[0], clusters);
+
+		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunks[0]));
+		chunks[0]->addedToWorld();
 
 		if (GENERATE_RESOURCES) 
 		{
-			ResourceGenerator resourceGenerator = ResourceGenerator(chunk);
+			ResourceGenerator resourceGenerator = ResourceGenerator(chunks[0]);
 			resourceGenerator.generateResources();
 		}
 
-		return chunk;
+		return chunks[0];
 	}
 }

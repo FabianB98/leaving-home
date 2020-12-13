@@ -146,7 +146,7 @@ namespace game::world
 			return nodes.size();
 		}
 
-		const std::vector<Node*> getNodes()
+		const std::vector<Node*>& getNodes()
 		{
 			return nodes;
 		}
@@ -156,7 +156,7 @@ namespace game::world
 			return edges.size();
 		}
 
-		const std::vector<DirectedEdge*> getEdges()
+		const std::vector<DirectedEdge*>& getEdges()
 		{
 			return edges;
 		}
