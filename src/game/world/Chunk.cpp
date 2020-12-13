@@ -7,6 +7,18 @@ static rendering::model::Mesh* waterMesh;
 namespace std
 {
 	template <>
+	struct hash<glm::vec2>
+	{
+		std::size_t operator()(const glm::vec2 & vec) const
+		{
+			size_t res = 17;
+			res = res * 31 + hash<float>()(vec.x);
+			res = res * 31 + hash<float>()(vec.y);
+			return res;
+		}
+	};
+
+	template <>
 	struct hash<pair<glm::vec2, float>>
 	{
 		std::size_t operator()(const pair<glm::vec2, float>& p) const
@@ -412,9 +424,8 @@ namespace game::world
 		}
 
 		uint16_t cellId = 0;
-		for (auto& iterator : localGraph.getNodes())
+		for (Node* localNode : localGraph.getNodes())
 		{
-			Node* const & localNode = iterator.second;
 			if (nodeLocalToGlobalMap.find(localNode) == nodeLocalToGlobalMap.end())
 			{
 				// The current local node is not part of some border to an already existing chunk. We must create a new
@@ -436,8 +447,8 @@ namespace game::world
 		// Copy the edges from the local graph to the world graph.
 		for (auto& localNode : localGraph.getNodes())
 		{
-			Node* worldNode = nodeLocalToGlobalMap[localNode.second];
-			for (auto& outgoingEdge : localNode.second->getEdges())
+			Node* worldNode = nodeLocalToGlobalMap[localNode];
+			for (auto& outgoingEdge : localNode->getEdges())
 			{
 				if (traversedEdges.find(outgoingEdge.second) == traversedEdges.end())
 				{
@@ -769,12 +780,12 @@ namespace game::world
 		unsigned int currentIndex = 0;
 		for (auto& node : localGraph.getNodes())
 		{
-			glm::vec2& position = node.second->getPosition();
+			glm::vec2& position = node->getPosition();
 			vertices.push_back(glm::vec3(position.x, 0, position.y));
 			uvs.push_back(glm::vec2(0, 0));
 			normals.push_back(glm::vec3(0, 1, 0));
 
-			nodeIndices.insert(std::make_pair(node.second, currentIndex));
+			nodeIndices.insert(std::make_pair(node, currentIndex));
 			currentIndex++;
 		}
 

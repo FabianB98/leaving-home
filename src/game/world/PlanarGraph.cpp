@@ -11,19 +11,7 @@ namespace game::world
 		}
 
 		if (graph != nullptr)
-			graph->nodes.erase(position);
-	}
-
-	void Node::setPosition(glm::vec2 _position)
-	{
-		glm::vec2 oldPosition = position;
-		position = _position;
-
-		if (graph != nullptr)
-		{
-			graph->nodes.erase(oldPosition);
-			graph->nodes.insert(std::make_pair(position, this));
-		}
+			graph->nodes.erase(this);
 	}
 
 	DirectedEdge* Node::getEdge(Node* other)
@@ -159,18 +147,9 @@ namespace game::world
 	{
 		while (!nodes.empty())
 		{
-			Node* node = nodes.begin()->second;
+			Node* node = *nodes.begin();
 			delete node;
 		}
-	}
-
-	Node* PlanarGraph::getNodeAt(glm::vec2 position)
-	{
-		auto findResult = nodes.find(position);
-		if (findResult != nodes.end())
-			return findResult->second;
-		else
-			return nullptr;
 	}
 
 	void PlanarGraph::addNode(Node* node)
@@ -178,13 +157,13 @@ namespace game::world
 		if (node->graph == nullptr)
 		{
 			node->graph = this;
-			nodes.insert(std::make_pair(node->position, node));
+			nodes.insert(node);
 		}
 	}
 
 	void PlanarGraph::removeNode(Node* node)
 	{
-		if (nodes.find(node->position) != nodes.end())
+		if (nodes.find(node) != nodes.end())
 		{
 			delete node;
 		}
@@ -205,7 +184,7 @@ namespace game::world
 		std::unordered_set<DirectedEdge*> traversedEdges;
 		for (auto& node : nodes)
 		{
-			for (auto& outgoingEdge : node.second->edges)
+			for (auto& outgoingEdge : node->edges)
 			{
 				if (traversedEdges.find(outgoingEdge.second) == traversedEdges.end())
 				{
