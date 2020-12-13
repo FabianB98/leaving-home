@@ -116,15 +116,8 @@ namespace game
 		registry.emplace<MatrixTransform>(sun, glm::mat4(1.f));
 		registry.emplace<DirectionalLight>(sun, glm::vec3(1), glm::vec3(2, 1, 1));
 	}
-
-	int selected = 0;
+	
 	bool pressed;
-	bool updatePos;
-	ImVec2 pos;
-
-	bool open = false;
-
-
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)
 	{
 		game::systems::updateMovementInputSystem(renderingEngine, deltaTime, wrld->getHeightGenerator());
