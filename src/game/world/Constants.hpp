@@ -25,7 +25,8 @@ namespace game::world
 	constexpr int TREE_DENSITY = 1;
 
 	// Constants related to the mesh generation of chunks.
-	constexpr bool GENERATE_TOPOLOGY_MESH_BY_DEFAULT = false;
-	constexpr bool GENERATE_LANDSCAPE_MESH_BY_DEFAULT = false;
+	constexpr bool ADD_TOPOLOGY_MESH = true;
+	constexpr bool ADD_LANDSCAPE_MESH = false;
+	constexpr bool ADD_WATER_MESH = false;
 	constexpr unsigned int CELL_ID_ATTRIBUTE_LOCATION = 14;
 }

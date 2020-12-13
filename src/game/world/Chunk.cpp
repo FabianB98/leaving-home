@@ -78,31 +78,49 @@ namespace game::world
 
 	void Chunk::addedToWorld()
 	{
-		// Add an entity for the chunk's landscape mesh.
-		entt::entity chunkEntity = registry.create();
-		registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh());
-		registry.emplace<rendering::components::MatrixTransform>(
-			chunkEntity,
-			rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
-		);
-
 		auto& shading = registry.ctx<rendering::systems::MeshShading>();
-		shading.shaders.insert(std::make_pair(getLandscapeMesh(), terrainShader));
 
-		// Add an entity for the chunk's water mesh.
-		entt::entity waterEntity = registry.create();
-		registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
-		registry.emplace<rendering::components::MatrixTransform>(
-			waterEntity,
-			rendering::components::EulerComponentwiseTransform(
-				glm::vec3(centerPos.x, WATER_HEIGHT, centerPos.y),
-				0, 0, 0,
-				glm::vec3(1)
-			).toTransformationMatrix()
-		);
+		if (ADD_TOPOLOGY_MESH)
+		{
+			// Add an entity for the chunk's topology mesh.
+			entt::entity topologyEntity = registry.create();
+			registry.emplace<rendering::components::MeshRenderer>(topologyEntity, getTopologyMesh());
+			registry.emplace<rendering::components::MatrixTransform>(
+				topologyEntity,
+				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
+			);
+		}
 
-		shading.shaders.insert(std::make_pair(waterMesh, waterShader));
-		shading.priorities.insert(std::make_pair(waterShader, 1));
+		if (ADD_LANDSCAPE_MESH)
+		{
+			// Add an entity for the chunk's landscape mesh.
+			entt::entity chunkEntity = registry.create();
+			registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh());
+			registry.emplace<rendering::components::MatrixTransform>(
+				chunkEntity,
+				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
+			);
+
+			shading.shaders.insert(std::make_pair(getLandscapeMesh(), terrainShader));
+		}
+
+		if (ADD_WATER_MESH)
+		{
+			// Add an entity for the chunk's water mesh.
+			entt::entity waterEntity = registry.create();
+			registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
+			registry.emplace<rendering::components::MatrixTransform>(
+				waterEntity,
+				rendering::components::EulerComponentwiseTransform(
+					glm::vec3(centerPos.x, WATER_HEIGHT, centerPos.y),
+					0, 0, 0,
+					glm::vec3(1)
+				).toTransformationMatrix()
+			);
+
+			shading.shaders.insert(std::make_pair(waterMesh, waterShader));
+			shading.priorities.insert(std::make_pair(waterShader, 1));
+		}
 	}
 
 	rendering::model::Mesh* Chunk::generateWaterMesh()
@@ -141,6 +159,19 @@ namespace game::world
 		return landscapeMesh;
 	}
 
+	const std::unordered_set<Cell*> Chunk::getCellsAndCellsAlongChunkBorder()
+	{
+		std::unordered_set<Cell*> allCells;
+
+		for (Cell* cell : cells)
+			allCells.insert(cell);
+
+		for (Cell* cell : cellsAlongChunkBorder)
+			allCells.insert(cell);
+
+		return allCells;
+	}
+
 	Chunk::~Chunk()
 	{
 		if (topologyMesh != nullptr)
@@ -162,12 +193,6 @@ namespace game::world
 		subdivideSurfaces();
 
 		setChunkTopologyData();
-
-		if (GENERATE_TOPOLOGY_MESH_BY_DEFAULT)
-			chunk->topologyMesh = generateTopologyGridMesh();
-
-		if (GENERATE_LANDSCAPE_MESH_BY_DEFAULT)
-			chunk->landscapeMesh = generateLandscapeMesh();
 	}
 
 	void Chunk::Generator::generateInitialPositions()

@@ -85,6 +85,8 @@ namespace game::world
 			return cellsAlongChunkBorder;
 		}
 
+		const std::unordered_set<Cell*> getCellsAndCellsAlongChunkBorder();
+
 		rendering::model::Mesh* getTopologyMesh();
 
 		rendering::model::Mesh* getLandscapeMesh();
@@ -301,8 +303,8 @@ namespace game::world
 
 		Node* node;
 
-		glm::vec2 relaxedPosition;
 		float height;
+		glm::vec2 relaxedPosition;
 
 		void setRelaxedPosition(glm::vec2 _relaxedPosition);
 

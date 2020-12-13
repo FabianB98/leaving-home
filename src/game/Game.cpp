@@ -70,15 +70,18 @@ namespace game
 		//	for (int row = -5; row < 5; row++)
 		//		wrld->generateChunk(column, row);
 		//wrld->generateChunk(0, 0);
-		//wrld->generateChunk(1, -1);
-		//wrld->generateChunk(1, 0);
-		//wrld->generateChunk(0, 1);
-		//wrld->generateChunk(-1, 1);
-		//wrld->generateChunk(-1, 0);
-		//wrld->generateChunk(0, -1);
-		wrld->generateChunk(0, 0);
-		wrld->generateChunk(0, 1);
+		wrld->generateChunk(1, -1);
 		wrld->generateChunk(1, 0);
+		wrld->generateChunk(0, 1);
+		wrld->generateChunk(-1, 1);
+		wrld->generateChunk(-1, 0);
+		wrld->generateChunk(0, -1);
+		//wrld->generateChunk(0, 0);
+		//wrld->generateChunk(0, 1);
+		//wrld->generateChunk(1, 0);
+		for (int column = -5; column < 5; column++)
+			for (int row = -5; row < 5; row++)
+				wrld->generateChunk(column, row);
 
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::cout << "Generated " << wrld->getChunks().size() << " chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;

@@ -179,7 +179,7 @@ namespace game::world
 
 	void ChunkCluster::updateChunkCells(Chunk* chunk, std::array<ChunkCluster*, 6> clusters)
 	{
-		for (Cell* cell : chunk->getCells())
+		for (Cell* cell : chunk->getCellsAndCellsAlongChunkBorder())
 		{
 			glm::vec2 positionInChunk = cell->getUnrelaxedPosition() - chunk->getCenterPos();
 			float angle = atan2(positionInChunk.x, positionInChunk.y);
