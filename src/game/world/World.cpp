@@ -131,6 +131,8 @@ namespace game::world
 		if (chunk != nullptr)
 			return chunk;
 
+		std::cout << "Generating chunk at (" << column << "|" << row << ")" << std::endl;
+
 		// Chunk is not yet (fully) generated. Get (or generate if not yet generated) the unrelaxed chunk and its six
 		// neighboring chunks.
 		chunk = getOrGenerateChunkFromAllChunks(column, row);
@@ -152,8 +154,11 @@ namespace game::world
 		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunk));
 		chunk->addedToWorld();
 
-		ResourceGenerator resourceGenerator = ResourceGenerator(chunk);
-		resourceGenerator.generateResources();
+		if (GENERATE_RESOURCES) 
+		{
+			ResourceGenerator resourceGenerator = ResourceGenerator(chunk);
+			resourceGenerator.generateResources();
+		}
 
 		return chunk;
 	}
