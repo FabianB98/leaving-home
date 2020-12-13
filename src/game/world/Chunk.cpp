@@ -486,9 +486,7 @@ namespace game::world
 		std::unordered_map<Node*, unsigned int> nodeIndices;
 		unsigned int currentIndex = 0;
 
-		for (auto& cell : chunk->cells)
-			addCell(vertices, uvs, normals, nodeIndices, currentIndex, cell);
-		for (auto& cell : chunk->cellsAlongChunkBorder)
+		for (auto& cell : chunk->getCellsAndCellsAlongChunkBorder())
 			addCell(vertices, uvs, normals, nodeIndices, currentIndex, cell);
 
 		std::unordered_set<DirectedEdge*> traversedEdges;
@@ -572,15 +570,9 @@ namespace game::world
 	rendering::model::Mesh* Chunk::Generator::generateLandscapeMesh()
 	{
 		// Determine the center positions of all planar graph faces within the chunk.
-		std::unordered_set<Cell*> cellsToCalculateFacesFor;
-		for (Cell* cell : chunk->cells)
-			cellsToCalculateFacesFor.insert(cell);
-		for (Cell* cell : chunk->cellsAlongChunkBorder)
-			cellsToCalculateFacesFor.insert(cell);
-
 		std::unordered_map<DirectedEdge*, glm::vec2> facePositionMap;
 		std::unordered_set<DirectedEdge*> traversedEdges;
-		for (Cell* cell : cellsToCalculateFacesFor)
+		for (Cell* cell : chunk->getCellsAndCellsAlongChunkBorder())
 		{
 			Node* node = cell->node;
 			for (auto& edgeAndDestination : node->getEdges())
@@ -622,12 +614,22 @@ namespace game::world
 		for (Cell* cell : chunk->cells)
 			cellsToTraverse.insert(cell);
 
-		for (Cell* cell : chunk->cellsAlongChunkBorder)
+		for (Cell* cell : chunk->getCellsAndCellsAlongChunkBorder())
 		{
-			if (cell->chunk == chunk)
-				cellsToTraverse.erase(cell);
-			else
+			bool allNeighborsRelaxed = true;
+			for (Cell* neighbor : cell->getNeighbors())
+			{
+				if (!neighbor->relaxed)
+				{
+					allNeighborsRelaxed = false;
+					break;
+				}
+			}
+
+			if (allNeighborsRelaxed)
 				cellsToTraverse.insert(cell);
+			else
+				cellsToTraverse.erase(cell);
 		}
 
 		// Create the mesh.
@@ -806,15 +808,15 @@ namespace game::world
 	}
 
 	Cell::Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)
-		: chunk(_chunk), content(nullptr), cellId(_cellId), node(_node)
+		: chunk(_chunk), content(nullptr), cellId(_cellId), node(_node), relaxed(false)
 	{
 		completeId = (chunk->getChunkId() << 14) + cellId;
 		entity = chunk->registry.create();
 
 		node->setAdditionalData(this);
 
-		height = chunk->heightGenerator.getHeightQuantized(node->getPosition());
 		relaxedPosition = node->getPosition();
+		height = chunk->heightGenerator.getHeightQuantized(node->getPosition());
 	}
 
 	Cell::~Cell()
@@ -857,6 +859,7 @@ namespace game::world
 
 	void Cell::setRelaxedPosition(glm::vec2 _relaxedPosition)
 	{
+		relaxed = true;
 		relaxedPosition = _relaxedPosition;
 		height = chunk->heightGenerator.getHeightQuantized(relaxedPosition);
 	}

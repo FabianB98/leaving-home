@@ -303,8 +303,9 @@ namespace game::world
 
 		Node* node;
 
-		float height;
+		bool relaxed;
 		glm::vec2 relaxedPosition;
+		float height;
 
 		void setRelaxedPosition(glm::vec2 _relaxedPosition);
 
