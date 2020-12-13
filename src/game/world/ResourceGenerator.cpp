@@ -12,7 +12,7 @@ namespace game::world
 
 		std::unordered_map<Cell*, float> noiseMap;
 		for (Cell* cell : cellsToCalculateNoiseFor)
-			noiseMap.insert(std::make_pair(cell, chunk->getHeightGenerator().getBlueNoise(cell->getPosition())));
+			noiseMap.insert(std::make_pair(cell, chunk->getHeightGenerator().getBlueNoise(cell->getRelaxedPosition())));
 
 		// Generate resources for all cells of the chunk that are not located on the chunk's border.
 		std::unordered_set<Cell*> cellsToGenerateResourcesFor;

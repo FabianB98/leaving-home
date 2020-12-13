@@ -20,7 +20,7 @@ namespace game::world
 	void Tree::addedToCell()
 	{
 		transform.setTransform(rendering::components::EulerComponentwiseTransform(
-			cell->getPositionAndHeight(),
+			cell->getRelaxedPositionAndHeight(),
 			2.0f * M_PI * randomFloat(generator), 0.0f, 0.0f,
 			glm::vec3(1.0f)
 		).toTransformationMatrix());

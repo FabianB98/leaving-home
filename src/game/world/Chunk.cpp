@@ -7,6 +7,18 @@ static rendering::model::Mesh* waterMesh;
 namespace std
 {
 	template <>
+	struct hash<glm::vec2>
+	{
+		std::size_t operator()(const glm::vec2 & vec) const
+		{
+			size_t res = 17;
+			res = res * 31 + hash<float>()(vec.x);
+			res = res * 31 + hash<float>()(vec.y);
+			return res;
+		}
+	};
+
+	template <>
 	struct hash<pair<glm::vec2, float>>
 	{
 		std::size_t operator()(const pair<glm::vec2, float>& p) const
@@ -66,7 +78,7 @@ namespace game::world
 			cellsAlongChunkBorder[i] = nullptr;
 	}
 
-	void Chunk::generateChunkTopology(Chunk* _neighbors[6], PlanarGraph* _worldGraph)
+	void Chunk::generateChunkTopology(std::array<Chunk*, 6> _neighbors, PlanarGraph* _worldGraph)
 	{
 		Generator generator = Generator(
 			this,
@@ -74,32 +86,53 @@ namespace game::world
 			_worldGraph
 		);
 		generator.generateChunkTopology();
+	}
 
-		// Add an entity for the chunk's landscape mesh.
-		entt::entity chunkEntity = registry.create();
-		registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh());
-		registry.emplace<rendering::components::MatrixTransform>(
-			chunkEntity,
-			rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
-			);
-
+	void Chunk::addedToWorld()
+	{
 		auto& shading = registry.ctx<rendering::systems::MeshShading>();
-		shading.shaders.insert(std::make_pair(getLandscapeMesh(), terrainShader));
 
-		// Add an entity for the chunk's water mesh.
-		entt::entity waterEntity = registry.create();
-		registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
-		registry.emplace<rendering::components::MatrixTransform>(
-			waterEntity,
-			rendering::components::EulerComponentwiseTransform(
-				glm::vec3(centerPos.x, WATER_HEIGHT, centerPos.y),
-				0, 0, 0,
-				glm::vec3(1)
-			).toTransformationMatrix()
+		if (ADD_TOPOLOGY_MESH)
+		{
+			// Add an entity for the chunk's topology mesh.
+			entt::entity topologyEntity = registry.create();
+			registry.emplace<rendering::components::MeshRenderer>(topologyEntity, getTopologyMesh());
+			registry.emplace<rendering::components::MatrixTransform>(
+				topologyEntity,
+				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
+			);
+		}
+
+		if (ADD_LANDSCAPE_MESH)
+		{
+			// Add an entity for the chunk's landscape mesh.
+			entt::entity chunkEntity = registry.create();
+			registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh());
+			registry.emplace<rendering::components::MatrixTransform>(
+				chunkEntity,
+				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
 			);
 
-		shading.shaders.insert(std::make_pair(waterMesh, waterShader));
-		shading.priorities.insert(std::make_pair(waterShader, 1));
+			shading.shaders.insert(std::make_pair(getLandscapeMesh(), terrainShader));
+		}
+
+		if (ADD_WATER_MESH)
+		{
+			// Add an entity for the chunk's water mesh.
+			entt::entity waterEntity = registry.create();
+			registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
+			registry.emplace<rendering::components::MatrixTransform>(
+				waterEntity,
+				rendering::components::EulerComponentwiseTransform(
+					glm::vec3(centerPos.x, WATER_HEIGHT, centerPos.y),
+					0, 0, 0,
+					glm::vec3(1)
+				).toTransformationMatrix()
+			);
+
+			shading.shaders.insert(std::make_pair(waterMesh, waterShader));
+			shading.priorities.insert(std::make_pair(waterShader, 1));
+		}
 	}
 
 	rendering::model::Mesh* Chunk::generateWaterMesh()
@@ -107,7 +140,7 @@ namespace game::world
 		if (waterMesh != nullptr)
 			delete waterMesh;
 
-		Chunk* neighbors[6]{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+		std::array<Chunk*, 6> neighbors{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 		Generator generator = Generator(this, neighbors, nullptr);
 		waterMesh = generator.generateWaterMesh();
 
@@ -118,7 +151,7 @@ namespace game::world
 	{
 		if (topologyMesh == nullptr)
 		{
-			Chunk* neighbors[6]{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+			std::array<Chunk*, 6> neighbors{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 			Generator generator = Generator(this, neighbors, nullptr);
 			topologyMesh = generator.generateTopologyGridMesh();
 		}
@@ -130,12 +163,25 @@ namespace game::world
 	{
 		if (landscapeMesh == nullptr)
 		{
-			Chunk* neighbors[6]{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+			std::array<Chunk*, 6> neighbors{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 			Generator generator = Generator(this, neighbors, nullptr);
 			landscapeMesh = generator.generateLandscapeMesh();
 		}
 
 		return landscapeMesh;
+	}
+
+	const std::unordered_set<Cell*> Chunk::getCellsAndCellsAlongChunkBorder()
+	{
+		std::unordered_set<Cell*> allCells;
+
+		for (Cell* cell : cells)
+			allCells.insert(cell);
+
+		for (Cell* cell : cellsAlongChunkBorder)
+			allCells.insert(cell);
+
+		return allCells;
 	}
 
 	Chunk::~Chunk()
@@ -159,12 +205,6 @@ namespace game::world
 		subdivideSurfaces();
 
 		setChunkTopologyData();
-
-		if (GENERATE_TOPOLOGY_MESH_BY_DEFAULT)
-			chunk->topologyMesh = generateTopologyGridMesh();
-
-		if (GENERATE_LANDSCAPE_MESH_BY_DEFAULT)
-			chunk->landscapeMesh = generateLandscapeMesh();
 	}
 
 	void Chunk::Generator::generateInitialPositions()
@@ -384,9 +424,8 @@ namespace game::world
 		}
 
 		uint16_t cellId = 0;
-		for (auto& iterator : localGraph.getNodes())
+		for (Node* localNode : localGraph.getNodes())
 		{
-			Node* const & localNode = iterator.second;
 			if (nodeLocalToGlobalMap.find(localNode) == nodeLocalToGlobalMap.end())
 			{
 				// The current local node is not part of some border to an already existing chunk. We must create a new
@@ -408,8 +447,8 @@ namespace game::world
 		// Copy the edges from the local graph to the world graph.
 		for (auto& localNode : localGraph.getNodes())
 		{
-			Node* worldNode = nodeLocalToGlobalMap[localNode.second];
-			for (auto& outgoingEdge : localNode.second->getEdges())
+			Node* worldNode = nodeLocalToGlobalMap[localNode];
+			for (auto& outgoingEdge : localNode->getEdges())
 			{
 				if (traversedEdges.find(outgoingEdge.second) == traversedEdges.end())
 				{
@@ -419,6 +458,13 @@ namespace game::world
 					traversedEdges.insert(outgoingEdge.second->getOtherDirection());
 				}
 			}
+		}
+
+		// Set the positions of the corners.
+		for (size_t i = 0; i < 6; i++) 
+		{
+			size_t borderIndex = i * chunk->numCellsAlongOneChunkEdge;
+			chunk->cornerPositions[i] = chunk->cellsAlongChunkBorder[borderIndex]->getUnrelaxedPosition();
 		}
 	}
 
@@ -432,7 +478,7 @@ namespace game::world
 	) {
 		if (nodeIndices.find(cell->node) == nodeIndices.end())
 		{
-			vertices.push_back(cell->getPositionAndHeight());
+			vertices.push_back(cell->getRelaxedPositionAndHeight());
 			uvs.push_back(glm::vec2(0, 0));
 			normals.push_back(glm::vec3(0, 1, 0));
 
@@ -451,9 +497,7 @@ namespace game::world
 		std::unordered_map<Node*, unsigned int> nodeIndices;
 		unsigned int currentIndex = 0;
 
-		for (auto& cell : chunk->cells)
-			addCell(vertices, uvs, normals, nodeIndices, currentIndex, cell);
-		for (auto& cell : chunk->cellsAlongChunkBorder)
+		for (auto& cell : chunk->getCellsAndCellsAlongChunkBorder())
 			addCell(vertices, uvs, normals, nodeIndices, currentIndex, cell);
 
 		std::unordered_set<DirectedEdge*> traversedEdges;
@@ -471,12 +515,25 @@ namespace game::world
 					// want to render).
 					if (face.getNumEdges() == 4)
 					{
-						for (DirectedEdge* edge : face.getEdges())
+						bool allNodesWithinChunk = true;
+						for (Node* node : face.getNodes())
 						{
-							indices.push_back(nodeIndices[edge->getFrom()]);
-							indices.push_back(nodeIndices[edge->getTo()]);
+							if (nodeIndices.find(node) == nodeIndices.end())
+							{
+								allNodesWithinChunk = false;
+								break;
+							}
+						}
 
-							traversedEdges.insert(edge);
+						if (allNodesWithinChunk)
+						{
+							for (DirectedEdge* edge : face.getEdges())
+							{
+								indices.push_back(nodeIndices[edge->getFrom()]);
+								indices.push_back(nodeIndices[edge->getTo()]);
+
+								traversedEdges.insert(edge);
+							}
 						}
 					}
 					else
@@ -524,15 +581,9 @@ namespace game::world
 	rendering::model::Mesh* Chunk::Generator::generateLandscapeMesh()
 	{
 		// Determine the center positions of all planar graph faces within the chunk.
-		std::unordered_set<Cell*> cellsToCalculateFacesFor;
-		for (Cell* cell : chunk->cells)
-			cellsToCalculateFacesFor.insert(cell);
-		for (Cell* cell : chunk->cellsAlongChunkBorder)
-			cellsToCalculateFacesFor.insert(cell);
-
 		std::unordered_map<DirectedEdge*, glm::vec2> facePositionMap;
 		std::unordered_set<DirectedEdge*> traversedEdges;
-		for (Cell* cell : cellsToCalculateFacesFor)
+		for (Cell* cell : chunk->getCellsAndCellsAlongChunkBorder())
 		{
 			Node* node = cell->node;
 			for (auto& edgeAndDestination : node->getEdges())
@@ -548,7 +599,7 @@ namespace game::world
 					{
 						glm::vec2 faceCenterPos = glm::vec2(0.0f, 0.0f);
 						for (Node* node : face.getNodes())
-							faceCenterPos += node->getPosition();
+							faceCenterPos += ((Cell*)node->getAdditionalData())->getRelaxedPosition();
 						faceCenterPos /= 4.0f;
 
 						for (DirectedEdge* edge : face.getEdges())
@@ -574,12 +625,22 @@ namespace game::world
 		for (Cell* cell : chunk->cells)
 			cellsToTraverse.insert(cell);
 
-		for (Cell* cell : chunk->cellsAlongChunkBorder)
+		for (Cell* cell : chunk->getCellsAndCellsAlongChunkBorder())
 		{
-			if (cell->chunk == chunk)
-				cellsToTraverse.erase(cell);
-			else
+			bool allNeighborsRelaxed = true;
+			for (Cell* neighbor : cell->getNeighbors())
+			{
+				if (!neighbor->relaxed)
+				{
+					allNeighborsRelaxed = false;
+					break;
+				}
+			}
+
+			if (allNeighborsRelaxed)
 				cellsToTraverse.insert(cell);
+			else
+				cellsToTraverse.erase(cell);
 		}
 
 		// Create the mesh.
@@ -719,12 +780,12 @@ namespace game::world
 		unsigned int currentIndex = 0;
 		for (auto& node : localGraph.getNodes())
 		{
-			glm::vec2& position = node.second->getPosition();
+			glm::vec2& position = node->getPosition();
 			vertices.push_back(glm::vec3(position.x, 0, position.y));
 			uvs.push_back(glm::vec2(0, 0));
 			normals.push_back(glm::vec3(0, 1, 0));
 
-			nodeIndices.insert(std::make_pair(node.second, currentIndex));
+			nodeIndices.insert(std::make_pair(node, currentIndex));
 			currentIndex++;
 		}
 
@@ -758,13 +819,14 @@ namespace game::world
 	}
 
 	Cell::Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)
-		: chunk(_chunk), content(nullptr), cellId(_cellId), node(_node)
+		: chunk(_chunk), content(nullptr), cellId(_cellId), node(_node), relaxed(false)
 	{
 		completeId = (chunk->getChunkId() << 14) + cellId;
 		entity = chunk->registry.create();
 
 		node->setAdditionalData(this);
 
+		relaxedPosition = node->getPosition();
 		height = chunk->heightGenerator.getHeightQuantized(node->getPosition());
 	}
 
@@ -804,5 +866,12 @@ namespace game::world
 			neighbors.push_back((Cell*)(edge.first->getAdditionalData()));
 
 		return neighbors;
+	}
+
+	void Cell::setRelaxedPosition(glm::vec2 _relaxedPosition)
+	{
+		relaxed = true;
+		relaxedPosition = _relaxedPosition;
+		height = chunk->heightGenerator.getHeightQuantized(relaxedPosition);
 	}
 }

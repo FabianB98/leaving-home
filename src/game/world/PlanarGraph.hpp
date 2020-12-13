@@ -8,53 +8,7 @@
 
 #include <glm/glm.hpp>
 
-#define NODE_POS_ROUNDING_PRECISION 0.001f
-
-namespace std
-{
-	template <>
-	struct hash<glm::vec2>
-	{
-		std::size_t operator()(const glm::vec2& vec) const
-		{
-			size_t res = 17;
-			res = res * 31 + hash<float>()(vec.x);
-			res = res * 31 + hash<float>()(vec.y);
-			return res;
-		}
-	};
-}
-
-// floor, ceil and round functions from the standard library are extremely slow for some reason, so we're going to
-// implement a faster round function by ourselves.
-static inline long fastRound(const float value)
-{
-	float valueOffset = value + 0.5f;
-	long l = (long)valueOffset;
-	return l - (l > valueOffset);
-}
-
-class Hasher
-{
-public:
-	std::size_t operator()(const glm::vec2& vector) const
-	{
-		size_t res = 17;
-		res = res * 31 + std::hash<long>()(fastRound(vector.x * NODE_POS_ROUNDING_PRECISION));
-		res = res * 31 + std::hash<long>()(fastRound(vector.y * NODE_POS_ROUNDING_PRECISION));
-		return res;
-	}
-};
-
-class EqualFn
-{
-public:
-	bool operator()(const glm::vec2& a, const glm::vec2& b) const
-	{
-		return fastRound(a.x / NODE_POS_ROUNDING_PRECISION) == fastRound(b.x / NODE_POS_ROUNDING_PRECISION)
-			&& fastRound(a.y / NODE_POS_ROUNDING_PRECISION) == fastRound(b.y / NODE_POS_ROUNDING_PRECISION);
-	}
-};
+#include "../../util/MathUtil.hpp"
 
 namespace game::world
 {
@@ -75,7 +29,10 @@ namespace game::world
 			return position;
 		}
 
-		void setPosition(glm::vec2 _position);
+		void setPosition(glm::vec2 _position)
+		{
+			position = _position;
+		}
 
 		size_t getNumEdges()
 		{
@@ -189,7 +146,7 @@ namespace game::world
 			return nodes.size();
 		}
 
-		const std::vector<Node*> getNodes()
+		const std::vector<Node*>& getNodes()
 		{
 			return nodes;
 		}
@@ -199,7 +156,7 @@ namespace game::world
 			return edges.size();
 		}
 
-		const std::vector<DirectedEdge*> getEdges()
+		const std::vector<DirectedEdge*>& getEdges()
 		{
 			return edges;
 		}
@@ -218,9 +175,7 @@ namespace game::world
 	public:
 		~PlanarGraph();
 
-		Node* getNodeAt(glm::vec2 position);
-
-		const std::unordered_map<glm::vec2, Node*, Hasher, EqualFn>& getNodes()
+		const std::unordered_set<Node*>& getNodes()
 		{
 			return nodes;
 		}
@@ -249,7 +204,7 @@ namespace game::world
 		std::vector<Face*> calculateFaces();
 
 	private:
-		std::unordered_map<glm::vec2, Node*, Hasher, EqualFn> nodes;
+		std::unordered_set<Node*> nodes;
 
 		friend Node;
 		friend DirectedEdge;

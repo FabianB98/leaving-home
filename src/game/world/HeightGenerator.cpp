@@ -47,6 +47,6 @@ namespace game::world
 
 	float HeightGenerator::quantizeHeight(float height)
 	{
-		return fastRound(height / HEIGHT_QUANTIZATION_STEP_SIZE) * HEIGHT_QUANTIZATION_STEP_SIZE;
+		return util::fastRound(height / HEIGHT_QUANTIZATION_STEP_SIZE) * HEIGHT_QUANTIZATION_STEP_SIZE;
 	}
 }

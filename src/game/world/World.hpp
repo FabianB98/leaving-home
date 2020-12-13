@@ -5,6 +5,7 @@
 #include <entt/entt.hpp>
 
 #include "Chunk.hpp"
+#include "ChunkCluster.hpp"
 #include "Constants.hpp"
 #include "HeightGenerator.hpp"
 #include "PlanarGraph.hpp"
@@ -48,9 +49,9 @@ namespace game::world
 
 		Chunk* generateChunk(int32_t column, int32_t row);
 
-		const std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> getChunks()
+		const std::unordered_map<std::pair<int32_t, int32_t>, Chunk*>& getChunks()
 		{
-			return chunks;
+			return relaxedChunks;
 		}
 
 		HeightGenerator& getHeightGenerator()
@@ -61,7 +62,9 @@ namespace game::world
 	private:
 		size_t worldSeed;
 
-		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> chunks;
+		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> allChunks;
+		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> relaxedChunks;
+		std::unordered_map<ChunkClusterIdentifier, ChunkCluster*> chunkClusters;
 		PlanarGraph graph;
 
 		HeightGenerator heightGenerator;
@@ -70,5 +73,11 @@ namespace game::world
 
 		rendering::shading::Shader* terrainShader;
 		rendering::shading::Shader* waterShader;
+
+		Chunk* getChunkFromAllChunks(int32_t column, int32_t row);
+
+		Chunk* getOrGenerateChunkFromAllChunks(int32_t column, int32_t row, bool& needsToBeRelaxed);
+
+		ChunkCluster* getOrGenerateChunkCluster(Chunk* chunkA, Chunk* chunkB, Chunk* chunkC, bool& needsToBeRelaxed);
 	};
 }
