@@ -230,7 +230,7 @@ namespace rendering
 
     void RenderingEngine::renderDebugWindow()
     {
-        ImGui::Begin("Debug");
+        ImGui::Begin("Rendering");
 
         ImGui::Text("%f ms / frame, %i FPS", frameTimeMillis, lastFrameCount);
         if (ImGui::Checkbox("Show wireframe", &showWireframe))

@@ -25,4 +25,9 @@ namespace game
 		sunDirection.y = cos(time);
 		sunDirection.z = sin(time);
 	}
+
+	void DayNightCycle::setTime(float _time)
+	{
+		time = std::max(std::min(_time, (float) M_PI), (float) -M_PI);
+	}
 }

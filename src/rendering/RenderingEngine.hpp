@@ -81,9 +81,14 @@ namespace rendering
 			return width;
 		}
 
-		int getFrameBufferHeight()
+		int getFramebufferHeight()
 		{
 			return height;
+		}
+
+		glm::vec2 getFramebufferSize()
+		{
+			return glm::vec2((float) width, (float) height);
 		}
 
 		void setClearColor(glm::vec4 _clearColor)

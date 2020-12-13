@@ -15,6 +15,7 @@ namespace game
 
 		void update(float delta);
 
+		void setTime(float _time);
 		float getTime() { return time; }
 
 		glm::vec3 getSunDirection() { return sunDirection; }

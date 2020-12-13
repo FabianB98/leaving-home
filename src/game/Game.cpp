@@ -8,6 +8,9 @@
 #include "../rendering/model/Mesh.hpp"
 #include "../rendering/shading/Shader.hpp"
 #include "../rendering/Skybox.hpp"
+#include "../ui/ToolSelection.hpp"
+#include "../ui/Debug.hpp"
+#include "../ui/Info.hpp"
 #include "components/AxisConstrainedMoveController.hpp"
 #include "components/FirstPersonRotateController.hpp"
 #include "components/FreeFlyingMoveController.hpp"
@@ -41,7 +44,11 @@ namespace game
 	rendering::shading::Shader* waterShader;
 	rendering::shading::Shader* terrainShader;
 
-	rendering::textures::Texture2D* icon;
+	entt::entity defaultCamera;
+	entt::entity freeFlightCamera;
+
+	gui::CameraType selectedCamera;
+	gui::Tool selectedTool;
 
 	double randomDouble()
 	{
@@ -58,7 +65,7 @@ namespace game
 
 		skybox = new rendering::Skybox("skybox", "skybox");
 
-		icon = new rendering::textures::Texture2D("edit");
+		selectedTool = gui::Tool::BUILD;
 
 		renderingEngine->setClearColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.0f));
 
@@ -88,21 +95,47 @@ namespace game
 		registry.emplace<components::FirstPersonRotateController>(cameraBase, GLFW_MOUSE_BUTTON_MIDDLE, 0.2f, glm::radians(-90.0f), glm::radians(-10.0f));
 		registry.emplace<rendering::components::Relationship>(cameraBase);
 
-		entt::entity camera = renderingEngine->getMainCamera();
-		registry.emplace<EulerComponentwiseTransform>(camera, glm::vec3(0, 0, 100), 0, 0, 0, glm::vec3(1.0f));
-		registry.emplace<components::AxisConstrainedMoveController>(camera, glm::vec3(0, 0, 1), 1000.0f, 50.0f, 1000.0f);
-		registry.emplace<rendering::components::Relationship>(camera);
+		defaultCamera = renderingEngine->getMainCamera();
+		registry.emplace<EulerComponentwiseTransform>(defaultCamera, glm::vec3(0, 0, 100), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<components::AxisConstrainedMoveController>(defaultCamera, glm::vec3(0, 0, 1), 1000.0f, 50.0f, 1000.0f);
+		registry.emplace<rendering::components::Relationship>(defaultCamera);
 
-		rendering::systems::relationship(registry, cameraBase, camera);
+		rendering::systems::relationship(registry, cameraBase, defaultCamera);
+
+
+		freeFlightCamera = registry.create();
+		auto parameters = std::make_shared<rendering::components::PerspectiveCameraParameters>(
+			glm::radians(45.f), (float)renderingEngine->getFramebufferWidth() / (float)renderingEngine->getFramebufferHeight(), .1f, 10000.f);
+		registry.emplace<rendering::components::Camera>(freeFlightCamera, parameters);
+		registry.emplace<components::FreeFlyingMoveController>(freeFlightCamera, 15.f);
+		registry.emplace<components::FirstPersonRotateController>(freeFlightCamera, GLFW_MOUSE_BUTTON_RIGHT);
+		registry.emplace<EulerComponentwiseTransform>(freeFlightCamera, glm::vec3(0, 25, 5), 0, 0, 0, glm::vec3(1.0f));
+
 
 		sun = registry.create();
 		registry.emplace<MatrixTransform>(sun, glm::mat4(1.f));
 		registry.emplace<DirectionalLight>(sun, glm::vec3(1), glm::vec3(2, 1, 1));
 	}
 
+	int selected = 0;
+	bool pressed;
+	bool updatePos;
+	ImVec2 pos;
+
+	bool open = false;
+
+
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)
 	{
 		game::systems::updateMovementInputSystem(renderingEngine, deltaTime, wrld->getHeightGenerator());
+
+		auto io = ImGui::GetIO();
+		
+		bool pressedNew = renderingEngine->isMouseButtonPressed(GLFW_MOUSE_BUTTON_1) && !io.WantCaptureMouse;
+		if (!pressedNew && pressed && selectedTool == gui::Tool::VIEW){
+			gui::openCellInfo(renderingEngine->getMousePosition(), renderingEngine->getFramebufferSize());
+		}
+		pressed = pressedNew;
 	}
 
 	void Game::update(rendering::RenderingEngine* renderingEngine, double deltaTime)
@@ -111,8 +144,11 @@ namespace game
 
 		daynight.update(deltaTime);
 		registry.replace<rendering::components::DirectionalLight>(sun, daynight.getSunColor(), daynight.getSunDirection());
-	}
 
+		auto camPointer = selectedCamera == gui::CameraType::DEFAULT ? defaultCamera : freeFlightCamera;
+		renderingEngine->setMainCamera(camPointer);
+	}
+	
 	void Game::render(rendering::RenderingEngine* renderingEngine)
 	{
 		float time = daynight.getTime();
@@ -122,80 +158,9 @@ namespace game
 		skybox->getShader()->setUniformVec3("sunColor", daynight.getSunColor());
 		skybox->render(renderingEngine);
 
-
-		//ImGui::ShowDemoWindow();
-
-		ImGui::Begin("Test window");
-
-		/*ImGui::SliderFloat("Red", &red, 0.f, 1.f);
-		ImGui::SliderFloat("Green", &green, 0.f, 1.f);
-		ImGui::SliderFloat("Blue", &blue, 0.f, 1.f);*/
-
-		ImGui::Dummy(ImVec2(0, 10.f));
-
-		ImGui::SliderFloat("Day-Night speed", &daynight.speed, -1.f, 1.f);
-
-		ImGui::End();
-
-
-        /*bool open = true;
-        ShowExampleAppCustomRendering(&open);*/
-
-		ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove;
-		bool open = true;
-		float size = 160.f;
-		float margin = 48.f;
-
-		ImGui::Begin("Tools", &open, flags);
-		ImGui::SetWindowSize("Tools", ImVec2(size * 5.1f, size * 1.1f));
-
-		ImGui::SetWindowPos("Tools", ImVec2(margin, renderingEngine->getFrameBufferHeight() - margin - size));
-
-		//ImGui::PushItemWidth(-ImGui::GetFontSize() * 10);
-		ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-		const ImVec2 p = ImGui::GetCursorScreenPos();
-		auto colf = ImVec4(0.0f, 0.0f, 0.0f, 0.85f);
-		const ImU32 col = ImColor(colf);
-
-		ImVec2 center(p.x + size * .5f, p.y + size * .5f);
-		draw_list->AddNgonFilled(center, size * .5f, col, 6);
-		
-
-		float cut = 16.f;
-		ImVec2 p1(center.x + size * .5f + 20.f - 0.577f*cut, center.y + cut);
-		ImVec2 p2(center.x + size * .25f + 20.f, center.y + 0.866f * 0.5f * size);
-		
-		ImVec2 points[] = { ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), ImVec2(p2.x + 200.f, p2.y), ImVec2(p1.x + 200.f, p1.y) };
-		const ImU32 col2 = ImColor(ImVec4(0, 0, 0, 0.85f));
-		draw_list->AddConvexPolyFilled(points, 4, col2);
-
-
-		
-		
-		//ImGui::Button("Test");
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
-
-		float iconSize = 26.f;
-
-		float angle = -M_PI * 1.f / 6.f;
-		for (int i = 0; i < 6; i++) {
-
-			float pX = size * .5f + sin(angle) * 48.f;
-			float pY = size * .5f + cos(angle) * 48.f;
-
-			ImGui::SetCursorPos(ImVec2(pX - iconSize * .5f, pY - iconSize * .5f));
-			ImGui::ImageButton((void*)icon->getId(), ImVec2(iconSize, iconSize), ImVec2(0.02, 0.02), ImVec2(0.98, 0.98), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1));
-
-			angle += M_PI / 3.f;
-		}
-
-		ImGui::PopStyleColor(3);
-
-		ImGui::End();
-
+		gui::renderCellInfo();
+		gui::renderDebugWindow(daynight, &selectedCamera);
+		gui::renderToolSelection(&selectedTool, renderingEngine->getFramebufferHeight());
 
 	}
 

@@ -11,9 +11,12 @@ namespace gui
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 
 		ImGui::StyleColorsDark();
+		//ImGui::StyleColorsLight();
 
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
 		ImGui_ImplOpenGL3_Init(glsl_version);
+
+		initToolSelection();
 	}
 
 	void startFrame()
@@ -31,6 +34,7 @@ namespace gui
 
 	void cleanUp()
 	{
+		cleanUpToolSelection();
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
