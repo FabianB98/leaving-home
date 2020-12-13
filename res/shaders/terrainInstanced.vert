@@ -23,6 +23,7 @@ flat out int n;
 
 vec3 grassBase = vec3(0.16863, 0.54902, 0.15294);
 vec3 stoneBase = vec3(0.5, 0.5, 0.5);
+vec3 snowBase = vec3(1,1,1);
 
 
 // https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
@@ -49,15 +50,20 @@ void main() {
 	int a = (cellID >> 12) & 0xfff;
 	int b = cellID & 0xfff;
 
+	float r = rand(vec2(float(a), float(b)));
 
-	if (world_pos.y <= 24) {
+	if (world_pos.y <= 24 + 15 * r) {
 		kA = .1 * grassBase;
-		kD = (.3 + 0.1*rand(vec2(float(a), float(b)))) * grassBase;
+		kD = (.3 + 0.1*r) * grassBase;
 		kS = .0 * grassBase;
-	} else {
+	} else if (world_pos.y <= 75 + 15 * r) {
 		kA = .1 * stoneBase;
-		kD = (.3 + 0.1*rand(vec2(float(a), float(b)))) * stoneBase;
+		kD = (.3 + 0.1*r) * stoneBase;
 		kS = .3 * stoneBase;
+	} else {
+		kA = .25 * snowBase;
+		kD = (.3 + 0.1*r) * snowBase;
+		kS = .15 * snowBase;
 	}
 	n = 10;
 }

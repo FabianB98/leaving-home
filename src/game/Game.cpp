@@ -76,8 +76,8 @@ namespace game
 
 		auto start = std::chrono::high_resolution_clock::now();
 
-		wrld = new world::World(1337, registry, terrainShader, waterShader);
-		int worldSize = 3;
+		wrld = new world::World(256, registry, terrainShader, waterShader);
+		int worldSize = 8;
 		for (int column = -worldSize; column <= 0; column++)
 			for (int row = -worldSize - column; row <= worldSize; row++)
 				wrld->generateChunk(row, column);
@@ -89,13 +89,19 @@ namespace game
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::cout << "Generated " << wrld->getChunks().size() << " chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
 
+		float width = renderingEngine->getFramebufferWidth();
+		float height = renderingEngine->getFramebufferHeight();
+
 		entt::entity cameraBase = registry.create();
 		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, 0, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));
 		registry.emplace<components::HeightConstrainedMoveController>(cameraBase, GLFW_MOUSE_BUTTON_RIGHT, 8.0f);
 		registry.emplace<components::FirstPersonRotateController>(cameraBase, GLFW_MOUSE_BUTTON_MIDDLE, 0.2f, glm::radians(-90.0f), glm::radians(-10.0f));
 		registry.emplace<rendering::components::Relationship>(cameraBase);
 
-		defaultCamera = renderingEngine->getMainCamera();
+		defaultCamera = registry.create();
+		auto parameters = std::make_shared<rendering::components::PerspectiveCameraParameters>(
+			glm::radians(45.f), width / height, 1.f, 10000.f);
+		registry.emplace<rendering::components::Camera>(defaultCamera, parameters); 
 		registry.emplace<EulerComponentwiseTransform>(defaultCamera, glm::vec3(0, 0, 100), 0, 0, 0, glm::vec3(1.0f));
 		registry.emplace<components::AxisConstrainedMoveController>(defaultCamera, glm::vec3(0, 0, 1), 1000.0f, 50.0f, 1000.0f);
 		registry.emplace<rendering::components::Relationship>(defaultCamera);
@@ -104,8 +110,8 @@ namespace game
 
 
 		freeFlightCamera = registry.create();
-		auto parameters = std::make_shared<rendering::components::PerspectiveCameraParameters>(
-			glm::radians(45.f), (float)renderingEngine->getFramebufferWidth() / (float)renderingEngine->getFramebufferHeight(), .1f, 10000.f);
+		parameters = std::make_shared<rendering::components::PerspectiveCameraParameters>(
+			glm::radians(45.f), width / height, 1.f, 10000.f);
 		registry.emplace<rendering::components::Camera>(freeFlightCamera, parameters);
 		registry.emplace<components::FreeFlyingMoveController>(freeFlightCamera, 15.f);
 		registry.emplace<components::FirstPersonRotateController>(freeFlightCamera, GLFW_MOUSE_BUTTON_RIGHT);

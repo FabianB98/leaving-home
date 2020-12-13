@@ -11,10 +11,10 @@ namespace game::world
 	constexpr float CLUSTER_RELAXATION_UPDATE_WEIGHT = 1.0f;
 
 	// Constants related to the height generation.
-	constexpr float LANDSCAPE_SCALE = 0.25f;
+	constexpr float LANDSCAPE_SCALE = 0.125f;
 	constexpr float HEIGHT_SCALE = 20.0f;
-	constexpr float HEIGHT_REDISTRIBUTION_EXPONENT = 1.8f;
-	constexpr float HEIGHT_QUANTIZATION_STEP_SIZE = 4.0f;
+	constexpr float HEIGHT_REDISTRIBUTION_EXPONENT = 3.5f;
+	constexpr float HEIGHT_QUANTIZATION_STEP_SIZE = 2.0f;
 
 	// Constants related to the height of different landscape materials (water, grass, stone).
 	constexpr float GRASS_STONE_BORDER_HEIGHT = 24.0f;
