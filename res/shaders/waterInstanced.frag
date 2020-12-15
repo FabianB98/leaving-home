@@ -44,5 +44,5 @@ vec3 calcDirectionalLight(DirectionalLight light) {
 
 void main() {
 	vec3 result = calcDirectionalLight(directionalLight);
-	color = vec4(result, 0.95);
+	color = vec4(result, 0.625);
 }
