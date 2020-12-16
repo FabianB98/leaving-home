@@ -25,9 +25,8 @@ namespace game::world
 				relaxationForces.insert(std::make_pair(node.first, std::make_pair(glm::vec2(0.0f, 0.0f), 0)));
 
 			// Calculate relaxation forces.
-			std::for_each(std::execution::par_unseq, std::begin(faces), std::end(faces), [&](Face* face) {
+			for (Face* face : faces)
 				calculateRelaxationForce(relaxationForces, face);
-			});
 
 			// Update cell positions based on the relaxation forces.
 			for (auto& nodeForces : relaxationForces)
