@@ -323,7 +323,7 @@ namespace game::world
 
 	enum class CellType
 	{
-		GRASS, STONE, SNOW
+		GRASS, STONE, SNOW, SAND
 	};
 
 	class CellContent

@@ -882,9 +882,11 @@ namespace game::world
 		int b = cellId & 0xfff;
 		float r = glm::fract(sin(glm::dot(glm::vec2(float(a), float(b)), glm::vec2(12.9898f, 78.233f))) * 43758.5453f);
 
-		if (height <= GRASS_STONE_BORDER_HEIGHT + BORDER_HEIGHT_DEVIATION * r)
+		if (height <= SAND_GRASS_BORDER_HEIGHT + SAND_GRASS_BORDER_DEVIATION * r)
+			cellType = CellType::SAND;
+		else if (height <= GRASS_STONE_BORDER_HEIGHT + GRASS_STONE_BORDER_DEVIATION * r)
 			cellType = CellType::GRASS;
-		else if (height <= STONE_SNOW_BORDER_HEIGHT + BORDER_HEIGHT_DEVIATION * r)
+		else if (height <= STONE_SNOW_BORDER_HEIGHT + STONE_SNOW_BORDER_DEVIATION * r)
 			cellType = CellType::STONE;
 		else
 			cellType = CellType::SNOW;

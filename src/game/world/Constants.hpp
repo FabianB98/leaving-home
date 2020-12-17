@@ -16,12 +16,15 @@ namespace game::world
 	constexpr float HEIGHT_REDISTRIBUTION_EXPONENT = 3.5f;
 	constexpr float HEIGHT_QUANTIZATION_STEP_SIZE = 2.0f;
 
-	// Constants related to the height of different landscape materials (water, grass, stone).
-	constexpr float GRASS_STONE_BORDER_HEIGHT = 24.0f;
-	constexpr float STONE_SNOW_BORDER_HEIGHT = 75.0f;
+	// Constants related to the height of different landscape materials (water, grass, stone, snow, grass).
 	constexpr float WATER_HEIGHT = 2.5f * HEIGHT_QUANTIZATION_STEP_SIZE;
 	constexpr int WATER_RELATIVE_VERTEX_DENSITY = 4;
-	constexpr float BORDER_HEIGHT_DEVIATION = 15.0f;
+	constexpr float SAND_GRASS_BORDER_HEIGHT = 2.0f * HEIGHT_QUANTIZATION_STEP_SIZE;
+	constexpr float SAND_GRASS_BORDER_DEVIATION = 5.0f;
+	constexpr float GRASS_STONE_BORDER_HEIGHT = 24.0f;
+	constexpr float GRASS_STONE_BORDER_DEVIATION = 15.0f;
+	constexpr float STONE_SNOW_BORDER_HEIGHT = 75.0f;
+	constexpr float STONE_SNOW_BORDER_DEVIATION = 30.0f;
 
 	// Constants related to the generation of resources.
 	constexpr bool GENERATE_RESOURCES = true;

@@ -20,11 +20,31 @@ out vec3 kD;
 out vec3 kS;
 flat out int n;
 
-
-vec3 grassBase = vec3(0.16863, 0.54902, 0.15294);
-vec3 stoneBase = vec3(0.5, 0.5, 0.5);
-vec3 snowBase = vec3(1,1,1);
-
+// Cell types are either grass (type 0), stone (type 1), snow (type 2) and sand (type 3).
+const vec3 baseColors[4] = vec3[4](
+	vec3(0.16863, 0.54902, 0.15294),	// Grass
+	vec3(0.5, 0.5, 0.5),				// Stone
+	vec3(1, 1, 1),						// Snow
+	vec3(0.96094, 0.89062, 0.67578)		// Sand
+);
+const float ambientCoeffs[4] = float[4](
+	.1,		// Grass
+	.1,		// Stone
+	.25,	// Snow
+	.1		// Sand
+);
+const float diffuseCoeffs[4] = float[4](
+	.3,		// Grass
+	.3,		// Stone
+	.3,		// Snow
+	.3		// Sand
+);
+const float specularCoeffs[4] = float[4](
+	.0,		// Grass
+	.3,		// Stone
+	.15,	// Snow
+	.0		// Sand
+);
 
 // https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
 float rand(vec2 co){return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);}
@@ -53,18 +73,8 @@ void main() {
 
 	float r = rand(vec2(float(a), float(b)));
 
-	if (cellIdAndType.y == 0u) {
-		kA = .1 * grassBase;
-		kD = (.3 + 0.1*r) * grassBase;
-		kS = .0 * grassBase;
-	} else if (cellIdAndType.y == 1u) {
-		kA = .1 * stoneBase;
-		kD = (.3 + 0.1*r) * stoneBase;
-		kS = .3 * stoneBase;
-	} else {
-		kA = .25 * snowBase;
-		kD = (.3 + 0.1*r) * snowBase;
-		kS = .15 * snowBase;
-	}
+	kA = ambientCoeffs[cellIdAndType.y] * baseColors[cellIdAndType.y];
+	kD = (diffuseCoeffs[cellIdAndType.y] + 0.1 * r) * baseColors[cellIdAndType.y];
+	kS = specularCoeffs[cellIdAndType.y] * baseColors[cellIdAndType.y];
 	n = 10;
 }
