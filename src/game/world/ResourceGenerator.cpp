@@ -23,7 +23,7 @@ namespace game::world
 
 		for (Cell* cell : cellsToGenerateResourcesFor)
 		{
-			if (cell->getHeight() > WATER_HEIGHT && cell->getHeight() <= GRASS_STONE_BORDER_HEIGHT)
+			if (cell->getHeight() > WATER_HEIGHT && cell->getCellType() == CellType::GRASS)
 			{
 				// Cell is a grass cell, so it is eligible for being populated with a tree.
 				std::unordered_set<Cell*> cellsWithinDistance;

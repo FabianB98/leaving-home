@@ -562,7 +562,7 @@ namespace game::world
 		std::vector<glm::vec3>& vertices,
 		std::vector<glm::vec2>& uvs,
 		std::vector<glm::vec3>& normals,
-		std::vector<uint32_t>& cellIds,
+		std::vector<glm::uvec2>& cellIds,
 		std::unordered_map<DirectedEdge*, glm::vec2>& facePositionMap,
 		unsigned int& currentIndex,
 		Cell* cell,
@@ -573,7 +573,7 @@ namespace game::world
 		vertices.push_back(glm::vec3(position.x, cell->height, position.y));
 		uvs.push_back(glm::vec2(0.0f, 0.0f));
 		normals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
-		cellIds.push_back(cell->completeId);
+		cellIds.push_back(glm::uvec2(cell->completeId, cell->cellType));
 
 		return currentIndex++;
 	}
@@ -647,7 +647,7 @@ namespace game::world
 		std::vector<glm::vec3> vertices;
 		std::vector<glm::vec2> uvs;
 		std::vector<glm::vec3> normals;
-		std::vector<uint32_t> cellIds;
+		std::vector<glm::uvec2> cellIds;
 
 		std::vector<unsigned int> indices;
 		unsigned int index = 0;
@@ -704,36 +704,36 @@ namespace game::world
 
 						glm::vec3 cornerPosDiff = glm::vec3(cornerPosA.x, 0, cornerPosA.y) - glm::vec3(cornerPosB.x, 0, cornerPosB.y);
 						glm::vec3 normal = glm::normalize(glm::cross(cornerPosDiff, glm::vec3(0, 1, 0)));
-						uint32_t cellId;
+						glm::uvec2 cellIdAndType;
 						if (ownHeight < otherHeight)
 						{
 							normal = -normal;
-							cellId = otherCell->completeId;
+							cellIdAndType = glm::uvec2(otherCell->completeId, otherCell->cellType);
 						}
 						else
 						{
-							cellId = cell->completeId;
+							cellIdAndType = glm::uvec2(cell->completeId, cell->cellType);
 						}
 
 						vertices.push_back(glm::vec3(cornerPosA.x, ownHeight, cornerPosA.y));
 						uvs.push_back(glm::vec2(0.0f, 0.0f));
 						normals.push_back(normal);
-						cellIds.push_back(cellId);
+						cellIds.push_back(cellIdAndType);
 
 						vertices.push_back(glm::vec3(cornerPosB.x, ownHeight, cornerPosB.y));
 						uvs.push_back(glm::vec2(0.0f, 0.0f));
 						normals.push_back(normal);
-						cellIds.push_back(cellId);
+						cellIds.push_back(cellIdAndType);
 
 						vertices.push_back(glm::vec3(cornerPosB.x, otherHeight, cornerPosB.y));
 						uvs.push_back(glm::vec2(0.0f, 0.0f));
 						normals.push_back(normal);
-						cellIds.push_back(cellId);
+						cellIds.push_back(cellIdAndType);
 
 						vertices.push_back(glm::vec3(cornerPosA.x, otherHeight, cornerPosA.y));
 						uvs.push_back(glm::vec2(0.0f, 0.0f));
 						normals.push_back(normal);
-						cellIds.push_back(cellId);
+						cellIds.push_back(cellIdAndType);
 
 						indices.push_back(index);
 						indices.push_back(index + 1);
@@ -761,7 +761,7 @@ namespace game::world
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
 		rendering::model::Mesh* mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
-		mesh->addAdditionalVertexAttributeI<uint32_t>(CELL_ID_ATTRIBUTE_LOCATION, cellIds, 1, GL_UNSIGNED_INT);
+		mesh->addAdditionalVertexAttributeI<glm::uvec2>(CELL_ID_ATTRIBUTE_LOCATION, cellIds, 2, GL_UNSIGNED_INT);
 		return mesh;
 	}
 
@@ -827,7 +827,8 @@ namespace game::world
 		node->setAdditionalData(this);
 
 		relaxedPosition = node->getPosition();
-		height = chunk->heightGenerator.getHeightQuantized(node->getPosition());
+		height = 0.0f;
+		cellType = CellType::GRASS;
 	}
 
 	Cell::~Cell()
@@ -872,6 +873,20 @@ namespace game::world
 	{
 		relaxed = true;
 		relaxedPosition = _relaxedPosition;
+
 		height = chunk->heightGenerator.getHeightQuantized(relaxedPosition);
+
+		// This was originally part of the shader which used some code from 
+		// https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83.
+		int a = (cellId >> 12) & 0xfff;
+		int b = cellId & 0xfff;
+		float r = glm::fract(sin(glm::dot(glm::vec2(float(a), float(b)), glm::vec2(12.9898f, 78.233f))) * 43758.5453f);
+
+		if (height <= GRASS_STONE_BORDER_HEIGHT + BORDER_HEIGHT_DEVIATION * r)
+			cellType = CellType::GRASS;
+		else if (height <= STONE_SNOW_BORDER_HEIGHT + BORDER_HEIGHT_DEVIATION * r)
+			cellType = CellType::STONE;
+		else
+			cellType = CellType::SNOW;
 	}
 }

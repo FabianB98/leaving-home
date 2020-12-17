@@ -7,7 +7,7 @@ layout(location = 3) in mat4 T_M;
 layout(location = 7) in mat3 T_Normal;
 layout(location = 10) in mat4 T_MVP;
 
-layout(location = 14) in int cellID;
+layout(location = 14) in uvec2 cellIdAndType;
 
 
 
@@ -41,6 +41,7 @@ void main() {
 
 
 	// we will use this for picking later DON'T DELETE
+	int cellID = int(cellIdAndType.x);
 //	int r = (cellID >> 16) & 0xff;
 //	int g = (cellID >> 8) & 0xff;
 //	int b = (cellID >> 0) & 0xff;
@@ -52,11 +53,11 @@ void main() {
 
 	float r = rand(vec2(float(a), float(b)));
 
-	if (world_pos.y <= 24 + 15 * r) {
+	if (cellIdAndType.y == 0u) {
 		kA = .1 * grassBase;
 		kD = (.3 + 0.1*r) * grassBase;
 		kS = .0 * grassBase;
-	} else if (world_pos.y <= 75 + 15 * r) {
+	} else if (cellIdAndType.y == 1u) {
 		kA = .1 * stoneBase;
 		kD = (.3 + 0.1*r) * stoneBase;
 		kS = .3 * stoneBase;

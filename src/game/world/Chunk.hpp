@@ -23,6 +23,7 @@
 namespace game::world 
 {
 	class Cell;
+	enum class CellType;
 	class CellContent;
 
 	class Chunk
@@ -222,7 +223,7 @@ namespace game::world
 				std::vector<glm::vec3>& vertices,
 				std::vector<glm::vec2>& uvs,
 				std::vector<glm::vec3>& normals,
-				std::vector<uint32_t>& cellIds,
+				std::vector<glm::uvec2>& cellIds,
 				std::unordered_map<DirectedEdge*, glm::vec2>& facePositionMap,
 				unsigned int& currentIndex,
 				Cell* cell,
@@ -291,6 +292,11 @@ namespace game::world
 			return glm::vec3(relaxedPosition.x, height, relaxedPosition.y);
 		}
 
+		CellType getCellType()
+		{
+			return cellType;
+		}
+
 		const std::vector<Cell*> getNeighbors();
 
 	private:
@@ -306,12 +312,18 @@ namespace game::world
 		bool relaxed;
 		glm::vec2 relaxedPosition;
 		float height;
+		CellType cellType;
 
 		void setRelaxedPosition(glm::vec2 _relaxedPosition);
 
 		friend Chunk;
 		friend class ChunkCluster;
 		friend class World;
+	};
+
+	enum class CellType
+	{
+		GRASS, STONE, SNOW
 	};
 
 	class CellContent
