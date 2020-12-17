@@ -267,6 +267,11 @@ namespace game::world
 			return completeId;
 		}
 
+		bool isRelaxed()
+		{
+			return relaxed;
+		}
+
 		glm::vec2 getUnrelaxedPosition()
 		{
 			return node->getPosition();
