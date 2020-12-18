@@ -119,7 +119,9 @@ namespace game
 		
 		bool pressedNew = renderingEngine->isMouseButtonPressed(GLFW_MOUSE_BUTTON_1) && !io.WantCaptureMouse;
 		if (!pressedNew && pressed && selectedTool == gui::Tool::VIEW){
-			gui::openCellInfo(renderingEngine->getMousePosition(), renderingEngine->getFramebufferSize());
+			auto pick = renderingEngine->getPickingResult();
+			auto* selected = wrld->getChunkByCompleteCellId(pick)->getCellByCompleteCellId(pick);
+			gui::openCellInfo(renderingEngine->getMousePosition(), renderingEngine->getFramebufferSize(), selected);
 		}
 		pressed = pressedNew;
 	}

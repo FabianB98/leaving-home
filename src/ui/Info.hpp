@@ -9,9 +9,11 @@
 
 #include <glm/glm.hpp>
 
+#include "../game/world/World.hpp"
+
 namespace gui
 {
-	void openCellInfo(glm::vec2& mousePos, glm::vec2& frameSize);
+	void openCellInfo(glm::vec2& mousePos, glm::vec2& frameSize, game::world::Cell* selected);
 
 	void renderCellInfo();
 }

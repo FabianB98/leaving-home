@@ -111,6 +111,11 @@ namespace rendering
 			mainCamera = _mainCamera;
 		}
 
+		uint32_t getPickingResult()
+		{
+			return pickingResult;
+		}
+
 	private:
 		GLFWwindow* window{ NULL };
 		AbstractGame* game;
