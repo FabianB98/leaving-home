@@ -84,6 +84,35 @@ namespace rendering
         return 0;
     }
 
+    void RenderingEngine::initPicking()
+    {
+        glGenFramebuffers(1, &pickingFramebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, pickingFramebuffer);
+
+        glGenTextures(1, &pickingColorbuffer);
+        glBindTexture(GL_TEXTURE_2D, pickingColorbuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        // attach it to currently bound framebuffer object
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pickingColorbuffer, 0);
+
+        glGenRenderbuffers(1, &pickingDepthbuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, pickingDepthbuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1920, 1080);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pickingDepthbuffer);
+
+        glGenBuffers(2, pbos);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[0]);
+        glBufferData(GL_PIXEL_PACK_BUFFER, 4, 0, GL_STREAM_READ);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[1]);
+        glBufferData(GL_PIXEL_PACK_BUFFER, 4, 0, GL_STREAM_READ);
+
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    }
+
     int RenderingEngine::init()
     {
         // Initialize GLFW in core profile.
@@ -130,7 +159,10 @@ namespace rendering
 
         // Initialize shaders
         mainShader = new shading::LightSupportingShader("phongInstanced");
+        pickingShader = new shading::Shader("pickingInstanced");
         wireframeShader = new shading::Shader("simpleInstanced");
+
+        initPicking();
 
         return 0;
     }
@@ -178,15 +210,48 @@ namespace rendering
         // prepare gui for render
         gui::startFrame();
 
-        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         // select default shader for rendering system
         auto defaultShader = showWireframe ? wireframeShader : mainShader;
 
         auto camera = updateCamera(mainCamera, (float) width / (float) height);
-        //rendering::systems::updateLights(registry, *mainShader);
-        rendering::systems::renderRenderingSystem(registry, camera, defaultShader, showWireframe);
+        rendering::systems::renderRenderingSystemTransforms(registry, camera, defaultShader, showWireframe);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, pickingFramebuffer);
+        glClearColor(1.f, 1.f, 1.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
+
+        rendering::systems::renderRenderingSystemPicking(registry, camera, pickingShader);
+
+        // read picking framebuffer
+        index = (index + 1) % 2;
+        nextIndex = (index + 1) % 2;
+        glNamedFramebufferReadBuffer(pickingFramebuffer, GL_FRONT);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[index]);
+        double posX, posY;
+        glfwGetCursorPos(window, &posX, &posY);
+        glReadPixels((int)posX, getFramebufferHeight() - (int)posY, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[nextIndex]);
+        GLubyte* ptr = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+        if (ptr) {
+            GLubyte blue = ptr[0];
+            GLubyte green = ptr[1];
+            GLubyte red = ptr[2];
+            pickingResult = ((uint32_t) blue) + (((uint32_t) green) << 8) + (((uint32_t) red) << 16);
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        }
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
+
+        rendering::systems::renderRenderingSystemForward(registry, camera, pickingResult);
+        //rendering::systems::renderRenderingSystemPicking(registry, camera, pickingShader);
+
+
 
         game->render(this);
         renderDebugWindow();
@@ -263,6 +328,12 @@ namespace rendering
     {
         width = _width;
         height = _height;
+
+        glBindTexture(GL_TEXTURE_2D, pickingColorbuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, pickingDepthbuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 
         glViewport(0, 0, _width, _height);
         render();

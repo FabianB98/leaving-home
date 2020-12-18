@@ -8,7 +8,7 @@ namespace rendering::systems
 	std::unordered_map<model::Mesh*, std::pair<std::vector<glm::mat4>, std::vector<glm::mat3>>> meshTransforms;
 	std::vector<std::pair<model::Mesh*, shading::Shader*>> meshShaders;
 	std::unordered_map<shading::Shader*, int> shaderPriorities;
-	std::vector<glm::mat4> mvps;
+	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> mvps;
 
 	void changedMeshRenderer(entt::registry& registry, entt::entity entity)
 	{
@@ -19,6 +19,7 @@ namespace rendering::systems
 	void initRenderingSystem(entt::registry& registry)
 	{
 		registry.set<MeshShading>();
+		registry.set<Picking>();
 		registry.on_construct<components::MeshRenderer>().connect<&changedMeshRenderer>();
 		registry.on_destroy<components::MeshRenderer>().connect<&changedMeshRenderer>();
 		transformObserver.connect(registry, entt::collector.update<components::MatrixTransform>().where<components::MeshRenderer>());
@@ -81,15 +82,42 @@ namespace rendering::systems
 		return numInstances;
 	}
 
-	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader)
+	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader, uint32_t pickingID)
 	{
 		shader.use();
 		shader.setUniformFloat("time", (float)glfwGetTime());
+		shader.setUniformInt("pick", pickingID);
 		camera.applyViewProjection(shader);
 		updateLights(registry, shader);
 	}
 
-	void renderRenderingSystem(entt::registry& registry, 
+	void calculateMVPs(rendering::components::Camera& camera)
+	{
+		glm::mat4& viewProjection = camera.getViewProjectionMatrix();
+		for (const auto& meshShaderPairs : meshShaders)
+		{
+			auto* mesh = meshShaderPairs.first;
+			const auto& meshInstances = meshTransforms[mesh];
+			// Calculate the model view projection matrix of each instance of the mesh.
+			int numInstances = meshInstances.first.size();
+
+			auto& meshMVPs = mvps[mesh];
+			meshMVPs.resize(numInstances);
+
+			// parallel mvp calculation
+			std::vector<int> a(numInstances);
+			std::iota(std::begin(a), std::end(a), 0);
+			std::for_each(std::execution::par_unseq, std::begin(a), std::end(a), [&](int i) {
+				meshMVPs[i] = viewProjection * meshInstances.first[i];
+			});
+
+			// for reference: old mvp calculation
+			/*for (int i = 0; i < numInstances; i++)
+				mvps[i] = viewProjection * meshInstances.second.first[i];*/
+		}
+	}
+
+	void renderRenderingSystemTransforms(entt::registry& registry, 
 		rendering::components::Camera& camera, rendering::shading::Shader* defaultShader, bool overrideShaders)
 	{
 		// Get all entities whose transformation was changed and store that their transformation was changed.
@@ -99,11 +127,7 @@ namespace rendering::systems
 
 		// Update the model and normal matrices of all meshes where ate lest one transformation was changed.
 		if (transformChanged.size() != 0)
-		{
-			size_t maxInstancesPerMesh = updateMeshTransforms(registry);
-			if (maxInstancesPerMesh > mvps.size())
-				mvps.resize(maxInstancesPerMesh);
-		}
+			updateMeshTransforms(registry);
 
 		transformObserver.clear();
 		transformChanged.clear();
@@ -136,9 +160,14 @@ namespace rendering::systems
 			return p1 != p2 ? p1 < p2 : std::less<shading::Shader*>()(ms1.second, ms2.second);
 		});
 
+		// update MVPs
+		calculateMVPs(camera);
+	}
+
+	void renderRenderingSystemForward(entt::registry& registry, rendering::components::Camera& camera, uint32_t pickingID)
+	{
 		// Render each mesh with the corresponding shader.
 		shading::Shader* activeShader = NULL;
-		glm::mat4& viewProjection = camera.getViewProjectionMatrix();
 		for (const auto& meshShaderPairs : meshShaders)
 		{
 			auto* mesh = meshShaderPairs.first;
@@ -146,28 +175,42 @@ namespace rendering::systems
 			// Calculate the model view projection matrix of each instance of the mesh.
 			int numInstances = meshInstances.first.size();
 
-			// parallel mvp calculation
-			std::vector<int> a(numInstances);
-			std::iota(std::begin(a), std::end(a), 0);
-			std::for_each(std::execution::par_unseq, std::begin(a), std::end(a), [&](int i) {
-				mvps[i] = viewProjection * meshInstances.first[i];
-			});
-
-			// for reference: old mvp calculation
-			/*for (int i = 0; i < numInstances; i++)
-				mvps[i] = viewProjection * meshInstances.second.first[i];*/
-
 			// switch shader if necessary
 			auto* shader = meshShaderPairs.second;
 			if (shader != activeShader || activeShader == NULL) {
 				activeShader = shader;
-				activateShader(registry, camera, *activeShader);
+				activateShader(registry, camera, *activeShader, pickingID);
 			}
+
+			auto& meshMVPs = mvps[mesh];
 
 			// Render all instances of the mesh.
 			const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
 			const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
-			mesh->renderInstanced(*activeShader, modelMatrices, normalMatrices, mvps);
+			mesh->renderInstanced(*activeShader, modelMatrices, normalMatrices, meshMVPs);
+		}
+	}
+
+	void renderRenderingSystemPicking(entt::registry& registry, rendering::components::Camera& camera, shading::Shader* pickingShader)
+	{
+		auto& picking = registry.ctx<Picking>();
+		if (picking.enabled.size() == 0) return;
+
+		pickingShader->use();
+		camera.applyViewProjection(*pickingShader);
+
+		for (const auto& mesh : picking.enabled)
+		{
+			const auto& meshInstances = meshTransforms[mesh];
+			// Calculate the model view projection matrix of each instance of the mesh.
+			int numInstances = meshInstances.first.size();
+
+			auto& meshMVPs = mvps[mesh];
+
+			// Render all instances of the mesh.
+			const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
+			const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
+			mesh->renderInstanced(*pickingShader, modelMatrices, normalMatrices, meshMVPs);
 		}
 	}
 
