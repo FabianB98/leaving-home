@@ -45,6 +45,10 @@ namespace game::world
 			return worldSeed;
 		}
 
+		Chunk* getChunkByChunkId(uint16_t chunkId);
+
+		Chunk* getChunkByCompleteCellId(uint32_t completeCellId);
+
 		Chunk* getChunk(int32_t column, int32_t row);
 
 		Chunk* generateChunk(int32_t column, int32_t row);
@@ -64,6 +68,7 @@ namespace game::world
 
 		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> allChunks;
 		std::unordered_map<std::pair<int32_t, int32_t>, Chunk*> relaxedChunks;
+		std::unordered_map<std::uint16_t, std::vector<Chunk*>> relaxedChunksById;
 		std::unordered_map<ChunkClusterIdentifier, ChunkCluster*> chunkClusters;
 		PlanarGraph graph;
 

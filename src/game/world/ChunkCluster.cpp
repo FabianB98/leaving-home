@@ -51,8 +51,8 @@ namespace game::world
 
 		for (Chunk* chunk : chunks)
 		{
-			for (Cell* cell : chunk->getCells())
-				cellsInCluster.insert(cell);
+			for (auto& cell : chunk->getCells())
+				cellsInCluster.insert(cell.second);
 
 			for (Cell* cell : chunk->getCellsAlongChunkBorder())
 				cellsInCluster.insert(cell);

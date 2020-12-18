@@ -97,6 +97,24 @@ namespace game::world
 		return cluster;
 	}
 
+	Chunk* World::getChunkByChunkId(uint16_t chunkId)
+	{
+		auto& chunks = relaxedChunksById.find(chunkId);
+		if (chunks != relaxedChunksById.end())
+			// TODO: So far this function assumes that there is only one chunk with the given ID. However, this
+			// assumption will break as soon as one axis (row or column) spans more than 128 chunks. Therefore, a better
+			// solution needs to be implemented before the world contains more than 128 along one axis.
+			return chunks->second[0];
+		else
+			return nullptr;
+	}
+
+	Chunk* World::getChunkByCompleteCellId(uint32_t completeCellId)
+	{
+		uint16_t chunkId = (completeCellId >> 10) & 0x3FFF;
+		return getChunkByChunkId(chunkId);
+	}
+
 	Chunk* World::getChunk(int32_t column, int32_t row)
 	{
 		auto& chunk = relaxedChunks.find(std::make_pair(column, row));
@@ -139,7 +157,7 @@ namespace game::world
 				cluster.relax();
 
 				for (auto& cell : chunks[i]->getCells())
-					cell->node->setPosition(cluster.getRelaxedPosition(cell));
+					cell.second->node->setPosition(cluster.getRelaxedPosition(cell.second));
 			}
 		});
 
@@ -166,6 +184,7 @@ namespace game::world
 		ChunkCluster::updateChunkCells(chunks[0], clusters);
 
 		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunks[0]));
+		relaxedChunksById[chunks[0]->getChunkId()].push_back(chunks[0]);
 		chunks[0]->addedToWorld();
 
 		if (GENERATE_RESOURCES) 

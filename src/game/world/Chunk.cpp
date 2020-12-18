@@ -171,12 +171,27 @@ namespace game::world
 		return landscapeMesh;
 	}
 
+	Cell* Chunk::getCellByCellId(uint16_t cellId)
+	{
+		auto& cell = cells.find(cellId);
+		if (cell != cells.end())
+			return cell->second;
+		else
+			return nullptr;
+	}
+
+	Cell* Chunk::getCellByCompleteCellId(uint32_t completeCellId)
+	{
+		uint16_t cellId = completeCellId & 0x3FF;
+		return getCellByCellId(cellId);
+	}
+
 	const std::unordered_set<Cell*> Chunk::getCellsAndCellsAlongChunkBorder()
 	{
 		std::unordered_set<Cell*> allCells;
 
-		for (Cell* cell : cells)
-			allCells.insert(cell);
+		for (auto& cell : cells)
+			allCells.insert(cell.second);
 
 		for (Cell* cell : cellsAlongChunkBorder)
 			allCells.insert(cell);
@@ -193,7 +208,7 @@ namespace game::world
 			delete landscapeMesh;
 
 		for (auto& cell : cells)
-			delete cell;
+			delete cell.second;
 	}
 
 	void Chunk::Generator::generateChunkTopology()
@@ -435,7 +450,7 @@ namespace game::world
 				nodeLocalToGlobalMap.insert(std::make_pair(localNode, globalNode));
 
 				Cell* cell = new Cell(chunk, cellId, globalNode);
-				chunk->cells.push_back(cell);
+				chunk->cells.insert(std::make_pair(cellId, cell));
 				cellId++;
 
 				auto& index = borderIndexMap.find(localNode);
@@ -501,9 +516,9 @@ namespace game::world
 			addCell(vertices, uvs, normals, nodeIndices, currentIndex, cell);
 
 		std::unordered_set<DirectedEdge*> traversedEdges;
-		for (Cell* cell : chunk->cells)
+		for (auto& cell : chunk->cells)
 		{
-			Node* node = cell->node;
+			Node* node = cell.second->node;
 			for (auto& edgeAndDestination : node->getEdges())
 			{
 				DirectedEdge* outgoingEdge = edgeAndDestination.second;
@@ -622,8 +637,8 @@ namespace game::world
 
 		// Determine all cells which we need to add to the mesh.
 		std::unordered_set<Cell*> cellsToTraverse;
-		for (Cell* cell : chunk->cells)
-			cellsToTraverse.insert(cell);
+		for (auto& cell : chunk->cells)
+			cellsToTraverse.insert(cell.second);
 
 		for (Cell* cell : chunk->getCellsAndCellsAlongChunkBorder())
 		{
@@ -821,7 +836,7 @@ namespace game::world
 	Cell::Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)
 		: chunk(_chunk), content(nullptr), cellId(_cellId), node(_node), relaxed(false)
 	{
-		completeId = (chunk->getChunkId() << 14) + cellId;
+		completeId = (chunk->getChunkId() << 10) + cellId;
 		entity = chunk->registry.create();
 
 		node->setAdditionalData(this);

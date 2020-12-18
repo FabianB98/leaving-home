@@ -76,7 +76,11 @@ namespace game::world
 			return centerPos;
 		}
 
-		const std::vector<Cell*> getCells()
+		Cell* getCellByCellId(uint16_t cellId);
+
+		Cell* getCellByCompleteCellId(uint32_t completeCellId);
+
+		const std::unordered_map<uint16_t, Cell*> getCells()
 		{
 			return cells;
 		}
@@ -105,7 +109,7 @@ namespace game::world
 		int32_t row;
 		glm::vec2 centerPos;
 
-		std::vector<Cell*> cells;
+		std::unordered_map<uint16_t, Cell*> cells;
 		std::vector<Cell*> cellsAlongChunkBorder;
 		std::array<glm::vec2, 6> cornerPositions;
 
