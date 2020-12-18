@@ -836,10 +836,9 @@ namespace game::world
 	}
 
 	Cell::Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)
-		: chunk(_chunk), content(nullptr), cellId(_cellId), node(_node), relaxed(false)
+		: chunk(_chunk), content(nullptr), entity(entt::null), cellId(_cellId), node(_node), relaxed(false)
 	{
 		completeId = (chunk->getChunkId() << 10) + cellId;
-		entity = chunk->registry.create();
 
 		node->setAdditionalData(this);
 
@@ -870,7 +869,8 @@ namespace game::world
 			content->cell = this;
 			content->addedToCell();
 
-			entt::entity entity = chunk->registry.create();
+			if (entity == entt::null)
+				entity = chunk->registry.create();
 			chunk->registry.emplace<rendering::components::MeshRenderer>(entity, content->getMesh());
 			chunk->registry.emplace<rendering::components::MatrixTransform>(entity, content->getTransform());
 		}
