@@ -13,5 +13,6 @@ After cloning the repository, the ./lib directory inside the directory into whic
   - [GLFW version 3.3.2](https://github.com/glfw/glfw/releases/tag/3.3.2) (download, extract and store the source code inside ./lib/glfw)
   - [GLM version 0.9.9.8](https://github.com/g-truc/glm/releases) (download, extract and store the source code inside ./lib/glm)
   - [ImGUI version 1.79](https://github.com/ocornut/imgui/releases/tag/v1.79) (download, extract and store the source code inside ./lib/imgui)
+  - [readerwriterqueue version 1.0.3](https://github.com/cameron314/readerwriterqueue/releases/tag/v1.0.3) (download [atomicops.h](https://github.com/cameron314/readerwriterqueue/blob/435e36540e306cac40fcfeab8cc0a22d48464509/atomicops.h) and store as ./lib/readerwriterqueue/atomicops.h and download [readerwriterqueue.h](https://github.com/cameron314/readerwriterqueue/blob/435e36540e306cac40fcfeab8cc0a22d48464509/readerwriterqueue.h) and store as ./lib/readerwriterqueue/readerwriterqueue.h)
   - [stb version 2.26](https://github.com/nothings/stb/blob/b42009b3b9d4ca35bc703f5310eedc74f584be58/stb_image.h) (download and store as ./lib/stb/stb_image.h)
   - [tinyobjloader version 1.0.6](https://github.com/tinyobjloader/tinyobjloader/releases/tag/v1.0.6) (download, extract and store the source code inside ./lib/tinyobjloader)
