@@ -230,18 +230,23 @@ namespace rendering
         glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[index]);
         double posX, posY;
         glfwGetCursorPos(window, &posX, &posY);
-        glReadPixels((int)posX, getFramebufferHeight() - (int)posY, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+        if (posX <= getFramebufferWidth() && posY <= getFramebufferHeight() && posX >= 0 && posY >= 0) {
+            glReadPixels((int)posX, getFramebufferHeight() - (int)posY, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, 0);
 
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[nextIndex]);
-        GLubyte* ptr = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-        if (ptr) {
-            GLubyte blue = ptr[0];
-            GLubyte green = ptr[1];
-            GLubyte red = ptr[2];
-            pickingResult = ((uint32_t) blue) + (((uint32_t) green) << 8) + (((uint32_t) red) << 16);
-            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[nextIndex]);
+            GLubyte* ptr = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+            if (ptr) {
+                GLubyte blue = ptr[0];
+                GLubyte green = ptr[1];
+                GLubyte red = ptr[2];
+                pickingResult = ((uint32_t)blue) + (((uint32_t)green) << 8) + (((uint32_t)red) << 16);
+                glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+            }
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         }
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        else {
+            pickingResult = 0xffffff;
+        }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);

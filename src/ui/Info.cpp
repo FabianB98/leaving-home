@@ -4,14 +4,17 @@ namespace gui
 {
 	constexpr auto cellInfoMargin = 12.f;
 	constexpr auto cellInfoWidth = 250.f;
-	constexpr auto cellInfoHeight = 50.f;
+	constexpr auto cellInfoHeight = 80.f;
 
 	bool cellInfoOpen = false;
 	ImVec2 cellInfoPos;
 	bool updateCellInfoPos = false;
 
-	void openCellInfo(glm::vec2& mousePos, glm::vec2& frameSize)
+	game::world::Cell* selection;
+
+	void openCellInfo(glm::vec2& mousePos, glm::vec2& frameSize, game::world::Cell* selected)
 	{
+		selection = selected;
 		cellInfoOpen = true;
 		updateCellInfoPos = true;
 
@@ -39,7 +42,18 @@ namespace gui
 		ImGui::Begin("Info", &cellInfoOpen, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 		ImGui::SetWindowSize(ImVec2(cellInfoWidth, cellInfoHeight));
 
-		ImGui::Text("Very interesting information...");
+		//selection->getCellType()
+
+		std::string cellType;
+		switch (selection->getCellType()) {
+			case game::world::CellType::GRASS: cellType = "Grass"; break;
+			case game::world::CellType::STONE: cellType = "Stone"; break;
+			case game::world::CellType::SNOW: cellType = "Snow"; break;
+			case game::world::CellType::SAND: cellType = "Sand"; break;
+		}
+
+		ImGui::Text("Type: %s", cellType);
+		ImGui::Text("Height: %i", (int) selection->getHeight());
 
 		ImGui::End();
 	}
