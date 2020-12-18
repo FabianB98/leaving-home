@@ -31,10 +31,6 @@
 
 namespace game
 {
-	rendering::model::Mesh* tree;
-	/*entt::entity tree;
-	float rotation = 0;*/
-
 	world::World* wrld;
 	entt::entity sun;
 
@@ -57,8 +53,6 @@ namespace game
 
 	void Game::init(rendering::RenderingEngine* renderingEngine)
 	{
-		tree = new rendering::model::Mesh("tree");
-
 		simple = new rendering::shading::Shader("simpleInstanced");
 		waterShader = new rendering::shading::LightSupportingShader("waterInstanced", true);
 		terrainShader = new rendering::shading::LightSupportingShader("terrainInstanced");
@@ -72,9 +66,6 @@ namespace game
 		using namespace rendering::components;
 
 		auto& registry = renderingEngine->getRegistry();
-		//auto& shading = registry.ctx<rendering::systems::MeshShading>();
-
-		auto start = std::chrono::high_resolution_clock::now();
 
 		wrld = new world::World(256, registry, terrainShader, waterShader);
 		int worldSize = 8;
@@ -84,10 +75,6 @@ namespace game
 		for (int column = 1; column <= worldSize; column++)
 			for (int row = -worldSize; row <= worldSize - column; row++)
 				wrld->generateChunk(row, column);
-		
-
-		auto finish = std::chrono::high_resolution_clock::now();
-		std::cout << "Generated " << wrld->getChunks().size() << " chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count() << "ms" << std::endl;
 
 		float width = renderingEngine->getFramebufferWidth();
 		float height = renderingEngine->getFramebufferHeight();
@@ -139,6 +126,8 @@ namespace game
 
 	void Game::update(rendering::RenderingEngine* renderingEngine, double deltaTime)
 	{
+		wrld->addGeneratedChunks();
+
 		auto& registry = renderingEngine->getRegistry();
 
 		daynight.update(deltaTime);
@@ -166,7 +155,6 @@ namespace game
 	void Game::cleanUp(rendering::RenderingEngine* renderingEngine)
 	{
 		renderingEngine->getRegistry().clear();
-		delete tree;
 		delete wrld;
 	}
 }

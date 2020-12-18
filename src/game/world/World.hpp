@@ -1,8 +1,12 @@
 #pragma once
 
+#include <chrono>
+#include <future>
+#include <thread>
 #include <unordered_map>
 
 #include <entt/entt.hpp>
+#include <readerwriterqueue.h>
 
 #include "Chunk.hpp"
 #include "ChunkCluster.hpp"
@@ -51,7 +55,7 @@ namespace game::world
 
 		Chunk* getChunk(int32_t column, int32_t row);
 
-		Chunk* generateChunk(int32_t column, int32_t row);
+		void generateChunk(int32_t column, int32_t row);
 
 		const std::unordered_map<std::pair<int32_t, int32_t>, Chunk*>& getChunks()
 		{
@@ -62,6 +66,8 @@ namespace game::world
 		{
 			return heightGenerator;
 		}
+
+		void addGeneratedChunks();
 
 	private:
 		size_t worldSeed;
@@ -79,10 +85,22 @@ namespace game::world
 		rendering::shading::Shader* terrainShader;
 		rendering::shading::Shader* waterShader;
 
+		moodycamel::ReaderWriterQueue<std::pair<int32_t, int32_t>> chunksToGenerate;
+		moodycamel::ReaderWriterQueue<Chunk*> generatedChunks;
+		std::promise<void> worldGenerationThreadStopSignal;
+		std::future<void> worldGenerationThreadStopFuture;
+		std::thread worldGenerationThread;
+
 		Chunk* getChunkFromAllChunks(int32_t column, int32_t row);
 
 		Chunk* getOrGenerateChunkFromAllChunks(int32_t column, int32_t row, bool& needsToBeRelaxed);
 
 		ChunkCluster* getOrGenerateChunkCluster(Chunk* chunkA, Chunk* chunkB, Chunk* chunkC, bool& needsToBeRelaxed);
+
+		void worldGenerationThreadLoop();
+
+		void _generateChunk(int32_t column, int32_t row);
+
+		void stopWorldGenerationThread();
 	};
 }

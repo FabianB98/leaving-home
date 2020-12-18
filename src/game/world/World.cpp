@@ -12,7 +12,9 @@ namespace game::world
 		heightGenerator(HeightGenerator(worldSeed)),
 		registry(_registry),
 		terrainShader(_terrainShader),
-		waterShader(_waterShader)
+		waterShader(_waterShader),
+		chunksToGenerate(moodycamel::ReaderWriterQueue<std::pair<int32_t, int32_t>>(100)),
+		generatedChunks(moodycamel::ReaderWriterQueue<Chunk*>(100))
 	{
 		int chunkSize = CHUNK_SIZE * WATER_RELATIVE_VERTEX_DENSITY;
 		float cellSize = CELL_SIZE * (1.0f / (float)WATER_RELATIVE_VERTEX_DENSITY);
@@ -29,10 +31,15 @@ namespace game::world
 			cellSize
 		);
 		waterChunk.generateWaterMesh();
+
+		worldGenerationThreadStopFuture = worldGenerationThreadStopSignal.get_future();
+		worldGenerationThread = std::thread(&World::worldGenerationThreadLoop, this);
 	}
 
 	World::~World()
 	{
+		stopWorldGenerationThread();
+
 		for (auto& chunk : allChunks)
 			delete chunk.second;
 
@@ -124,18 +131,25 @@ namespace game::world
 			return nullptr;
 	}
 
-	Chunk* World::generateChunk(int32_t column, int32_t row)
+	void World::generateChunk(int32_t column, int32_t row)
 	{
-		Chunk* storedChunk = getChunk(column, row);
-		if (storedChunk != nullptr)
-			return storedChunk;
+		if (getChunk(column, row) != nullptr)
+			return;
+
+		chunksToGenerate.enqueue(std::make_pair(column, row));
+	}
+
+	void World::_generateChunk(int32_t column, int32_t row)
+	{
+		if (getChunk(column, row) != nullptr)
+			return;
 
 		std::cout << "Generating chunk at (" << column << "|" << row << ")" << std::endl;
 
 		// Chunk is not yet (fully) generated. Get (or generate if not yet generated) the unrelaxed chunk and its six
 		// neighboring chunks.
 		bool chunksToRelax[7];
-		Chunk* chunks[7] {
+		Chunk* chunks[7]{
 			getOrGenerateChunkFromAllChunks(column + 0, row + 0, chunksToRelax[0]),	// Chunk to generate
 			getOrGenerateChunkFromAllChunks(column + 1, row - 1, chunksToRelax[1]),	// Neighbor to the upper right
 			getOrGenerateChunkFromAllChunks(column + 1, row + 0, chunksToRelax[2]),	// Neighbor to the right
@@ -185,14 +199,48 @@ namespace game::world
 
 		relaxedChunks.insert(std::make_pair(std::make_pair(column, row), chunks[0]));
 		relaxedChunksById[chunks[0]->getChunkId()].push_back(chunks[0]);
-		chunks[0]->addedToWorld();
 
-		if (GENERATE_RESOURCES) 
+		generatedChunks.enqueue(chunks[0]);
+	}
+
+	void World::worldGenerationThreadLoop()
+	{
+		std::cout << "Started world generation thread!" << std::endl;
+
+		std::pair<int32_t, int32_t> nextChunkToGenerate;
+		while (worldGenerationThreadStopFuture.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout)
 		{
-			ResourceGenerator resourceGenerator = ResourceGenerator(chunks[0]);
-			resourceGenerator.generateResources();
+			while (chunksToGenerate.try_dequeue(nextChunkToGenerate))
+			{
+				_generateChunk(nextChunkToGenerate.first, nextChunkToGenerate.second);
+
+				if (worldGenerationThreadStopFuture.wait_for(std::chrono::milliseconds(0)) != std::future_status::timeout)
+					break;
+			}
 		}
 
-		return chunks[0];
+		std::cout << "Stopped world generation thread!" << std::endl;
+	}
+
+	void World::addGeneratedChunks()
+	{
+		// In order to not hinder the rendering from continuing, at most one chunk is added per frame.
+		Chunk* nextChunkToAdd;
+		if (generatedChunks.try_dequeue(nextChunkToAdd))
+		{
+			nextChunkToAdd->addedToWorld();
+
+			if (GENERATE_RESOURCES)
+			{
+				ResourceGenerator resourceGenerator = ResourceGenerator(nextChunkToAdd);
+				resourceGenerator.generateResources();
+			}
+		}
+	}
+
+	void World::stopWorldGenerationThread()
+	{
+		worldGenerationThreadStopSignal.set_value();
+		worldGenerationThread.join();
 	}
 }
