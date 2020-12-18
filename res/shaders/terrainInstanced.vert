@@ -9,7 +9,7 @@ layout(location = 10) in mat4 T_MVP;
 
 layout(location = 14) in uvec2 cellIdAndType;
 
-
+uniform int pick;
 
 //out vec2 UV;
 out vec3 world_normal;
@@ -77,4 +77,7 @@ void main() {
 	kD = (diffuseCoeffs[cellIdAndType.y] + 0.1 * r) * baseColors[cellIdAndType.y];
 	kS = specularCoeffs[cellIdAndType.y] * baseColors[cellIdAndType.y];
 	n = 10;
+
+	if ((pick & 0xffffff) == (cellID & 0xffffff))
+		kA = vec3(1, 0, 0);
 }

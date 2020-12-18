@@ -72,7 +72,7 @@ namespace game
 		using namespace rendering::components;
 
 		auto& registry = renderingEngine->getRegistry();
-		auto& shading = registry.ctx<rendering::systems::MeshShading>();
+		//auto& shading = registry.ctx<rendering::systems::MeshShading>();
 
 		auto start = std::chrono::high_resolution_clock::now();
 

@@ -132,6 +132,7 @@ namespace rendering
 		entt::entity mainCamera;
 
 		shading::LightSupportingShader* mainShader;
+		shading::Shader* pickingShader;
 		shading::Shader* wireframeShader;
 
 		// debug values
@@ -139,7 +140,17 @@ namespace rendering
 		double frameTimeMillis = 0.0;
 		int lastFrameCount = 0;
 
+		// picking values
+		GLuint pickingFramebuffer;
+		GLuint pickingDepthbuffer;
+		GLuint pickingColorbuffer;
+		int index = 0, nextIndex;
+		GLuint pbos[2];
+		uint32_t pickingResult;
+
 		int init();
+
+		void initPicking();
 
 		void input(double deltaTime);
 

@@ -47,7 +47,7 @@ namespace rendering::shading
 
 	// UNIFORM FUNCTIONS - wrappers for the glUniform functions to access uniforms by their names
 
-	void Shader::setUniformInt(const std::string name, const int value)
+	void Shader::setUniformInt(const std::string name, const GLint value)
 	{
 		GLuint id = getUniformLocation(name);
 		glUniform1i(id, value);

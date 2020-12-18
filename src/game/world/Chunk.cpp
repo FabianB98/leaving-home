@@ -91,6 +91,7 @@ namespace game::world
 	void Chunk::addedToWorld()
 	{
 		auto& shading = registry.ctx<rendering::systems::MeshShading>();
+		auto& picking = registry.ctx<rendering::systems::Picking>();
 
 		if (ADD_TOPOLOGY_MESH)
 		{
@@ -114,6 +115,7 @@ namespace game::world
 			);
 
 			shading.shaders.insert(std::make_pair(getLandscapeMesh(), terrainShader));
+			picking.enabled.insert(getLandscapeMesh());
 		}
 
 		if (ADD_WATER_MESH)
