@@ -17,9 +17,11 @@
 #include "components/HeightConstrainedMoveController.hpp"
 #include "systems/MovementInputSystem.hpp"
 #include "DayNightCycle.hpp"
+#include "PickingChunkSelection.hpp"
 #include "world/Chunk.hpp"
 #include "world/World.hpp"
 #include "world/Resource.hpp"
+#include "world/Constants.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -137,6 +139,8 @@ namespace game
 
 		auto camPointer = selectedCamera == gui::CameraType::DEFAULT ? defaultCamera : freeFlightCamera;
 		renderingEngine->setMainCamera(camPointer);
+
+		selectChunks(registry, renderingEngine, wrld);
 	}
 	
 	void Game::render(rendering::RenderingEngine* renderingEngine)

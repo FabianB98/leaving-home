@@ -222,7 +222,27 @@ namespace rendering
         //glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
 
         rendering::systems::renderRenderingSystemPicking(registry, camera, pickingShader);
+        readPickingResult();
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
+
+        rendering::systems::renderRenderingSystemForward(registry, camera, pickingResult);
+        //rendering::systems::renderRenderingSystemPicking(registry, camera, pickingShader);
+
+
+
+        game->render(this);
+        renderDebugWindow();
+        gui::render();
+
+        glfwSwapBuffers(window);
+    }
+
+    void RenderingEngine::readPickingResult()
+    {
         // read picking framebuffer
         index = (index + 1) % 2;
         nextIndex = (index + 1) % 2;
@@ -247,22 +267,6 @@ namespace rendering
         else {
             pickingResult = 0xffffff;
         }
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
-
-        rendering::systems::renderRenderingSystemForward(registry, camera, pickingResult);
-        //rendering::systems::renderRenderingSystemPicking(registry, camera, pickingShader);
-
-
-
-        game->render(this);
-        renderDebugWindow();
-        gui::render();
-
-        glfwSwapBuffers(window);
     }
 
     components::Camera RenderingEngine::updateCamera(entt::entity cameraEntity, float aspectRatio)

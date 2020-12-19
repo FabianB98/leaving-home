@@ -93,6 +93,11 @@ namespace rendering::components
 			return viewProjectionMatrix;
 		}
 
+		glm::vec3 getPosition()
+		{
+			return position;
+		}
+
 	private:
 		std::shared_ptr<CameraParameters> parameters;
 

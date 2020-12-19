@@ -161,6 +161,8 @@ namespace rendering
 
 		void update(double deltaTime);
 
+		void readPickingResult();
+
 		void render();
 
 		rendering::components::Camera updateCamera(entt::entity cameraEntity, float aspectRatio);
