@@ -55,7 +55,7 @@ namespace game
 	{
 		simple = new rendering::shading::Shader("simpleInstanced");
 		waterShader = new rendering::shading::LightSupportingShader("waterInstanced", true);
-		terrainShader = new rendering::shading::LightSupportingShader("terrainInstanced");
+		terrainShader = new rendering::shading::LightSupportingShader("terrainInstanced", true);
 
 		skybox = new rendering::Skybox("skybox", "skybox");
 

@@ -1,8 +1,10 @@
 #pragma once
 
+#include <array>
 #include <memory>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
@@ -93,11 +95,23 @@ namespace rendering::components
 			return viewProjectionMatrix;
 		}
 
+		const std::array<glm::vec4, 6>& getClippingPlanes()
+		{
+			return clippingPlanes;
+		}
+
 	private:
 		std::shared_ptr<CameraParameters> parameters;
 
 		glm::vec3 position{};
 		glm::mat4 viewMatrix{ glm::mat4(1.f) };
 		glm::mat4 viewProjectionMatrix{ glm::mat4(1.f) };
+
+		// Clipping planes are ordered as follows: Left clipping plane, right clipping plane, bottom clipping plane,
+		// top clipping plane, near clipping plane, far clipping plane.
+		std::array<glm::vec4, 6> clippingPlanes{ 
+			glm::vec4(0.f), glm::vec4(0.f), glm::vec4(0.f), glm::vec4(0.f), glm::vec4(0.f), glm::vec4(0.f) };
+
+		glm::vec4 normalizePlane(glm::vec4 clippingPlane);
 	};
 }
