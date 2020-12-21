@@ -11,13 +11,16 @@ namespace rendering
 			const std::vector<glm::vec3>& vertices,
 			const std::vector<glm::vec2>& uvs,
 			const std::vector<glm::vec3>& normals,
-			const std::vector<std::shared_ptr<MeshPart>>& _parts
-		) : parts(_parts)
+			const std::vector<std::shared_ptr<MeshPart>>& _parts,
+			std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
+		) : parts(_parts), boundingGeometry(_boundingGeometry)
 		{
 			initOpenGlBuffers(vertices, uvs, normals);
+			boundingGeometry->fitToVertices(vertices);
 		}
 
-		Mesh::Mesh(std::string assetName, bounding_geometry::BoundingGeometry& boundingGeometry)
+		Mesh::Mesh(std::string assetName, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry)
+			: boundingGeometry(_boundingGeometry)
 		{
 			// Construct the actual path to the obj file.
 			std::string fileName = "./res/models/" + assetName + ".obj";
@@ -149,7 +152,7 @@ namespace rendering
 			// All vertex position, UV coordinate and normal data is now in a format with shared indices. We can
 			// therefore finally initialize the VAO and the VBOs with this data.
 			initOpenGlBuffers(vertices, uvs, normals);
-			boundingGeometry.fitToVertices(vertices);
+			boundingGeometry->fitToVertices(vertices);
 
 			// Create a MeshPart for each material.
 			for (auto const& materialIndices : indicesMap)

@@ -187,7 +187,11 @@ namespace rendering::systems
 			// Render all instances of the mesh.
 			const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
 			const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
-			mesh->renderInstanced(*activeShader, modelMatrices, normalMatrices, meshMVPs);
+
+			if (numInstances > 1 || (numInstances == 1 && mesh->getBoundingGeometry()->isInCameraFrustum(camera.getClippingPlanes(), modelMatrices[0])))
+			{
+				mesh->renderInstanced(*activeShader, modelMatrices, normalMatrices, meshMVPs);
+			}
 		}
 	}
 

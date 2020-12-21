@@ -117,9 +117,6 @@ namespace game::world
 		rendering::model::Mesh* topologyMesh;
 		rendering::model::Mesh* landscapeMesh;
 
-		rendering::bounding_geometry::AABB topologyBoundingGeometry;
-		rendering::bounding_geometry::AABB landscapeBoundingGeometry;
-
 		HeightGenerator& heightGenerator;
 
 		entt::registry& registry;
@@ -185,11 +182,11 @@ namespace game::world
 
 			void generateChunkTopology();
 
-			rendering::model::Mesh* generateWaterMesh(rendering::bounding_geometry::BoundingGeometry& boundingGeometry);
+			rendering::model::Mesh* generateWaterMesh();
 
-			rendering::model::Mesh* generateTopologyGridMesh(rendering::bounding_geometry::BoundingGeometry& boundingGeometry);
+			rendering::model::Mesh* generateTopologyGridMesh();
 
-			rendering::model::Mesh* generateLandscapeMesh(rendering::bounding_geometry::BoundingGeometry& boundingGeometry);
+			rendering::model::Mesh* generateLandscapeMesh();
 
 		private:
 			Chunk* chunk;
@@ -342,10 +339,9 @@ namespace game::world
 	class CellContent
 	{
 	public:
-		CellContent(rendering::model::Mesh* _mesh, rendering::bounding_geometry::BoundingGeometry* _boundingGeometry) :
+		CellContent(rendering::model::Mesh* _mesh) :
 			cell(nullptr),
 			mesh(_mesh),
-			boundingGeometry(_boundingGeometry),
 			transform(rendering::components::MatrixTransform(glm::mat4(1.0f))) {}
 
 		Cell* getCell()
@@ -358,11 +354,6 @@ namespace game::world
 			return mesh;
 		}
 
-		rendering::bounding_geometry::BoundingGeometry* getBoundingGeometry()
-		{
-			return boundingGeometry;
-		}
-
 		rendering::components::MatrixTransform& getTransform()
 		{
 			return transform;
@@ -372,7 +363,6 @@ namespace game::world
 		Cell* cell;
 
 		rendering::model::Mesh* mesh;
-		rendering::bounding_geometry::BoundingGeometry* boundingGeometry;
 		rendering::components::MatrixTransform transform;
 
 		virtual void addedToCell() = 0;

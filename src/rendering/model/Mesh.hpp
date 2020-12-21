@@ -33,11 +33,19 @@ namespace rendering
 				const std::vector<glm::vec2>& uvs,
 				const std::vector<glm::vec3>& normals,
 				const std::vector<std::shared_ptr<MeshPart>>& _parts
+			) : Mesh(vertices, uvs, normals, _parts, std::make_shared<bounding_geometry::None>()) {}
+
+			Mesh(
+				const std::vector<glm::vec3>& vertices,
+				const std::vector<glm::vec2>& uvs,
+				const std::vector<glm::vec3>& normals,
+				const std::vector<std::shared_ptr<MeshPart>>& _parts,
+				std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
 			);
 
-			Mesh(std::string assetName) : Mesh(assetName, bounding_geometry::None()) {};
+			Mesh(std::string assetName) : Mesh(assetName, std::make_shared<bounding_geometry::None>()) {}
 
-			Mesh(std::string assetName, bounding_geometry::BoundingGeometry& boundingGeometry);
+			Mesh(std::string assetName, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry);
 
 			~Mesh();
 
@@ -111,6 +119,11 @@ namespace rendering
 				const std::vector<glm::mat4>& mvpMatrices
 			);
 
+			const std::shared_ptr<bounding_geometry::BoundingGeometry> getBoundingGeometry()
+			{
+				return boundingGeometry;
+			}
+
 			bool operator==(const Mesh& other) const
 			{
 				return vao == other.vao;
@@ -136,6 +149,8 @@ namespace rendering
 			std::unordered_set<GLuint> usedAttributeLocations;
 
 			std::vector<std::shared_ptr<MeshPart>> parts;
+
+			std::shared_ptr<bounding_geometry::BoundingGeometry> boundingGeometry;
 
 			void initOpenGlBuffers(
 				const std::vector<glm::vec3>& vertices,

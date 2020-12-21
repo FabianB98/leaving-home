@@ -158,7 +158,7 @@ namespace rendering
         gui::init(window);
 
         // Initialize shaders
-        mainShader = new shading::LightSupportingShader("phongInstanced", true);
+        mainShader = new shading::LightSupportingShader("phongInstanced");
         pickingShader = new shading::Shader("pickingInstanced");
         wireframeShader = new shading::Shader("simpleInstanced");
 

@@ -15,8 +15,7 @@ namespace game::world
 	class Resource : public CellContent
 	{
 	public:
-		Resource(rendering::model::Mesh* _mesh, rendering::bounding_geometry::BoundingGeometry* _boundingGeometry) 
-			: CellContent(_mesh, _boundingGeometry) {}
+		Resource(rendering::model::Mesh* _mesh) : CellContent(_mesh) {}
 
 	protected:
 		virtual void addedToCell() = 0;
