@@ -3,6 +3,7 @@
 #define GRASS_COLOR glm::vec3(0.16863f, 0.54902f, 0.15294f)
 
 static rendering::model::Mesh* waterMesh;
+static rendering::bounding_geometry::AABB waterBoundingGeometry;
 
 namespace std
 {
@@ -97,7 +98,7 @@ namespace game::world
 		{
 			// Add an entity for the chunk's topology mesh.
 			entt::entity topologyEntity = registry.create();
-			registry.emplace<rendering::components::MeshRenderer>(topologyEntity, getTopologyMesh());
+			registry.emplace<rendering::components::MeshRenderer>(topologyEntity, getTopologyMesh(), &topologyBoundingGeometry);
 			registry.emplace<rendering::components::MatrixTransform>(
 				topologyEntity,
 				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
@@ -108,7 +109,7 @@ namespace game::world
 		{
 			// Add an entity for the chunk's landscape mesh.
 			entt::entity chunkEntity = registry.create();
-			registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh());
+			registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh(), &landscapeBoundingGeometry);
 			registry.emplace<rendering::components::MatrixTransform>(
 				chunkEntity,
 				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
@@ -122,7 +123,7 @@ namespace game::world
 		{
 			// Add an entity for the chunk's water mesh.
 			entt::entity waterEntity = registry.create();
-			registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
+			registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh, &waterBoundingGeometry);
 			registry.emplace<rendering::components::MatrixTransform>(
 				waterEntity,
 				rendering::components::EulerComponentwiseTransform(
@@ -144,7 +145,7 @@ namespace game::world
 
 		std::array<Chunk*, 6> neighbors{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 		Generator generator = Generator(this, neighbors, nullptr);
-		waterMesh = generator.generateWaterMesh();
+		waterMesh = generator.generateWaterMesh(waterBoundingGeometry);
 
 		return waterMesh;
 	}
@@ -155,7 +156,7 @@ namespace game::world
 		{
 			std::array<Chunk*, 6> neighbors{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 			Generator generator = Generator(this, neighbors, nullptr);
-			topologyMesh = generator.generateTopologyGridMesh();
+			topologyMesh = generator.generateTopologyGridMesh(topologyBoundingGeometry);
 		}
 
 		return topologyMesh;
@@ -167,7 +168,7 @@ namespace game::world
 		{
 			std::array<Chunk*, 6> neighbors{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 			Generator generator = Generator(this, neighbors, nullptr);
-			landscapeMesh = generator.generateLandscapeMesh();
+			landscapeMesh = generator.generateLandscapeMesh(landscapeBoundingGeometry);
 		}
 
 		return landscapeMesh;
@@ -504,7 +505,7 @@ namespace game::world
 		}
 	}
 
-	rendering::model::Mesh* Chunk::Generator::generateTopologyGridMesh()
+	rendering::model::Mesh* Chunk::Generator::generateTopologyGridMesh(rendering::bounding_geometry::BoundingGeometry& boundingGeometry)
 	{
 		std::vector<glm::vec3> vertices;
 		std::vector<glm::vec2> uvs;
@@ -564,6 +565,8 @@ namespace game::world
 			}
 		}
 
+		boundingGeometry.fitToVertices(vertices);
+
 		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
 			glm::vec3(0.2f, 0.0f, 0.0f),
 			glm::vec3(1.0f, 0.0f, 0.0f),
@@ -595,7 +598,7 @@ namespace game::world
 		return currentIndex++;
 	}
 
-	rendering::model::Mesh* Chunk::Generator::generateLandscapeMesh()
+	rendering::model::Mesh* Chunk::Generator::generateLandscapeMesh(rendering::bounding_geometry::BoundingGeometry& boundingGeometry)
 	{
 		// Determine the center positions of all planar graph faces within the chunk.
 		std::unordered_map<DirectedEdge*, glm::vec2> facePositionMap;
@@ -769,6 +772,8 @@ namespace game::world
 			}
 		}
 
+		boundingGeometry.fitToVertices(vertices);
+
 		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
 			0.2f * GRASS_COLOR,
 			0.5f * GRASS_COLOR,
@@ -782,7 +787,7 @@ namespace game::world
 		return mesh;
 	}
 
-	rendering::model::Mesh* Chunk::Generator::generateWaterMesh()
+	rendering::model::Mesh* Chunk::Generator::generateWaterMesh(rendering::bounding_geometry::BoundingGeometry& boundingGeometry)
 	{
 		generateInitialPositions();
 		generateInitialEdges();
@@ -823,6 +828,8 @@ namespace game::world
 
 			delete face;
 		}
+
+		boundingGeometry.fitToVertices(vertices);
 
 		std::shared_ptr<rendering::model::Material> material = std::make_shared<rendering::model::Material>(
 			glm::vec3(0.0f, 0.0f, 0.1f),
@@ -871,7 +878,7 @@ namespace game::world
 
 			if (entity == entt::null)
 				entity = chunk->registry.create();
-			chunk->registry.emplace<rendering::components::MeshRenderer>(entity, content->getMesh());
+			chunk->registry.emplace<rendering::components::MeshRenderer>(entity, content->getMesh(), content->getBoundingGeometry());
 			chunk->registry.emplace<rendering::components::MatrixTransform>(entity, content->getTransform());
 		}
 	}

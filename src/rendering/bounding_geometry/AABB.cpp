@@ -2,7 +2,12 @@
 
 namespace rendering::bounding_geometry
 {
-	AABB::AABB(std::vector<glm::vec3> vertices)
+	AABB::AABB(const std::vector<glm::vec3>& vertices) : min(glm::vec3(0.0f)), max(glm::vec3(0.0f))
+	{
+		fitToVertices(vertices);
+	}
+
+	void AABB::fitToVertices(const std::vector<glm::vec3>& vertices)
 	{
 		min = vertices[0];
 		max = vertices[0];
@@ -14,7 +19,7 @@ namespace rendering::bounding_geometry
 		}
 	}
 
-	bool AABB::isInCameraFrustum(std::array<glm::vec4, 6> clippingPlanes, glm::mat4 modelMatrix)
+	bool AABB::isInCameraFrustum(const std::array<glm::vec4, 6>& clippingPlanes, const glm::mat4& modelMatrix)
 	{
 		// Translate, rotate and scale the AABB according to the model matrix.
 		glm::vec4 cornersHomogeneous[8];

@@ -1,75 +1,67 @@
 #include "Sphere.hpp"
 
+#include <stdio.h>
+#include <iostream>
+
 namespace rendering::bounding_geometry
 {
-	Sphere::Sphere(std::vector<glm::vec3> vertices)
+	Sphere::Sphere(const std::vector<glm::vec3>& vertices) : center(glm::vec3(0.0f)), radius(0.0f)
 	{
-		std::unordered_map<size_t, glm::vec3> P;
-		for (size_t i = 0; i < vertices.size(); i++)
-			P.insert(std::make_pair(i, vertices[i]));
-
-		std::pair<glm::vec3, float> ball = smallestEnclosingBallWithPoints(P, std::unordered_map<size_t, glm::vec3>());
-		center = ball.first;
-		radius = ball.second;
+		fitToVertices(vertices);
 	}
 
-	std::pair<glm::vec3, float> Sphere::smallestEnclosingBallWithPoints(
-		std::unordered_map<size_t, glm::vec3>& P,
-		std::unordered_map<size_t, glm::vec3>& Q
-	) {
-		// Welzls algorithm as explained on slide 12-51 of the "Algorithmen II" lecture from the winter term 2018/2019.
-		// See https://youtu.be/u9wEjKEzCjw?t=5 for a recording of that part of the lecture (in German).
-		if (P.size() == 1 || Q.size() == 4)
-		{
-			// Base case. The ball can be calculated directly with the given points.
-			glm::vec3 ballCenter = glm::vec3(0.0f);
-			for (auto& point : Q)
-				ballCenter += point.second;
-			ballCenter /= (float)Q.size();
+	void Sphere::fitToVertices(const std::vector<glm::vec3>& vertices) {
+		// Ritter's bounding sphere as explained in https://en.wikipedia.org/wiki/Bounding_sphere#Ritter.27s_bounding_sphere.
+		// This algorithm is not optimal. It only produces a "coarse result which is usually 5% to 20% larger than the optimum."
 
-			float ballRadius = 0.0f;
-			for (auto& point : Q)
-				ballRadius = std::max(ballRadius, glm::distance(ballCenter, point.second));
-
-			return std::make_pair(ballCenter, ballRadius);
-		}
-
-		// Pick random x element P.
+		// Pick a point x from P (here: vertices).
 		std::default_random_engine generator;
-		size_t maxElementInP = P.size() - 1;
-		std::uniform_int_distribution<size_t> dist(0, maxElementInP);
+		std::uniform_int_distribution<size_t> dist(0, vertices.size() - 1);
 		size_t index = dist(generator);
-		glm::vec3 x = P[index];
+		glm::vec3 x = vertices[index];
 
-		// Temporarily use P as (P \ {x}).
-		P[index] = P[maxElementInP];
-		P.erase(maxElementInP);
+		// Search a point y in P (here: vertices) which has the largest distance from x and search a point z in P (here:
+		// vertices) which has the largest distance from y.
+		glm::vec3 y = furthestPointAwayFrom(vertices, x);
+		glm::vec3 z = furthestPointAwayFrom(vertices, y);
 
-		std::pair<glm::vec3, float> B = smallestEnclosingBallWithPoints(P, Q);
+		// Set up an initial ball B (here: this Sphere instance) with its centre as the midpoint of y and z, the radius as half
+		// of the distance between y and z.
+		center = (y + z) / 2.0f;
+		radius = glm::distance(y, z) / 2.0f;
 
-		if (glm::distance(B.first, x) <= B.second)
+		// If all points in P (here: vertices) are within ball B (here: this Sphere instance), then we get a bounding sphere.
+		// Otherwise, let p be a point outside the ball, construct a new ball covering both point p and previous ball. Repeat this
+		// step until all points are covered.
+		float squaredRadius = radius * radius;
+		for (glm::vec3 p : vertices)
 		{
-			// x is an element of B.
-			// Insert x into (P \ {x}) to reset P into the state it was in before this method was called.
-			P.insert(std::make_pair(maxElementInP, x));
-
-			return B;
+			float distanceSquared = glm::distance2(center, p);
+			if (distanceSquared > squaredRadius)
+				squaredRadius = distanceSquared;
 		}
-
-		// Temporarily use Q as (Q union {x}).
-		size_t maxElementInQ = Q.size();
-		Q.insert(std::make_pair(maxElementInQ, x));
-
-		B = smallestEnclosingBallWithPoints(P, Q);
-
-		// Reset P and Q into the state they were in before this method was called.
-		Q.erase(maxElementInQ);
-		P.insert(std::make_pair(maxElementInP, x));
-
-		return B;
+		radius = std::sqrt(squaredRadius);
 	}
 
-	bool Sphere::isInCameraFrustum(std::array<glm::vec4, 6> clippingPlanes, glm::mat4 modelMatrix)
+	glm::vec3 Sphere::furthestPointAwayFrom(const std::vector<glm::vec3>& vertices, const glm::vec3& p)
+	{
+		glm::vec3 result = p;
+		float currentMaxDistanceSquared = 0.0f;
+
+		for (glm::vec3 vertex : vertices)
+		{
+			float distanceSquared = glm::distance2(vertex, p);
+			if (distanceSquared > currentMaxDistanceSquared)
+			{
+				result = vertex;
+				currentMaxDistanceSquared = distanceSquared;
+			}
+		}
+
+		return result;
+	}
+
+	bool Sphere::isInCameraFrustum(const std::array<glm::vec4, 6>& clippingPlanes, const glm::mat4& modelMatrix)
 	{
 		// Translate, rotate and scale the sphere according to the model matrix.
 		glm::vec4 centerWorldSpaceHomogenous = modelMatrix * glm::vec4(center, 1);

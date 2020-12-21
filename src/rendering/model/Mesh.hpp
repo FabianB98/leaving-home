@@ -17,6 +17,8 @@
 
 // Our headers
 #include "MeshPart.hpp"
+#include "../bounding_geometry/BoundingGeometry.hpp"
+#include "../bounding_geometry/None.hpp"
 #include "../shading/Shader.hpp"
 
 namespace rendering
@@ -33,7 +35,9 @@ namespace rendering
 				const std::vector<std::shared_ptr<MeshPart>>& _parts
 			);
 
-			Mesh(std::string assetName);
+			Mesh(std::string assetName) : Mesh(assetName, bounding_geometry::None()) {};
+
+			Mesh(std::string assetName, bounding_geometry::BoundingGeometry& boundingGeometry);
 
 			~Mesh();
 

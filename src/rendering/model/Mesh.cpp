@@ -17,7 +17,7 @@ namespace rendering
 			initOpenGlBuffers(vertices, uvs, normals);
 		}
 
-		Mesh::Mesh(std::string assetName)
+		Mesh::Mesh(std::string assetName, bounding_geometry::BoundingGeometry& boundingGeometry)
 		{
 			// Construct the actual path to the obj file.
 			std::string fileName = "./res/models/" + assetName + ".obj";
@@ -149,6 +149,7 @@ namespace rendering
 			// All vertex position, UV coordinate and normal data is now in a format with shared indices. We can
 			// therefore finally initialize the VAO and the VBOs with this data.
 			initOpenGlBuffers(vertices, uvs, normals);
+			boundingGeometry.fitToVertices(vertices);
 
 			// Create a MeshPart for each material.
 			for (auto const& materialIndices : indicesMap)
