@@ -97,7 +97,9 @@ namespace game::world
 		{
 			// Add an entity for the chunk's topology mesh.
 			entt::entity topologyEntity = registry.create();
-			registry.emplace<rendering::components::MeshRenderer>(topologyEntity, getTopologyMesh());
+			rendering::model::Mesh* mesh = getTopologyMesh();
+			registry.emplace<rendering::components::MeshRenderer>(topologyEntity, mesh);
+			registry.emplace<rendering::components::CullingGeometry>(topologyEntity, mesh->getBoundingGeometry());
 			registry.emplace<rendering::components::MatrixTransform>(
 				topologyEntity,
 				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
@@ -108,14 +110,16 @@ namespace game::world
 		{
 			// Add an entity for the chunk's landscape mesh.
 			entt::entity chunkEntity = registry.create();
-			registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh());
+			rendering::model::Mesh* mesh = getLandscapeMesh();
+			registry.emplace<rendering::components::MeshRenderer>(chunkEntity, mesh);
+			registry.emplace<rendering::components::CullingGeometry>(chunkEntity, mesh->getBoundingGeometry());
 			registry.emplace<rendering::components::MatrixTransform>(
 				chunkEntity,
 				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
 			);
 
-			shading.shaders.insert(std::make_pair(getLandscapeMesh(), terrainShader));
-			picking.enabled.insert(getLandscapeMesh());
+			shading.shaders.insert(std::make_pair(mesh, terrainShader));
+			picking.enabled.insert(mesh);
 		}
 
 		if (ADD_WATER_MESH)
@@ -123,6 +127,7 @@ namespace game::world
 			// Add an entity for the chunk's water mesh.
 			entt::entity waterEntity = registry.create();
 			registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
+			registry.emplace<rendering::components::CullingGeometry>(waterEntity, waterMesh->getBoundingGeometry());
 			registry.emplace<rendering::components::MatrixTransform>(
 				waterEntity,
 				rendering::components::EulerComponentwiseTransform(
@@ -871,7 +876,10 @@ namespace game::world
 
 			if (entity == entt::null)
 				entity = chunk->registry.create();
-			chunk->registry.emplace<rendering::components::MeshRenderer>(entity, content->getMesh());
+
+			rendering::model::Mesh* mesh = content->getMesh();
+			chunk->registry.emplace<rendering::components::MeshRenderer>(entity, mesh);
+			chunk->registry.emplace<rendering::components::CullingGeometry>(entity, mesh->getBoundingGeometry());
 			chunk->registry.emplace<rendering::components::MatrixTransform>(entity, content->getTransform());
 		}
 	}
@@ -893,7 +901,7 @@ namespace game::world
 
 		height = chunk->heightGenerator.getHeightQuantized(relaxedPosition);
 
-		// This was originally part of the shader which used some code from 
+		// This was originally part of the terrain shader which used some code from 
 		// https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83.
 		int a = (cellId >> 12) & 0xfff;
 		int b = cellId & 0xfff;

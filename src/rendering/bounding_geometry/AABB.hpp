@@ -17,6 +17,16 @@ namespace rendering::bounding_geometry
 
 		bool isInCameraFrustum(const std::array<glm::vec4, 6>& clippingPlanes, const glm::mat4& modelMatrix);
 
+		glm::vec3 getMin()
+		{
+			return min;
+		}
+
+		glm::vec3 getMax()
+		{
+			return max;
+		}
+
 	private:
 		glm::vec3 min;
 		glm::vec3 max;

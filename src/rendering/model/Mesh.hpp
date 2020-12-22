@@ -152,6 +152,8 @@ namespace rendering
 
 			std::shared_ptr<bounding_geometry::BoundingGeometry> boundingGeometry;
 
+			size_t maxInstancesDrawn;
+
 			void initOpenGlBuffers(
 				const std::vector<glm::vec3>& vertices,
 				const std::vector<glm::vec2>& uvs,

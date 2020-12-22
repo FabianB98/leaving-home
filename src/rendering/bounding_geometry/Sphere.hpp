@@ -23,6 +23,16 @@ namespace rendering::bounding_geometry
 
 		bool isInCameraFrustum(const std::array<glm::vec4, 6>& clippingPlanes, const glm::mat4& modelMatrix);
 
+		glm::vec3 getCenter()
+		{
+			return center;
+		}
+
+		float getRadius()
+		{
+			return radius;
+		}
+
 	private:
 		glm::vec3 center;
 		float radius;

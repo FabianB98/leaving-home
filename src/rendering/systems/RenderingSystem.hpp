@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <execution>
+#include <queue>
 #include <set>
 #include <vector>
 #include <unordered_map>
@@ -13,6 +14,7 @@
 #include <GLFW/glfw3.h>
 
 #include "../components/Camera.hpp"
+#include "../components/CullingGeometry.hpp"
 #include "../components/MeshRenderer.hpp"
 #include "../components/Transform.hpp"
 #include "../components/Relationship.hpp"
@@ -22,6 +24,8 @@
 namespace rendering::systems
 {
 	void initRenderingSystem(entt::registry& registry);
+
+	void cullingRelationship(entt::registry& registry, entt::entity parent, entt::entity child);
 
 	void updateLights(entt::registry& registry, rendering::shading::Shader& shader);
 

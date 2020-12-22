@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 
 #include "../../rendering/bounding_geometry/AABB.hpp"
+#include "../../rendering/components/CullingGeometry.hpp"
 #include "../../rendering/components/MeshRenderer.hpp"
 #include "../../rendering/components/Transform.hpp"
 #include "../../rendering/systems/RenderingSystem.hpp"

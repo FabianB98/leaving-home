@@ -6,9 +6,12 @@ namespace rendering::systems
 
 	std::set<model::Mesh*> transformChanged;
 	std::unordered_map<model::Mesh*, std::pair<std::vector<glm::mat4>, std::vector<glm::mat3>>> meshTransforms;
+	std::unordered_map<entt::entity, size_t> entityToTransformIndexMap;
 	std::vector<std::pair<model::Mesh*, shading::Shader*>> meshShaders;
 	std::unordered_map<shading::Shader*, int> shaderPriorities;
 	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> mvps;
+
+	components::CullingGeometry cullingRoot = components::CullingGeometry(std::make_shared<bounding_geometry::None>());
 
 	void changedMeshRenderer(entt::registry& registry, entt::entity entity)
 	{
@@ -16,13 +19,52 @@ namespace rendering::systems
 		transformChanged.insert(meshRenderer.getMesh());
 	}
 
+	void addedCullingGeometry(entt::registry& registry, entt::entity entity)
+	{
+		auto& cullingGeometry = registry.get<components::CullingGeometry>(entity);
+		cullingGeometry.parent = entt::null;
+		cullingRoot.children.insert(entity);
+	}
+
+	void removedCullingGeometry(entt::registry& registry, entt::entity entity)
+	{
+		components::CullingGeometry& deletedCullingGeometry = registry.get<components::CullingGeometry>(entity);
+
+		components::CullingGeometry& parentCullingGeometry = deletedCullingGeometry.parent != entt::null
+			? registry.get<components::CullingGeometry>(deletedCullingGeometry.parent) 
+			: cullingRoot;
+
+		parentCullingGeometry.children.erase(entity);
+	}
+
+	void cullingRelationship(entt::registry& registry, entt::entity parent, entt::entity child)
+	{
+		components::CullingGeometry& childCullingGeometry = registry.get<components::CullingGeometry>(child);
+
+		components::CullingGeometry& oldParentCullingGeometry = childCullingGeometry.parent != entt::null
+			? registry.get<components::CullingGeometry>(childCullingGeometry.parent)
+			: cullingRoot;
+
+		components::CullingGeometry& newParentCullingGeometry = parent != entt::null
+			? registry.get<components::CullingGeometry>(parent)
+			: cullingRoot;
+
+		childCullingGeometry.parent = parent;
+		oldParentCullingGeometry.children.erase(child);
+		newParentCullingGeometry.children.insert(child);
+	}
+
 	void initRenderingSystem(entt::registry& registry)
 	{
 		registry.set<MeshShading>();
 		registry.set<Picking>();
+
 		registry.on_construct<components::MeshRenderer>().connect<&changedMeshRenderer>();
 		registry.on_destroy<components::MeshRenderer>().connect<&changedMeshRenderer>();
 		transformObserver.connect(registry, entt::collector.update<components::MatrixTransform>().where<components::MeshRenderer>());
+
+		registry.on_construct<components::CullingGeometry>().connect<&addedCullingGeometry>();
+		registry.on_destroy<components::CullingGeometry>().connect<&removedCullingGeometry>();
 	}
 
 	void updateLights(entt::registry& registry, rendering::shading::Shader& shader)
@@ -71,7 +113,8 @@ namespace rendering::systems
 
 			glm::mat4& modelMatrix = relationship ? relationship->totalTransform : transform.getTransform();
 			meshTransforms[mesh].first.push_back(modelMatrix);
-			meshTransforms[mesh].second.push_back(glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+			meshTransforms[mesh].second.push_back(glm::mat3(glm::transpose(glm::inverse(modelMatrix)))); 
+			entityToTransformIndexMap[entity] = meshTransforms[mesh].first.size();
 		}
 
 
@@ -89,6 +132,49 @@ namespace rendering::systems
 		shader.setUniformInt("pick", pickingID);
 		camera.applyViewProjection(shader);
 		updateLights(registry, shader);
+	}
+
+	void performFrustumCulling(entt::registry& registry, rendering::components::Camera& camera)
+	{
+		std::queue<entt::entity> entitiesToCheck;
+		for (auto& entity : cullingRoot.children)
+			entitiesToCheck.push(entity);
+
+		auto& cameraFrustum = camera.getClippingPlanes();
+		while (!entitiesToCheck.empty())
+		{
+			entt::entity& entity = entitiesToCheck.front();
+			entitiesToCheck.pop();
+
+			components::MeshRenderer* meshRenderer = registry.try_get<components::MeshRenderer>(entity);
+			model::Mesh* mesh;
+			size_t index;
+			glm::mat4 modelMatrix;
+			if (meshRenderer != nullptr)
+			{
+				mesh = meshRenderer->getMesh();
+				index = entityToTransformIndexMap[entity];
+				modelMatrix = meshTransforms[mesh].first[entityToTransformIndexMap[entity]];
+			}
+			else
+			{
+				mesh = nullptr;
+				index = 0;
+				modelMatrix = glm::mat4(1.0f);
+			}
+
+			components::CullingGeometry& cullingGeometry = registry.get<components::CullingGeometry>(entity);
+			if (cullingGeometry.boundingGeometry->isInCameraFrustum(cameraFrustum, modelMatrix))
+			{
+				if (meshRenderer != nullptr)
+				{
+					// TODO: This instance of the mesh is visible within the view frustum. Add it to the instances to render.
+				}
+
+				for (auto& child : cullingGeometry.children)
+					entitiesToCheck.push(child);
+			}
+		}
 	}
 
 	void calculateMVPs(rendering::components::Camera& camera)
@@ -161,6 +247,7 @@ namespace rendering::systems
 		});
 
 		// update MVPs
+		performFrustumCulling(registry, camera);
 		calculateMVPs(camera);
 	}
 
@@ -223,5 +310,8 @@ namespace rendering::systems
 		registry.on_construct<components::MeshRenderer>().disconnect<&changedMeshRenderer>();
 		registry.on_destroy<components::MeshRenderer>().disconnect<&changedMeshRenderer>();
 		transformObserver.disconnect();
+
+		registry.on_construct<components::CullingGeometry>().disconnect<&addedCullingGeometry>();
+		registry.on_destroy<components::CullingGeometry>().disconnect<&removedCullingGeometry>();
 	}
 }

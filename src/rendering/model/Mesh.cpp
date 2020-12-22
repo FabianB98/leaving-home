@@ -13,14 +13,14 @@ namespace rendering
 			const std::vector<glm::vec3>& normals,
 			const std::vector<std::shared_ptr<MeshPart>>& _parts,
 			std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
-		) : parts(_parts), boundingGeometry(_boundingGeometry)
+		) : parts(_parts), boundingGeometry(_boundingGeometry), maxInstancesDrawn(0)
 		{
 			initOpenGlBuffers(vertices, uvs, normals);
 			boundingGeometry->fitToVertices(vertices);
 		}
 
 		Mesh::Mesh(std::string assetName, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry)
-			: boundingGeometry(_boundingGeometry)
+			: boundingGeometry(_boundingGeometry), maxInstancesDrawn(0)
 		{
 			// Construct the actual path to the obj file.
 			std::string fileName = "./res/models/" + assetName + ".obj";
@@ -281,14 +281,30 @@ namespace rendering
 
 			glBindVertexArray(vao);
 
-			glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVbo);
-			glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat4), &modelMatrices[0], GL_DYNAMIC_DRAW);
+			if (numInstances > maxInstancesDrawn)
+			{
+				maxInstancesDrawn = numInstances;
 
-			glBindBuffer(GL_ARRAY_BUFFER, normalMatrixVbo);
-			glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat3), &normalMatrices[0], GL_DYNAMIC_DRAW);
+				glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVbo);
+				glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat4), &modelMatrices[0], GL_STREAM_DRAW);
 
-			glBindBuffer(GL_ARRAY_BUFFER, mvpMatrixVbo);
-			glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat4), &mvpMatrices[0], GL_DYNAMIC_DRAW);
+				glBindBuffer(GL_ARRAY_BUFFER, normalMatrixVbo);
+				glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat3), &normalMatrices[0], GL_STREAM_DRAW);
+
+				glBindBuffer(GL_ARRAY_BUFFER, mvpMatrixVbo);
+				glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat4), &mvpMatrices[0], GL_STREAM_DRAW);
+			}
+			else
+			{
+				glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVbo);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, numInstances * sizeof(glm::mat4), &modelMatrices[0]);
+
+				glBindBuffer(GL_ARRAY_BUFFER, normalMatrixVbo);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, numInstances * sizeof(glm::mat3), &normalMatrices[0]);
+
+				glBindBuffer(GL_ARRAY_BUFFER, mvpMatrixVbo);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, numInstances * sizeof(glm::mat4), &mvpMatrices[0]);
+			}
 
 			for (auto part : parts)
 				part->renderInstanced(shader, numInstances);
