@@ -574,10 +574,16 @@ namespace game::world
 			glm::vec3(1.0f, 0.0f, 0.0f),
 			glm::vec3(0.1f, 0.0f, 0.0f),
 			2.0f
-			);
+		);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_LINES));
-		return new rendering::model::Mesh(vertices, uvs, normals, meshParts, std::make_shared<rendering::bounding_geometry::AABB>());
+		return new rendering::model::Mesh(
+			vertices,
+			uvs,
+			normals,
+			meshParts,
+			std::make_shared<rendering::bounding_geometry::AABB>(new rendering::bounding_geometry::AABB::WorldSpace())
+		);
 	}
 
 	unsigned int Chunk::Generator::addCellCorner(
@@ -779,10 +785,16 @@ namespace game::world
 			0.5f * GRASS_COLOR,
 			0.3f * GRASS_COLOR,
 			2.0f
-			);
+		);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
-		rendering::model::Mesh* mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts, std::make_shared<rendering::bounding_geometry::AABB>());
+		rendering::model::Mesh* mesh = new rendering::model::Mesh(
+			vertices,
+			uvs,
+			normals,
+			meshParts,
+			std::make_shared<rendering::bounding_geometry::AABB>(new rendering::bounding_geometry::AABB::WorldSpace())
+		);
 		mesh->addAdditionalVertexAttributeI<glm::uvec2>(CELL_ID_ATTRIBUTE_LOCATION, cellIds, 2, GL_UNSIGNED_INT);
 		return mesh;
 	}
@@ -834,10 +846,16 @@ namespace game::world
 			glm::vec3(0.0f, 0.0f, 0.3f),
 			glm::vec3(0.2f, 0.2f, 0.4f),
 			24.0f
-			);
+		);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
-		return new rendering::model::Mesh(vertices, uvs, normals, meshParts, std::make_shared<rendering::bounding_geometry::AABB>());
+		return new rendering::model::Mesh(
+			vertices,
+			uvs,
+			normals,
+			meshParts,
+			std::make_shared<rendering::bounding_geometry::AABB>(new rendering::bounding_geometry::AABB::ObjectSpace())
+		);
 	}
 
 	Cell::Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)

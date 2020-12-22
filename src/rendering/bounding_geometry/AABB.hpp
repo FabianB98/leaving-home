@@ -7,11 +7,21 @@ namespace rendering::bounding_geometry
 	class AABB : public BoundingGeometry
 	{
 	public:
-		AABB() : AABB(glm::vec3(0.0f), glm::vec3(0.0f)) {}
+		class DefinitionSpace;
 
-		AABB(glm::vec3 _min, glm::vec3 _max) : min(_min), max(_max) {}
+		AABB(DefinitionSpace* _definitionSpace) : AABB(glm::vec3(0.0f), glm::vec3(0.0f), _definitionSpace) {}
 
-		AABB(const std::vector<glm::vec3>& vertices);
+		AABB(glm::vec3 _min, glm::vec3 _max, DefinitionSpace* _definitionSpace) : 
+			min(_min),
+			max(_max),
+			definitionSpace(_definitionSpace) {}
+
+		AABB(const std::vector<glm::vec3>& vertices, DefinitionSpace* _definitionSpace);
+
+		~AABB()
+		{
+			delete definitionSpace;
+		}
 
 		void fitToVertices(const std::vector<glm::vec3>& vertices);
 
@@ -27,8 +37,31 @@ namespace rendering::bounding_geometry
 			return max;
 		}
 
+		class DefinitionSpace {
+		private:
+			virtual std::pair<glm::vec3, glm::vec3> convertToWorldSpace(AABB& aabb, const glm::mat4& modelMatrix) = 0;
+
+			friend AABB;
+		};
+
+		class WorldSpace : public DefinitionSpace {
+		private:
+			std::pair<glm::vec3, glm::vec3> convertToWorldSpace(AABB& aabb, const glm::mat4& modelMatrix);
+
+			friend AABB;
+		};
+
+		class ObjectSpace : public DefinitionSpace {
+		private:
+			std::pair<glm::vec3, glm::vec3> convertToWorldSpace(AABB& aabb, const glm::mat4& modelMatrix);
+
+			friend AABB;
+		};
+
 	private:
 		glm::vec3 min;
 		glm::vec3 max;
+
+		DefinitionSpace* definitionSpace;
 	};
 }

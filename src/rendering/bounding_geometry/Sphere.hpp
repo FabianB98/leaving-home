@@ -13,11 +13,21 @@ namespace rendering::bounding_geometry
 	class Sphere : public BoundingGeometry
 	{
 	public:
-		Sphere() : Sphere(glm::vec3(0.0f), 0.0f) {}
+		class DefinitionSpace;
 
-		Sphere(glm::vec3 _center, float _radius) : center(_center), radius(_radius) {}
+		Sphere(DefinitionSpace* _definitionSpace) : Sphere(glm::vec3(0.0f), 0.0f, _definitionSpace) {}
 
-		Sphere(const std::vector<glm::vec3>& vertices);
+		Sphere(glm::vec3 _center, float _radius, DefinitionSpace* _definitionSpace) : 
+			center(_center),
+			radius(_radius),
+			definitionSpace(_definitionSpace) {}
+
+		Sphere(const std::vector<glm::vec3>& vertices, DefinitionSpace* _definitionSpace);
+
+		~Sphere()
+		{
+			delete definitionSpace;
+		}
 
 		void fitToVertices(const std::vector<glm::vec3>& vertices);
 
@@ -33,9 +43,32 @@ namespace rendering::bounding_geometry
 			return radius;
 		}
 
+		class DefinitionSpace {
+		private:
+			virtual std::pair<glm::vec3, float> convertToWorldSpace(Sphere& sphere, const glm::mat4& modelMatrix) = 0;
+
+			friend Sphere;
+		};
+
+		class WorldSpace : public DefinitionSpace {
+		private:
+			std::pair<glm::vec3, float> convertToWorldSpace(Sphere& sphere, const glm::mat4& modelMatrix);
+
+			friend Sphere;
+		};
+
+		class ObjectSpace : public DefinitionSpace {
+		private:
+			std::pair<glm::vec3, float> convertToWorldSpace(Sphere& sphere, const glm::mat4& modelMatrix);
+
+			friend Sphere;
+		};
+
 	private:
 		glm::vec3 center;
 		float radius;
+
+		DefinitionSpace* definitionSpace;
 
 		glm::vec3 furthestPointAwayFrom(const std::vector<glm::vec3>& vertices, const glm::vec3& p);
 	};

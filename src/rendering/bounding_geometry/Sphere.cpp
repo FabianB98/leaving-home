@@ -5,7 +5,10 @@
 
 namespace rendering::bounding_geometry
 {
-	Sphere::Sphere(const std::vector<glm::vec3>& vertices) : center(glm::vec3(0.0f)), radius(0.0f)
+	Sphere::Sphere(const std::vector<glm::vec3>& vertices, DefinitionSpace* _definitionSpace) :
+		center(glm::vec3(0.0f)),
+		radius(0.0f),
+		definitionSpace(_definitionSpace)
 	{
 		fitToVertices(vertices);
 	}
@@ -64,22 +67,36 @@ namespace rendering::bounding_geometry
 	bool Sphere::isInCameraFrustum(const std::array<glm::vec4, 6>& clippingPlanes, const glm::mat4& modelMatrix)
 	{
 		// Translate, rotate and scale the sphere according to the model matrix.
-		glm::vec4 centerWorldSpaceHomogenous = modelMatrix * glm::vec4(center, 1);
-		glm::vec3 centerWorldSpace = glm::vec3(centerWorldSpaceHomogenous) / centerWorldSpaceHomogenous.w;
-
-		float scaleFactor1 = glm::length2(glm::vec3(modelMatrix[0]));
-		float scaleFactor2 = glm::length2(glm::vec3(modelMatrix[1]));
-		float scaleFactor3 = glm::length2(glm::vec3(modelMatrix[2]));
-		float scaledRadius = radius * sqrt(std::max(scaleFactor1, std::max(scaleFactor2, scaleFactor3)));
+		std::pair<glm::vec3, float> transformedParams = definitionSpace->convertToWorldSpace(*this, modelMatrix);
+		glm::vec3& transformedCenter = transformedParams.first;
+		float& transformedRadius = transformedParams.second;
 
 		// Sphere frustum intersection test as described in 
 		// https://www.gamedev.net/tutorials/programming/general-and-gameplay-programming/frustum-culling-r4613/
 		bool inFrustum = true;
 
 		for (int i = 0; i < 6; i++)
-			if (glm::dot(glm::vec3(clippingPlanes[i]), centerWorldSpace) + clippingPlanes[i].w <= -scaledRadius)
+			if (glm::dot(glm::vec3(clippingPlanes[i]), transformedCenter) + clippingPlanes[i].w <= -transformedRadius)
 				inFrustum = false;
 
 		return inFrustum;
+	}
+
+	std::pair<glm::vec3, float> Sphere::WorldSpace::convertToWorldSpace(Sphere& sphere, const glm::mat4& modelMatrix)
+	{
+		return std::make_pair(sphere.center, sphere.radius);
+	}
+
+	std::pair<glm::vec3, float> Sphere::ObjectSpace::convertToWorldSpace(Sphere& sphere, const glm::mat4& modelMatrix)
+	{
+		glm::vec4 centerWorldSpaceHomogenous = modelMatrix * glm::vec4(sphere.center, 1);
+		glm::vec3 centerWorldSpace = glm::vec3(centerWorldSpaceHomogenous) / centerWorldSpaceHomogenous.w;
+
+		float scaleFactor1 = glm::length2(glm::vec3(modelMatrix[0]));
+		float scaleFactor2 = glm::length2(glm::vec3(modelMatrix[1]));
+		float scaleFactor3 = glm::length2(glm::vec3(modelMatrix[2]));
+		float scaledRadius = sphere.radius * sqrt(std::max(scaleFactor1, std::max(scaleFactor2, scaleFactor3)));
+
+		return std::make_pair(centerWorldSpace, scaledRadius);
 	}
 }

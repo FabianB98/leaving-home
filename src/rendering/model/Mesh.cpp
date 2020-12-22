@@ -311,5 +311,56 @@ namespace rendering
 
 			glBindVertexArray(0);
 		}
+
+		void Mesh::renderInstanced(
+			shading::Shader& shader,
+			const std::vector<glm::mat4>& modelMatrices,
+			const std::vector<glm::mat3>& normalMatrices,
+			const std::vector<glm::mat4>& mvpMatrices,
+			const std::vector<std::size_t>& instanceIndices
+		) {
+			size_t numInstances = instanceIndices.size();
+
+			glBindVertexArray(vao);
+
+			if (numInstances > maxInstancesDrawn)
+			{
+				maxInstancesDrawn = numInstances;
+
+				glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVbo);
+				glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat4), NULL, GL_STREAM_DRAW);
+				for (std::size_t instance = 0; instance < numInstances; instance++)
+					glBufferSubData(GL_ARRAY_BUFFER, instance * sizeof(glm::mat4), sizeof(glm::mat4), &modelMatrices[instanceIndices[instance]]);
+
+				glBindBuffer(GL_ARRAY_BUFFER, normalMatrixVbo);
+				glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat3), NULL, GL_STREAM_DRAW);
+				for (std::size_t instance = 0; instance < numInstances; instance++)
+					glBufferSubData(GL_ARRAY_BUFFER, instance * sizeof(glm::mat3), sizeof(glm::mat3), &normalMatrices[instanceIndices[instance]]);
+
+				glBindBuffer(GL_ARRAY_BUFFER, mvpMatrixVbo);
+				glBufferData(GL_ARRAY_BUFFER, numInstances * sizeof(glm::mat4), NULL, GL_STREAM_DRAW);
+				for (std::size_t instance = 0; instance < numInstances; instance++)
+					glBufferSubData(GL_ARRAY_BUFFER, instance * sizeof(glm::mat4), sizeof(glm::mat4), &mvpMatrices[instanceIndices[instance]]);
+			}
+			else
+			{
+				glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVbo);
+				for (std::size_t instance = 0; instance < numInstances; instance++)
+					glBufferSubData(GL_ARRAY_BUFFER, instance * sizeof(glm::mat4), sizeof(glm::mat4), &modelMatrices[instanceIndices[instance]]);
+
+				glBindBuffer(GL_ARRAY_BUFFER, normalMatrixVbo);
+				for (std::size_t instance = 0; instance < numInstances; instance++)
+					glBufferSubData(GL_ARRAY_BUFFER, instance * sizeof(glm::mat3), sizeof(glm::mat3), &normalMatrices[instanceIndices[instance]]);
+
+				glBindBuffer(GL_ARRAY_BUFFER, mvpMatrixVbo);
+				for (std::size_t instance = 0; instance < numInstances; instance++)
+					glBufferSubData(GL_ARRAY_BUFFER, instance * sizeof(glm::mat4), sizeof(glm::mat4), &mvpMatrices[instanceIndices[instance]]);
+			}
+
+			for (auto part : parts)
+				part->renderInstanced(shader, numInstances);
+
+			glBindVertexArray(0);
+		}
 	}
 }
