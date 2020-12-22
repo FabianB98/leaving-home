@@ -25,6 +25,10 @@ namespace rendering::bounding_geometry
 
 		void fitToVertices(const std::vector<glm::vec3>& vertices);
 
+		void extendToFit(const std::vector<std::shared_ptr<BoundingGeometry>> boundingGeometries);
+
+		std::vector<glm::vec3> getExtremaPoints();
+
 		bool isInCameraFrustum(const std::array<glm::vec4, 6>& clippingPlanes, const glm::mat4& modelMatrix);
 
 		glm::vec3 getMin()
@@ -56,7 +60,7 @@ namespace rendering::bounding_geometry
 			std::pair<glm::vec3, glm::vec3> convertToWorldSpace(AABB& aabb, const glm::mat4& modelMatrix);
 
 			friend AABB;
-		};
+		};		
 
 	private:
 		glm::vec3 min;

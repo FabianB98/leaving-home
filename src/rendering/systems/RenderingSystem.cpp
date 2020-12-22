@@ -190,21 +190,18 @@ namespace rendering::systems
 			auto* mesh = meshShaderPairs.first;
 			const auto& meshInstances = meshTransforms[mesh];
 			// Calculate the model view projection matrix of each instance of the mesh.
-			int numInstances = meshInstances.first.size();
+			const auto& instances = instancesToRender[mesh];
+			int numInstances = instances.size();
 
 			auto& meshMVPs = mvps[mesh];
 			meshMVPs.resize(numInstances);
 
-			// parallel mvp calculation
+			// Parallel mvp calculation (only calculate MVPs for instances which are not culled).
 			std::vector<int> a(numInstances);
 			std::iota(std::begin(a), std::end(a), 0);
 			std::for_each(std::execution::par_unseq, std::begin(a), std::end(a), [&](int i) {
-				meshMVPs[i] = viewProjection * meshInstances.first[i];
+				meshMVPs[i] = viewProjection * meshInstances.first[instances[i]];
 			});
-
-			// for reference: old mvp calculation
-			/*for (int i = 0; i < numInstances; i++)
-				mvps[i] = viewProjection * meshInstances.second.first[i];*/
 		}
 	}
 
@@ -265,7 +262,6 @@ namespace rendering::systems
 			auto* mesh = meshShaderPairs.first;
 			const auto& meshInstances = meshTransforms[mesh];
 			// Calculate the model view projection matrix of each instance of the mesh.
-			//int numInstances = meshInstances.first.size();
 			const auto& instances = instancesToRender[mesh];
 			int numInstances = instances.size();
 
@@ -284,10 +280,7 @@ namespace rendering::systems
 				const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
 				const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
 
-				//if (numInstances > 1 || (numInstances == 1 && mesh->getBoundingGeometry()->isInCameraFrustum(camera.getClippingPlanes(), modelMatrices[0])))
-				//{
 				mesh->renderInstanced(*activeShader, modelMatrices, normalMatrices, meshMVPs, instances);
-				//}
 			}
 		}
 	}
@@ -304,7 +297,6 @@ namespace rendering::systems
 		{
 			const auto& meshInstances = meshTransforms[mesh];
 			// Calculate the model view projection matrix of each instance of the mesh.
-			//int numInstances = meshInstances.first.size();
 			const auto& instances = instancesToRender[mesh];
 			int numInstances = instances.size();
 
@@ -315,7 +307,6 @@ namespace rendering::systems
 				// Render all instances of the mesh.
 				const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
 				const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
-				//mesh->renderInstanced(*pickingShader, modelMatrices, normalMatrices, meshMVPs);
 				mesh->renderInstanced(*pickingShader, modelMatrices, normalMatrices, meshMVPs, instances);
 			}
 		}

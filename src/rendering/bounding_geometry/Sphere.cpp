@@ -5,6 +5,8 @@
 
 namespace rendering::bounding_geometry
 {
+	static float RELATIVE_DIAG = std::sqrt(3.0f) / 3.0f;
+
 	Sphere::Sphere(const std::vector<glm::vec3>& vertices, DefinitionSpace* _definitionSpace) :
 		center(glm::vec3(0.0f)),
 		radius(0.0f),
@@ -44,6 +46,64 @@ namespace rendering::bounding_geometry
 				squaredRadius = distanceSquared;
 		}
 		radius = std::sqrt(squaredRadius);
+	}
+
+	void addVerticesAndSphere(std::vector<glm::vec3>& vertices, std::vector<Sphere*>& spheres, BoundingGeometry& boundingGeometry)
+	{
+		std::vector<glm::vec3> criticalPoints = boundingGeometry.getExtremaPoints();
+		for (glm::vec3& criticalPoint : criticalPoints)
+			vertices.push_back(criticalPoint);
+		spheres.push_back(new Sphere(criticalPoints, new Sphere::WorldSpace()));
+	}
+
+	void Sphere::extendToFit(const std::vector<std::shared_ptr<BoundingGeometry>> boundingGeometries)
+	{
+		// Extension of Ritter's bounding sphere as explained in https://stackoverflow.com/a/39683025.
+		std::vector<glm::vec3> vertices;
+		std::vector<Sphere*> spheres;
+
+		// Get all extrema points and find a bounding sphere for all these extrema points.
+		addVerticesAndSphere(vertices, spheres, *this);
+		for (std::shared_ptr<BoundingGeometry> boundingGeometry : boundingGeometries)
+			addVerticesAndSphere(vertices, spheres, *boundingGeometry);
+
+		fitToVertices(vertices);
+
+		// Perform the second step of Ritter's bounding sphere algorithm "using the backsides of the spheres as the points to
+		// test" in order to componensate for the bounding sphere obtained so far very likely being a bit too small.
+		float squaredRadius = radius * radius;
+		for (Sphere* sphere : spheres)
+		{
+			glm::vec3 direction = glm::normalize(sphere->center - center);
+			glm::vec3 backside = sphere->center + sphere->radius * direction;
+
+			float distanceSquared = glm::distance2(center, backside);
+			if (distanceSquared > squaredRadius)
+				squaredRadius = distanceSquared;
+
+			delete sphere;
+		}
+		radius = std::sqrt(squaredRadius);
+	}
+
+	std::vector<glm::vec3> Sphere::getExtremaPoints()
+	{
+		return std::vector<glm::vec3>{
+			center + glm::vec3(radius, 0, 0),
+			center + glm::vec3(-radius, 0, 0),
+			center + glm::vec3(0, radius, 0),
+			center + glm::vec3(0, -radius, 0),
+			center + glm::vec3(0, 0, radius),
+			center + glm::vec3(0, 0, -radius),
+			center + glm::vec3(RELATIVE_DIAG * radius, RELATIVE_DIAG * radius, RELATIVE_DIAG * radius),
+			center + glm::vec3(RELATIVE_DIAG * radius, RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius),
+			center + glm::vec3(RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius, RELATIVE_DIAG * radius),
+			center + glm::vec3(RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius),
+			center + glm::vec3(-RELATIVE_DIAG * radius, RELATIVE_DIAG * radius, RELATIVE_DIAG * radius),
+			center + glm::vec3(-RELATIVE_DIAG * radius, RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius),
+			center + glm::vec3(-RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius, RELATIVE_DIAG * radius),
+			center + glm::vec3(-RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius)
+		};
 	}
 
 	glm::vec3 Sphere::furthestPointAwayFrom(const std::vector<glm::vec3>& vertices, const glm::vec3& p)

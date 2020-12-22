@@ -22,6 +22,32 @@ namespace rendering::bounding_geometry
 		}
 	}
 
+	void AABB::extendToFit(const std::vector<std::shared_ptr<BoundingGeometry>> boundingGeometries)
+	{
+		for (std::shared_ptr<BoundingGeometry> boundingGeometry : boundingGeometries)
+		{
+			for (glm::vec3& criticalPoint : boundingGeometry->getExtremaPoints())
+			{
+				min = glm::min(min, criticalPoint);
+				max = glm::max(max, criticalPoint);
+			}
+		}
+	}
+
+	std::vector<glm::vec3> AABB::getExtremaPoints()
+	{
+		return std::vector<glm::vec3>{
+			glm::vec3(min.x, min.y, min.z),
+			glm::vec3(min.x, min.y, max.z),
+			glm::vec3(min.x, max.y, min.z),
+			glm::vec3(min.x, max.y, max.z),
+			glm::vec3(max.x, min.y, min.z),
+			glm::vec3(max.x, min.y, max.z),
+			glm::vec3(max.x, max.y, min.z),
+			glm::vec3(max.x, max.y, max.z)
+		};
+	}
+
 	bool AABB::isInCameraFrustum(const std::array<glm::vec4, 6>& clippingPlanes, const glm::mat4& modelMatrix)
 	{
 		// Translate, rotate and scale the AABB according to the model matrix.

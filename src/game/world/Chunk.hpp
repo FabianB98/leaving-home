@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <limits>
 #include <random>
 #include <stdlib.h>
 #include <unordered_map>
@@ -121,6 +122,12 @@ namespace game::world
 		HeightGenerator& heightGenerator;
 
 		entt::registry& registry;
+		entt::entity cullingEntity{ entt::null };
+		entt::entity topologyEntity{ entt::null };
+		entt::entity landscapeEntity{ entt::null };
+		entt::entity waterEntity{ entt::null };
+
+		std::shared_ptr<rendering::bounding_geometry::AABB> cullingGeometry;
 
 		rendering::shading::Shader* terrainShader;
 		rendering::shading::Shader* waterShader;

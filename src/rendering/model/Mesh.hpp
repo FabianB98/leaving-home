@@ -113,16 +113,9 @@ namespace rendering
 			void render(shading::Shader& shader);
 
 			void renderInstanced(
-				shading::Shader& shader, 
-				const std::vector<glm::mat4>& modelMatrices, 
-				const std::vector<glm::mat3>& normalMatrices, 
-				const std::vector<glm::mat4>& mvpMatrices
-			);
-
-			void renderInstanced(
 				shading::Shader& shader,
-				const std::vector<glm::mat4>& modelMatrices,
-				const std::vector<glm::mat3>& normalMatrices,
+				const std::vector<glm::mat4>& modelMatricesIndexed,
+				const std::vector<glm::mat3>& normalMatricesIndexed,
 				const std::vector<glm::mat4>& mvpMatrices,
 				const std::vector<std::size_t>& instanceIndices
 			);
