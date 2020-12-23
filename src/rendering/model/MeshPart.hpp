@@ -16,13 +16,28 @@ namespace rendering
 {
 	namespace model
 	{
+		struct MeshPartData
+		{
+			std::shared_ptr<Material> material;
+			std::vector<unsigned int> indices;
+			GLenum mode;
+
+			MeshPartData(const std::shared_ptr<Material>& _material, const std::vector<unsigned int>& _indices)
+				: material(_material), indices(_indices), mode(GL_TRIANGLES) {}
+
+			MeshPartData(const std::shared_ptr<Material>& _material, const std::vector<unsigned int>& _indices, GLenum _mode)
+				: material(_material), indices(_indices), mode(_mode) {}
+		};
+
 		class MeshPart
 		{
 		public:
 			MeshPart(std::shared_ptr<Material> _material, const std::vector<unsigned int>& indices)
-				: MeshPart(_material, indices, GL_TRIANGLES) {};
+				: MeshPart(_material, indices, GL_TRIANGLES) {}
 
 			MeshPart(std::shared_ptr<Material> _material, const std::vector<unsigned int>& indices, GLenum _mode);
+
+			MeshPart(const MeshPartData& data) : MeshPart(data.material, data.indices, data.mode) {}
 
 			~MeshPart();
 

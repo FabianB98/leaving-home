@@ -11,5 +11,13 @@ namespace rendering
 			shader.setUniformVec3("kS", specular);
 			shader.setUniformInt("n", phongExponent);
 		}
+
+		bool Material::operator==(const Material other) const
+		{
+			return ambient == other.ambient
+				&& diffuse == other.diffuse
+				&& specular == other.specular
+				&& phongExponent == other.phongExponent;
+		}
 	}
 }

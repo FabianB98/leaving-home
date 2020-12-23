@@ -7,20 +7,7 @@ namespace rendering
 {
 	namespace model
 	{
-		Mesh::Mesh(
-			const std::vector<glm::vec3>& vertices,
-			const std::vector<glm::vec2>& uvs,
-			const std::vector<glm::vec3>& normals,
-			const std::vector<std::shared_ptr<MeshPart>>& _parts,
-			std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
-		) : parts(_parts), boundingGeometry(_boundingGeometry), maxInstancesDrawn(0)
-		{
-			initOpenGlBuffers(vertices, uvs, normals);
-			boundingGeometry->fitToVertices(vertices);
-		}
-
-		Mesh::Mesh(std::string assetName, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry)
-			: boundingGeometry(_boundingGeometry), maxInstancesDrawn(0)
+		MeshData::MeshData(std::string assetName)
 		{
 			// Construct the actual path to the obj file.
 			std::string fileName = "./res/models/" + assetName + ".obj";
@@ -59,12 +46,6 @@ namespace rendering
 			// A map for storing the individual index combinations we found so far.
 			std::map<std::tuple<int, int, int>, unsigned int> combinedIndexMap;
 			unsigned int nextId = 0;
-
-			// The vertex positions, UV coordinates and normals with shared indices. Will be filled in the following
-			// nested loops.
-			std::vector<glm::vec3> vertices;
-			std::vector<glm::vec2> uvs;
-			std::vector<glm::vec3> normals;
 
 			// The indices for each material.
 			std::map<int, std::vector<unsigned int>*> indicesMap;
@@ -107,7 +88,7 @@ namespace rendering
 
 						// Create an identifier for the combined vertex index and check whether we have already seen
 						// this combined vertex index.
-						std::tuple<int, int, int> combinedIndexId = 
+						std::tuple<int, int, int> combinedIndexId =
 							std::tuple<int, int, int>(vertexIndex, uvIndex, normalIndex);
 						auto entry = combinedIndexMap.find(combinedIndexId);
 						unsigned int combinedIndex;
@@ -149,27 +130,44 @@ namespace rendering
 				}
 			}
 
-			// All vertex position, UV coordinate and normal data is now in a format with shared indices. We can
-			// therefore finally initialize the VAO and the VBOs with this data.
-			initOpenGlBuffers(vertices, uvs, normals);
-			boundingGeometry->fitToVertices(vertices);
-
-			// Create a MeshPart for each material.
+			// Create a MeshPartData for each material.
 			for (auto const& materialIndices : indicesMap)
 			{
 				// Create a Material instance from the values loaded by the tinyobjloader.
 				tinyobj::material_t& mat = materials[materialIndices.first];
 				std::shared_ptr<Material> material = std::make_shared<Material>(
-					glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]), 
-					glm::vec3(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]), 
-					glm::vec3(mat.specular[0], mat.specular[1], mat.specular[2]), 
+					glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]),
+					glm::vec3(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]),
+					glm::vec3(mat.specular[0], mat.specular[1], mat.specular[2]),
 					mat.shininess
 				);
 
-				// Add a new MeshPart instance with the material and the indices to the parts of this Mesh.
-				parts.push_back(std::make_shared<MeshPart>(material, *materialIndices.second));
+				// Add a new MeshPartData instance with the material and the indices to the parts of this MeshData.
+				parts.push_back(MeshPartData(material, *materialIndices.second));
 				delete materialIndices.second;
 			}
+		}
+
+		Mesh::Mesh(
+			const std::vector<glm::vec3>& vertices,
+			const std::vector<glm::vec2>& uvs,
+			const std::vector<glm::vec3>& normals,
+			const std::vector<std::shared_ptr<MeshPart>>& _parts,
+			std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
+		) : parts(_parts), boundingGeometry(_boundingGeometry), maxInstancesDrawn(0)
+		{
+			initOpenGlBuffers(vertices, uvs, normals);
+			boundingGeometry->fitToVertices(vertices);
+		}
+
+		std::vector<std::shared_ptr<MeshPart>> Mesh::createMeshParts(const std::vector<MeshPartData>& parts)
+		{
+			std::vector<std::shared_ptr<MeshPart>> result;
+
+			for (const MeshPartData& part : parts)
+				result.push_back(std::make_shared<MeshPart>(part.material, part.indices, part.mode));
+
+			return result;
 		}
 
 		void Mesh::initOpenGlBuffers(

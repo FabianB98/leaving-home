@@ -25,6 +25,23 @@ namespace rendering
 {
 	namespace model
 	{
+		struct MeshData
+		{
+			std::vector<glm::vec3> vertices;
+			std::vector<glm::vec2> uvs;
+			std::vector<glm::vec3> normals;
+			std::vector<MeshPartData> parts;
+
+			MeshData(
+				const std::vector<glm::vec3>& _vertices,
+				const std::vector<glm::vec2>& _uvs,
+				const std::vector<glm::vec3>& _normals,
+				const std::vector<MeshPartData>& _parts
+			) : vertices(_vertices), uvs(_uvs), normals(_normals), parts(_parts) {}
+
+			MeshData(std::string assetName);
+		};
+
 		class Mesh
 		{
 		public:
@@ -43,9 +60,15 @@ namespace rendering
 				std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
 			);
 
+			Mesh(const MeshData& data) : Mesh(data.vertices, data.uvs, data.normals, createMeshParts(data.parts)) {}
+
+			Mesh(const MeshData& data, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry)
+				: Mesh(data.vertices, data.uvs, data.normals, createMeshParts(data.parts), _boundingGeometry) {}
+
 			Mesh(std::string assetName) : Mesh(assetName, std::make_shared<bounding_geometry::None>()) {}
 
-			Mesh(std::string assetName, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry);
+			Mesh(std::string assetName, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry)
+				: Mesh(MeshData(assetName), _boundingGeometry) {}
 
 			~Mesh();
 
@@ -153,6 +176,8 @@ namespace rendering
 			std::shared_ptr<bounding_geometry::BoundingGeometry> boundingGeometry;
 
 			size_t maxInstancesDrawn;
+
+			static std::vector<std::shared_ptr<MeshPart>> createMeshParts(const std::vector<MeshPartData>& parts);
 
 			void initOpenGlBuffers(
 				const std::vector<glm::vec3>& vertices,
