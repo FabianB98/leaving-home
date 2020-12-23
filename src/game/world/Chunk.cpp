@@ -76,6 +76,12 @@ namespace game::world
 		cellsAlongChunkBorder.resize(numCellsAlongChunkBorder);
 		for (int i = 0; i < numCellsAlongChunkBorder; i++)
 			cellsAlongChunkBorder[i] = nullptr;
+
+		cullingGeometry = std::make_shared<rendering::bounding_geometry::AABB>(
+			glm::vec3(std::numeric_limits<float>::max()),
+			glm::vec3(std::numeric_limits<float>::lowest()),
+			new rendering::bounding_geometry::AABB::WorldSpace()
+		);
 	}
 
 	void Chunk::generateChunkTopology(std::array<Chunk*, 6> _neighbors, PlanarGraph* _worldGraph)
@@ -88,53 +94,82 @@ namespace game::world
 		generator.generateChunkTopology();
 	}
 
+	void Chunk::createCullingEntityIfNotCreated()
+	{
+		if (cullingEntity == entt::null)
+		{
+			cullingEntity = registry.create();
+			registry.emplace<rendering::components::CullingGeometry>(cullingEntity, cullingGeometry);
+		}
+	}
+
 	void Chunk::addedToWorld()
 	{
 		auto& shading = registry.ctx<rendering::systems::MeshShading>();
 		auto& picking = registry.ctx<rendering::systems::Picking>();
 
+		createCullingEntityIfNotCreated();
+		std::vector<std::shared_ptr<rendering::bounding_geometry::BoundingGeometry>> extendCullingGeometryBy;
+
 		if (ADD_TOPOLOGY_MESH)
 		{
 			// Add an entity for the chunk's topology mesh.
-			entt::entity topologyEntity = registry.create();
-			registry.emplace<rendering::components::MeshRenderer>(topologyEntity, getTopologyMesh());
+			topologyEntity = registry.create();
+			rendering::model::Mesh* mesh = getTopologyMesh();
+			registry.emplace<rendering::components::MeshRenderer>(topologyEntity, mesh);
+			registry.emplace<rendering::components::CullingGeometry>(topologyEntity, mesh->getBoundingGeometry());
 			registry.emplace<rendering::components::MatrixTransform>(
 				topologyEntity,
 				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
 			);
+
+			extendCullingGeometryBy.push_back(mesh->getBoundingGeometry());
+			rendering::systems::cullingRelationship(registry, cullingEntity, topologyEntity);
 		}
 
 		if (ADD_LANDSCAPE_MESH)
 		{
 			// Add an entity for the chunk's landscape mesh.
-			entt::entity chunkEntity = registry.create();
-			registry.emplace<rendering::components::MeshRenderer>(chunkEntity, getLandscapeMesh());
+			landscapeEntity = registry.create();
+			rendering::model::Mesh* mesh = getLandscapeMesh();
+			registry.emplace<rendering::components::MeshRenderer>(landscapeEntity, mesh);
+			registry.emplace<rendering::components::CullingGeometry>(landscapeEntity, mesh->getBoundingGeometry());
 			registry.emplace<rendering::components::MatrixTransform>(
-				chunkEntity,
+				landscapeEntity,
 				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
 			);
 
-			shading.shaders.insert(std::make_pair(getLandscapeMesh(), terrainShader));
-			picking.enabled.insert(getLandscapeMesh());
+			shading.shaders.insert(std::make_pair(mesh, terrainShader));
+			picking.enabled.insert(mesh);
+
+			extendCullingGeometryBy.push_back(mesh->getBoundingGeometry());
+			rendering::systems::cullingRelationship(registry, cullingEntity, landscapeEntity);
 		}
 
 		if (ADD_WATER_MESH)
 		{
 			// Add an entity for the chunk's water mesh.
-			entt::entity waterEntity = registry.create();
+			glm::mat4 waterModelMatrix = rendering::components::EulerComponentwiseTransform(
+				glm::vec3(centerPos.x, WATER_HEIGHT, centerPos.y),
+				0, 0, 0,
+				glm::vec3(1)
+			).toTransformationMatrix();
+			auto waterBoundingGeomtryWorldSpace = waterMesh->getBoundingGeometry()->toWorldSpace(waterModelMatrix);
+
+			waterEntity = registry.create();
 			registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
-			registry.emplace<rendering::components::MatrixTransform>(
-				waterEntity,
-				rendering::components::EulerComponentwiseTransform(
-					glm::vec3(centerPos.x, WATER_HEIGHT, centerPos.y),
-					0, 0, 0,
-					glm::vec3(1)
-				).toTransformationMatrix()
-			);
+			registry.emplace<rendering::components::CullingGeometry>(waterEntity, waterBoundingGeomtryWorldSpace);
+			registry.emplace<rendering::components::MatrixTransform>(waterEntity, waterModelMatrix);
 
 			shading.shaders.insert(std::make_pair(waterMesh, waterShader));
 			shading.priorities.insert(std::make_pair(waterShader, 1));
+
+			extendCullingGeometryBy.push_back(waterBoundingGeomtryWorldSpace);
+			rendering::systems::cullingRelationship(registry, cullingEntity, waterEntity);
 		}
+
+		if (!extendCullingGeometryBy.empty())
+			cullingGeometry->extendToFitGeometries(extendCullingGeometryBy);
 	}
 
 	rendering::model::Mesh* Chunk::generateWaterMesh()
@@ -569,10 +604,16 @@ namespace game::world
 			glm::vec3(1.0f, 0.0f, 0.0f),
 			glm::vec3(0.1f, 0.0f, 0.0f),
 			2.0f
-			);
+		);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_LINES));
-		return new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+		return new rendering::model::Mesh(
+			vertices,
+			uvs,
+			normals,
+			meshParts,
+			std::make_shared<rendering::bounding_geometry::AABB>(new rendering::bounding_geometry::AABB::WorldSpace())
+		);
 	}
 
 	unsigned int Chunk::Generator::addCellCorner(
@@ -774,10 +815,16 @@ namespace game::world
 			0.5f * GRASS_COLOR,
 			0.3f * GRASS_COLOR,
 			2.0f
-			);
+		);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
-		rendering::model::Mesh* mesh = new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+		rendering::model::Mesh* mesh = new rendering::model::Mesh(
+			vertices,
+			uvs,
+			normals,
+			meshParts,
+			std::make_shared<rendering::bounding_geometry::AABB>(new rendering::bounding_geometry::AABB::WorldSpace())
+		);
 		mesh->addAdditionalVertexAttributeI<glm::uvec2>(CELL_ID_ATTRIBUTE_LOCATION, cellIds, 2, GL_UNSIGNED_INT);
 		return mesh;
 	}
@@ -829,10 +876,16 @@ namespace game::world
 			glm::vec3(0.0f, 0.0f, 0.3f),
 			glm::vec3(0.2f, 0.2f, 0.4f),
 			24.0f
-			);
+		);
 		std::vector<std::shared_ptr<rendering::model::MeshPart>> meshParts;
 		meshParts.push_back(std::make_shared<rendering::model::MeshPart>(material, indices, GL_TRIANGLES));
-		return new rendering::model::Mesh(vertices, uvs, normals, meshParts);
+		return new rendering::model::Mesh(
+			vertices,
+			uvs,
+			normals,
+			meshParts,
+			std::make_shared<rendering::bounding_geometry::AABB>(new rendering::bounding_geometry::AABB::ObjectSpace())
+		);
 	}
 
 	Cell::Cell(Chunk* _chunk, uint16_t _cellId, Node* _node)
@@ -871,8 +924,17 @@ namespace game::world
 
 			if (entity == entt::null)
 				entity = chunk->registry.create();
-			chunk->registry.emplace<rendering::components::MeshRenderer>(entity, content->getMesh());
-			chunk->registry.emplace<rendering::components::MatrixTransform>(entity, content->getTransform());
+
+			rendering::model::Mesh* mesh = content->getMesh();
+			rendering::components::MatrixTransform& transform = content->getTransform();
+			auto boundingGeometryWorldSpace = mesh->getBoundingGeometry()->toWorldSpace(transform.getTransform());
+			chunk->registry.emplace<rendering::components::MeshRenderer>(entity, mesh);
+			chunk->registry.emplace<rendering::components::CullingGeometry>(entity, boundingGeometryWorldSpace);
+			chunk->registry.emplace<rendering::components::MatrixTransform>(entity, transform);
+
+			chunk->createCullingEntityIfNotCreated();
+			chunk->cullingGeometry->extendToFitGeometry(boundingGeometryWorldSpace);
+			rendering::systems::cullingRelationship(chunk->registry, chunk->cullingEntity, entity);
 		}
 	}
 
@@ -893,7 +955,7 @@ namespace game::world
 
 		height = chunk->heightGenerator.getHeightQuantized(relaxedPosition);
 
-		// This was originally part of the shader which used some code from 
+		// This was originally part of the terrain shader which used some code from 
 		// https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83.
 		int a = (cellId >> 12) & 0xfff;
 		int b = cellId & 0xfff;

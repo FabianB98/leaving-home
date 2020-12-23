@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../bounding_geometry/BoundingGeometry.hpp"
 #include "../model/Mesh.hpp"
 #include "../shading/Shader.hpp"
 
@@ -16,6 +17,7 @@ namespace rendering::components
 		{
 			return mesh;
 		}
+
 	private:
 		rendering::model::Mesh* mesh;
 	};

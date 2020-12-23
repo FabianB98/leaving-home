@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <limits>
 #include <random>
 #include <stdlib.h>
 #include <unordered_map>
@@ -10,6 +11,8 @@
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 
+#include "../../rendering/bounding_geometry/AABB.hpp"
+#include "../../rendering/components/CullingGeometry.hpp"
 #include "../../rendering/components/MeshRenderer.hpp"
 #include "../../rendering/components/Transform.hpp"
 #include "../../rendering/systems/RenderingSystem.hpp"
@@ -119,6 +122,12 @@ namespace game::world
 		HeightGenerator& heightGenerator;
 
 		entt::registry& registry;
+		entt::entity cullingEntity{ entt::null };
+		entt::entity topologyEntity{ entt::null };
+		entt::entity landscapeEntity{ entt::null };
+		entt::entity waterEntity{ entt::null };
+
+		std::shared_ptr<rendering::bounding_geometry::AABB> cullingGeometry;
 
 		rendering::shading::Shader* terrainShader;
 		rendering::shading::Shader* waterShader;
@@ -154,6 +163,8 @@ namespace game::world
 		);
 
 		void generateChunkTopology(std::array<Chunk*, 6> _neighbors, PlanarGraph* _worldGraph);
+
+		void createCullingEntityIfNotCreated();
 
 		void addedToWorld();
 
@@ -338,9 +349,9 @@ namespace game::world
 	class CellContent
 	{
 	public:
-		CellContent(rendering::model::Mesh* _mesh) : 
+		CellContent(rendering::model::Mesh* _mesh) :
 			cell(nullptr),
-			mesh(_mesh), 
+			mesh(_mesh),
 			transform(rendering::components::MatrixTransform(glm::mat4(1.0f))) {}
 
 		Cell* getCell()

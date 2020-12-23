@@ -17,6 +17,8 @@
 
 // Our headers
 #include "MeshPart.hpp"
+#include "../bounding_geometry/BoundingGeometry.hpp"
+#include "../bounding_geometry/None.hpp"
 #include "../shading/Shader.hpp"
 
 namespace rendering
@@ -31,9 +33,19 @@ namespace rendering
 				const std::vector<glm::vec2>& uvs,
 				const std::vector<glm::vec3>& normals,
 				const std::vector<std::shared_ptr<MeshPart>>& _parts
+			) : Mesh(vertices, uvs, normals, _parts, std::make_shared<bounding_geometry::None>()) {}
+
+			Mesh(
+				const std::vector<glm::vec3>& vertices,
+				const std::vector<glm::vec2>& uvs,
+				const std::vector<glm::vec3>& normals,
+				const std::vector<std::shared_ptr<MeshPart>>& _parts,
+				std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
 			);
 
-			Mesh(std::string assetName);
+			Mesh(std::string assetName) : Mesh(assetName, std::make_shared<bounding_geometry::None>()) {}
+
+			Mesh(std::string assetName, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry);
 
 			~Mesh();
 
@@ -101,11 +113,16 @@ namespace rendering
 			void render(shading::Shader& shader);
 
 			void renderInstanced(
-				shading::Shader& shader, 
-				const std::vector<glm::mat4>& modelMatrices, 
-				const std::vector<glm::mat3>& normalMatrices, 
+				shading::Shader& shader,
+				const std::vector<glm::mat4>& modelMatrices,
+				const std::vector<glm::mat3>& normalMatrices,
 				const std::vector<glm::mat4>& mvpMatrices
 			);
+
+			const std::shared_ptr<bounding_geometry::BoundingGeometry> getBoundingGeometry()
+			{
+				return boundingGeometry;
+			}
 
 			bool operator==(const Mesh& other) const
 			{
@@ -132,6 +149,10 @@ namespace rendering
 			std::unordered_set<GLuint> usedAttributeLocations;
 
 			std::vector<std::shared_ptr<MeshPart>> parts;
+
+			std::shared_ptr<bounding_geometry::BoundingGeometry> boundingGeometry;
+
+			size_t maxInstancesDrawn;
 
 			void initOpenGlBuffers(
 				const std::vector<glm::vec3>& vertices,

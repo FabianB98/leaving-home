@@ -6,9 +6,15 @@ namespace rendering::systems
 
 	std::set<model::Mesh*> transformChanged;
 	std::unordered_map<model::Mesh*, std::pair<std::vector<glm::mat4>, std::vector<glm::mat3>>> meshTransforms;
+	std::unordered_map<entt::entity, size_t> entityToTransformIndexMap;
 	std::vector<std::pair<model::Mesh*, shading::Shader*>> meshShaders;
 	std::unordered_map<shading::Shader*, int> shaderPriorities;
-	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> mvps;
+	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> modelMatricesToRender;
+	std::unordered_map<model::Mesh*, std::vector<glm::mat3>> normalMatricesToRender;
+	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> mvpMatricesToRender;
+	std::unordered_map<model::Mesh*, std::vector<std::size_t>> instancesToRender;
+
+	components::CullingGeometry cullingRoot = components::CullingGeometry(std::make_shared<bounding_geometry::None>());
 
 	void changedMeshRenderer(entt::registry& registry, entt::entity entity)
 	{
@@ -16,13 +22,52 @@ namespace rendering::systems
 		transformChanged.insert(meshRenderer.getMesh());
 	}
 
+	void addedCullingGeometry(entt::registry& registry, entt::entity entity)
+	{
+		auto& cullingGeometry = registry.get<components::CullingGeometry>(entity);
+		cullingGeometry.parent = entt::null;
+		cullingRoot.children.insert(entity);
+	}
+
+	void removedCullingGeometry(entt::registry& registry, entt::entity entity)
+	{
+		components::CullingGeometry& deletedCullingGeometry = registry.get<components::CullingGeometry>(entity);
+
+		components::CullingGeometry& parentCullingGeometry = deletedCullingGeometry.parent != entt::null
+			? registry.get<components::CullingGeometry>(deletedCullingGeometry.parent) 
+			: cullingRoot;
+
+		parentCullingGeometry.children.erase(entity);
+	}
+
+	void cullingRelationship(entt::registry& registry, entt::entity parent, entt::entity child)
+	{
+		components::CullingGeometry& childCullingGeometry = registry.get<components::CullingGeometry>(child);
+
+		components::CullingGeometry& oldParentCullingGeometry = childCullingGeometry.parent != entt::null
+			? registry.get<components::CullingGeometry>(childCullingGeometry.parent)
+			: cullingRoot;
+
+		components::CullingGeometry& newParentCullingGeometry = parent != entt::null
+			? registry.get<components::CullingGeometry>(parent)
+			: cullingRoot;
+
+		childCullingGeometry.parent = parent;
+		oldParentCullingGeometry.children.erase(child);
+		newParentCullingGeometry.children.insert(child);
+	}
+
 	void initRenderingSystem(entt::registry& registry)
 	{
 		registry.set<MeshShading>();
 		registry.set<Picking>();
+
 		registry.on_construct<components::MeshRenderer>().connect<&changedMeshRenderer>();
 		registry.on_destroy<components::MeshRenderer>().connect<&changedMeshRenderer>();
 		transformObserver.connect(registry, entt::collector.update<components::MatrixTransform>().where<components::MeshRenderer>());
+
+		registry.on_construct<components::CullingGeometry>().connect<&addedCullingGeometry>();
+		registry.on_destroy<components::CullingGeometry>().connect<&removedCullingGeometry>();
 	}
 
 	void updateLights(entt::registry& registry, rendering::shading::Shader& shader)
@@ -70,8 +115,9 @@ namespace rendering::systems
 			auto relationship = registry.try_get<components::Relationship>(entity);
 
 			glm::mat4& modelMatrix = relationship ? relationship->totalTransform : transform.getTransform();
+			entityToTransformIndexMap[entity] = meshTransforms[mesh].first.size();
 			meshTransforms[mesh].first.push_back(modelMatrix);
-			meshTransforms[mesh].second.push_back(glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+			meshTransforms[mesh].second.push_back(glm::mat3(glm::transpose(glm::inverse(modelMatrix)))); 
 		}
 
 
@@ -91,6 +137,53 @@ namespace rendering::systems
 		updateLights(registry, shader);
 	}
 
+	void performFrustumCulling(entt::registry& registry, rendering::components::Camera& camera)
+	{
+		std::queue<entt::entity> entitiesToCheck;
+		for (auto& entity : cullingRoot.children)
+			entitiesToCheck.push(entity);
+
+		glm::mat4& viewProjection = camera.getViewProjectionMatrix();
+		const std::array<glm::vec4, 6>& cameraFrustum = camera.getClippingPlanes();
+
+		instancesToRender.clear();
+		for (auto& meshModelMatrices : meshTransforms)
+			instancesToRender.insert(std::make_pair(meshModelMatrices.first, std::vector<size_t>()));
+
+		while (!entitiesToCheck.empty())
+		{
+			entt::entity& entity = entitiesToCheck.front();
+			entitiesToCheck.pop();
+
+			components::MeshRenderer* meshRenderer = registry.try_get<components::MeshRenderer>(entity);
+			model::Mesh* mesh;
+			size_t index;
+			glm::mat4 modelMatrix;
+			if (meshRenderer != nullptr)
+			{
+				mesh = meshRenderer->getMesh();
+				index = entityToTransformIndexMap[entity];
+				modelMatrix = meshTransforms[mesh].first[index];
+			}
+			else
+			{
+				mesh = nullptr;
+				index = 0;
+				modelMatrix = glm::mat4(1.0f);
+			}
+
+			components::CullingGeometry& cullingGeometry = registry.get<components::CullingGeometry>(entity);
+			if (cullingGeometry.boundingGeometry->isInCameraFrustum(cameraFrustum, modelMatrix))
+			{
+				if (meshRenderer != nullptr)
+					instancesToRender[mesh].push_back(index);
+
+				for (auto& child : cullingGeometry.children)
+					entitiesToCheck.push(child);
+			}
+		}
+	}
+
 	void calculateMVPs(rendering::components::Camera& camera)
 	{
 		glm::mat4& viewProjection = camera.getViewProjectionMatrix();
@@ -99,21 +192,27 @@ namespace rendering::systems
 			auto* mesh = meshShaderPairs.first;
 			const auto& meshInstances = meshTransforms[mesh];
 			// Calculate the model view projection matrix of each instance of the mesh.
-			int numInstances = meshInstances.first.size();
+			const auto& instances = instancesToRender[mesh];
+			int numInstances = instances.size();
 
-			auto& meshMVPs = mvps[mesh];
+			auto& meshModels = modelMatricesToRender[mesh];
+			auto& meshNormals = normalMatricesToRender[mesh];
+			auto& meshMVPs = mvpMatricesToRender[mesh];
+
+			meshModels.resize(numInstances);
+			meshNormals.resize(numInstances);
 			meshMVPs.resize(numInstances);
 
-			// parallel mvp calculation
+			// Parallel mvp calculation (only calculate MVPs for instances which are not culled).
 			std::vector<int> a(numInstances);
 			std::iota(std::begin(a), std::end(a), 0);
 			std::for_each(std::execution::par_unseq, std::begin(a), std::end(a), [&](int i) {
-				meshMVPs[i] = viewProjection * meshInstances.first[i];
-			});
+				size_t instance = instances[i];
 
-			// for reference: old mvp calculation
-			/*for (int i = 0; i < numInstances; i++)
-				mvps[i] = viewProjection * meshInstances.second.first[i];*/
+				meshModels[i] = meshInstances.first[instance];
+				meshNormals[i] = meshInstances.second[instance];
+				meshMVPs[i] = viewProjection * meshInstances.first[instance];
+			});
 		}
 	}
 
@@ -161,6 +260,7 @@ namespace rendering::systems
 		});
 
 		// update MVPs
+		performFrustumCulling(registry, camera);
 		calculateMVPs(camera);
 	}
 
@@ -171,23 +271,24 @@ namespace rendering::systems
 		for (const auto& meshShaderPairs : meshShaders)
 		{
 			auto* mesh = meshShaderPairs.first;
-			const auto& meshInstances = meshTransforms[mesh];
-			// Calculate the model view projection matrix of each instance of the mesh.
-			int numInstances = meshInstances.first.size();
+			const auto& meshModels = modelMatricesToRender[mesh];
+			size_t numInstances = meshModels.size();
 
-			// switch shader if necessary
-			auto* shader = meshShaderPairs.second;
-			if (shader != activeShader || activeShader == NULL) {
-				activeShader = shader;
-				activateShader(registry, camera, *activeShader, pickingID);
+			if (numInstances > 0)
+			{
+				// switch shader if necessary
+				auto* shader = meshShaderPairs.second;
+				if (shader != activeShader || activeShader == NULL) {
+					activeShader = shader;
+					activateShader(registry, camera, *activeShader, pickingID);
+				}
+				
+				const auto& meshNormals = normalMatricesToRender[mesh];
+				const auto& meshMVPs = mvpMatricesToRender[mesh];
+
+				// Render all instances of the mesh.
+				mesh->renderInstanced(*activeShader, meshModels, meshNormals, meshMVPs);
 			}
-
-			auto& meshMVPs = mvps[mesh];
-
-			// Render all instances of the mesh.
-			const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
-			const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
-			mesh->renderInstanced(*activeShader, modelMatrices, normalMatrices, meshMVPs);
 		}
 	}
 
@@ -202,15 +303,17 @@ namespace rendering::systems
 		for (const auto& mesh : picking.enabled)
 		{
 			const auto& meshInstances = meshTransforms[mesh];
-			// Calculate the model view projection matrix of each instance of the mesh.
-			int numInstances = meshInstances.first.size();
+			const auto& meshModels = modelMatricesToRender[mesh];
+			size_t numInstances = meshModels.size();
 
-			auto& meshMVPs = mvps[mesh];
+			if (numInstances > 0)
+			{
+				const auto& meshNormals = normalMatricesToRender[mesh];
+				const auto& meshMVPs = mvpMatricesToRender[mesh];
 
-			// Render all instances of the mesh.
-			const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
-			const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
-			mesh->renderInstanced(*pickingShader, modelMatrices, normalMatrices, meshMVPs);
+				// Render all instances of the mesh.
+				mesh->renderInstanced(*pickingShader, meshModels, meshNormals, meshMVPs);
+			}
 		}
 	}
 
@@ -219,5 +322,8 @@ namespace rendering::systems
 		registry.on_construct<components::MeshRenderer>().disconnect<&changedMeshRenderer>();
 		registry.on_destroy<components::MeshRenderer>().disconnect<&changedMeshRenderer>();
 		transformObserver.disconnect();
+
+		registry.on_construct<components::CullingGeometry>().disconnect<&addedCullingGeometry>();
+		registry.on_destroy<components::CullingGeometry>().disconnect<&removedCullingGeometry>();
 	}
 }

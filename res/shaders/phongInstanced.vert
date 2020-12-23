@@ -11,31 +11,17 @@ layout(location = 3) in mat4 T_M;
 layout(location = 7) in mat3 T_Normal;
 layout(location = 10) in mat4 T_MVP;
 
-uniform vec4[6] cameraClippingPlanes;
-
-out vec2 UV;
-out vec3 worldNormal;
-out vec3 worldPos;
-out int insideCameraFrustum;
-
-float distancePointPlane(vec3 point, vec4 plane) {
-	return dot(point, plane.xyz) + plane.w;
-}
+out vec2 uv;
+out vec3 world_normal;
+out vec3 world_pos;
 
 void main() {
 	gl_Position = T_MVP * vec4(vertexPos, 1);
 
-	UV = vertexUV;
+	uv = vertexUV;
 
 	// output position and normal in world space for lighting calculations in
 	// the fragment shader
-	worldPos = (T_M * vec4(vertexPos, 1)).xyz;
-	worldNormal = normalize(T_Normal * normal);
-
-	insideCameraFrustum = 1;
-	for (int i = 0; i < 6; i++) {
-		if (distancePointPlane(worldPos, cameraClippingPlanes[i]) < -clippingEpsilon) {
-			insideCameraFrustum = 0;
-		}
-	}
+	world_pos = (T_M * vec4(vertexPos, 1)).xyz;
+	world_normal = normalize(T_Normal * normal);
 }

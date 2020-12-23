@@ -10,7 +10,10 @@ namespace game::world
 	static rendering::model::Mesh* getTreeMesh()
 	{
 		if (_treeMesh == nullptr)
-			_treeMesh = new rendering::model::Mesh("tree");
+			_treeMesh = new rendering::model::Mesh(
+				"tree",
+				std::make_shared<rendering::bounding_geometry::Sphere>(new rendering::bounding_geometry::Sphere::ObjectSpace())
+			);
 
 		return _treeMesh;
 	}
