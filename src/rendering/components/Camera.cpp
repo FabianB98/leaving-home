@@ -7,12 +7,33 @@ namespace rendering::components
 		viewMatrix = glm::inverse(cameraTransform);
 		viewProjectionMatrix = getProjectionMatrix() * viewMatrix;
 
+		// Extract clipping planes using the Gribb/Hartmann method as explained in https://stackoverflow.com/a/34960913.
+		clippingPlanes[0] = normalizePlane(glm::row(viewProjectionMatrix, 3) + glm::row(viewProjectionMatrix, 0));	// Left
+		clippingPlanes[1] = normalizePlane(glm::row(viewProjectionMatrix, 3) - glm::row(viewProjectionMatrix, 0));	// Right
+		clippingPlanes[2] = normalizePlane(glm::row(viewProjectionMatrix, 3) + glm::row(viewProjectionMatrix, 1));	// Bottom
+		clippingPlanes[3] = normalizePlane(glm::row(viewProjectionMatrix, 3) - glm::row(viewProjectionMatrix, 1));	// Top
+		clippingPlanes[4] = normalizePlane(glm::row(viewProjectionMatrix, 3) + glm::row(viewProjectionMatrix, 2));	// Near
+		clippingPlanes[5] = normalizePlane(glm::row(viewProjectionMatrix, 3) - glm::row(viewProjectionMatrix, 2));	// Far
+
 		position = glm::vec3(cameraTransform[3]);
+	}
+
+	glm::vec4 Camera::normalizePlane(glm::vec4 clippingPlane)
+	{
+		float planeNormalMagnitude = glm::length(glm::vec3(clippingPlane));
+		return clippingPlane / planeNormalMagnitude;
 	}
 
 	void Camera::applyViewProjection(shading::Shader& shader)
 	{
 		shader.setUniformVec3("cameraPos", position);
+
+		shader.setUniformVec4("cameraClippingPlanes[0]", clippingPlanes[0]);
+		shader.setUniformVec4("cameraClippingPlanes[1]", clippingPlanes[1]);
+		shader.setUniformVec4("cameraClippingPlanes[2]", clippingPlanes[2]);
+		shader.setUniformVec4("cameraClippingPlanes[3]", clippingPlanes[3]);
+		shader.setUniformVec4("cameraClippingPlanes[4]", clippingPlanes[4]);
+		shader.setUniformVec4("cameraClippingPlanes[5]", clippingPlanes[5]);
 	}
 
 	float PerspectiveCameraParameters::getFieldOfView()

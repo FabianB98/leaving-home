@@ -59,10 +59,22 @@ namespace rendering::shading
 		glUniform1f(id, value);
 	}
 
+	void Shader::setUniformVec2(const std::string name, const glm::vec2& vector)
+	{
+		GLuint id = getUniformLocation(name);
+		glUniform2f(id, vector.x, vector.y);
+	}
+
 	void Shader::setUniformVec3(const std::string name, const glm::vec3& vector)
 	{
 		GLuint id = getUniformLocation(name);
 		glUniform3f(id, vector.x, vector.y, vector.z);
+	}
+
+	void Shader::setUniformVec4(const std::string name, const glm::vec4& vector)
+	{
+		GLuint id = getUniformLocation(name);
+		glUniform4f(id, vector.x, vector.y, vector.z, vector.w);
 	}
 
 	void Shader::setUniformMat3(const std::string name, const glm::mat3& matrix)

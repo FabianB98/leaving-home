@@ -13,7 +13,7 @@ struct PointLight {
 };
 
 
-in vec2 UV; // unused (for now)
+in vec2 uv; // unused (for now)
 in vec3 world_normal;
 in vec3 world_pos;
 
