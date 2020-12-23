@@ -9,7 +9,9 @@ namespace rendering::systems
 	std::unordered_map<entt::entity, size_t> entityToTransformIndexMap;
 	std::vector<std::pair<model::Mesh*, shading::Shader*>> meshShaders;
 	std::unordered_map<shading::Shader*, int> shaderPriorities;
-	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> mvps;
+	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> modelMatricesToRender;
+	std::unordered_map<model::Mesh*, std::vector<glm::mat3>> normalMatricesToRender;
+	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> mvpMatricesToRender;
 	std::unordered_map<model::Mesh*, std::vector<std::size_t>> instancesToRender;
 
 	components::CullingGeometry cullingRoot = components::CullingGeometry(std::make_shared<bounding_geometry::None>());
@@ -193,14 +195,23 @@ namespace rendering::systems
 			const auto& instances = instancesToRender[mesh];
 			int numInstances = instances.size();
 
-			auto& meshMVPs = mvps[mesh];
+			auto& meshModels = modelMatricesToRender[mesh];
+			auto& meshNormals = normalMatricesToRender[mesh];
+			auto& meshMVPs = mvpMatricesToRender[mesh];
+
+			meshModels.resize(numInstances);
+			meshNormals.resize(numInstances);
 			meshMVPs.resize(numInstances);
 
 			// Parallel mvp calculation (only calculate MVPs for instances which are not culled).
 			std::vector<int> a(numInstances);
 			std::iota(std::begin(a), std::end(a), 0);
 			std::for_each(std::execution::par_unseq, std::begin(a), std::end(a), [&](int i) {
-				meshMVPs[i] = viewProjection * meshInstances.first[instances[i]];
+				size_t instance = instances[i];
+
+				meshModels[i] = meshInstances.first[instance];
+				meshNormals[i] = meshInstances.second[instance];
+				meshMVPs[i] = viewProjection * meshInstances.first[instance];
 			});
 		}
 	}
@@ -260,10 +271,8 @@ namespace rendering::systems
 		for (const auto& meshShaderPairs : meshShaders)
 		{
 			auto* mesh = meshShaderPairs.first;
-			const auto& meshInstances = meshTransforms[mesh];
-			// Calculate the model view projection matrix of each instance of the mesh.
-			const auto& instances = instancesToRender[mesh];
-			int numInstances = instances.size();
+			const auto& meshModels = modelMatricesToRender[mesh];
+			size_t numInstances = meshModels.size();
 
 			if (numInstances > 0)
 			{
@@ -273,14 +282,12 @@ namespace rendering::systems
 					activeShader = shader;
 					activateShader(registry, camera, *activeShader, pickingID);
 				}
-
-				auto& meshMVPs = mvps[mesh];
+				
+				const auto& meshNormals = normalMatricesToRender[mesh];
+				const auto& meshMVPs = mvpMatricesToRender[mesh];
 
 				// Render all instances of the mesh.
-				const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
-				const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
-
-				mesh->renderInstanced(*activeShader, modelMatrices, normalMatrices, meshMVPs, instances);
+				mesh->renderInstanced(*activeShader, meshModels, meshNormals, meshMVPs);
 			}
 		}
 	}
@@ -296,18 +303,16 @@ namespace rendering::systems
 		for (const auto& mesh : picking.enabled)
 		{
 			const auto& meshInstances = meshTransforms[mesh];
-			// Calculate the model view projection matrix of each instance of the mesh.
-			const auto& instances = instancesToRender[mesh];
-			int numInstances = instances.size();
+			const auto& meshModels = modelMatricesToRender[mesh];
+			size_t numInstances = meshModels.size();
 
 			if (numInstances > 0)
 			{
-				auto& meshMVPs = mvps[mesh];
+				const auto& meshNormals = normalMatricesToRender[mesh];
+				const auto& meshMVPs = mvpMatricesToRender[mesh];
 
 				// Render all instances of the mesh.
-				const std::vector<glm::mat4>& const modelMatrices = meshInstances.first;
-				const std::vector<glm::mat3>& const normalMatrices = meshInstances.second;
-				mesh->renderInstanced(*pickingShader, modelMatrices, normalMatrices, meshMVPs, instances);
+				mesh->renderInstanced(*pickingShader, meshModels, meshNormals, meshMVPs);
 			}
 		}
 	}
