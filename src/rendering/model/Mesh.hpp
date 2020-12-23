@@ -30,13 +30,15 @@ namespace rendering
 			std::vector<glm::vec3> vertices;
 			std::vector<glm::vec2> uvs;
 			std::vector<glm::vec3> normals;
-			std::vector<MeshPartData> parts;
+			std::vector<std::shared_ptr<MeshPartData>> parts;
+
+			MeshData() {}
 
 			MeshData(
 				const std::vector<glm::vec3>& _vertices,
 				const std::vector<glm::vec2>& _uvs,
 				const std::vector<glm::vec3>& _normals,
-				const std::vector<MeshPartData>& _parts
+				const std::vector<std::shared_ptr<MeshPartData>>& _parts
 			) : vertices(_vertices), uvs(_uvs), normals(_normals), parts(_parts) {}
 
 			MeshData(std::string assetName);
@@ -64,6 +66,14 @@ namespace rendering
 
 			Mesh(const MeshData& data, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry)
 				: Mesh(data.vertices, data.uvs, data.normals, createMeshParts(data.parts), _boundingGeometry) {}
+
+			Mesh(const std::vector<std::pair<MeshData, std::vector<glm::mat4>>> instances)
+				: Mesh(instances, std::make_shared<bounding_geometry::None>()) {}
+
+			Mesh(
+				const std::vector<std::pair<MeshData, std::vector<glm::mat4>>> instances,
+				std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
+			) : Mesh(combineInstances(instances), _boundingGeometry) {}
 
 			Mesh(std::string assetName) : Mesh(assetName, std::make_shared<bounding_geometry::None>()) {}
 
@@ -177,7 +187,9 @@ namespace rendering
 
 			size_t maxInstancesDrawn;
 
-			static std::vector<std::shared_ptr<MeshPart>> createMeshParts(const std::vector<MeshPartData>& parts);
+			static std::vector<std::shared_ptr<MeshPart>> createMeshParts(const std::vector<std::shared_ptr<MeshPartData>>& parts);
+
+			static MeshData combineInstances(const std::vector<std::pair<MeshData, std::vector<glm::mat4>>> instances);
 
 			void initOpenGlBuffers(
 				const std::vector<glm::vec3>& vertices,

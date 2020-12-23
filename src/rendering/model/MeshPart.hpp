@@ -22,6 +22,8 @@ namespace rendering
 			std::vector<unsigned int> indices;
 			GLenum mode;
 
+			MeshPartData() : material(nullptr), indices(std::vector<unsigned int>()), mode(GL_TRIANGLES) {}
+
 			MeshPartData(const std::shared_ptr<Material>& _material, const std::vector<unsigned int>& _indices)
 				: material(_material), indices(_indices), mode(GL_TRIANGLES) {}
 
