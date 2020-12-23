@@ -22,7 +22,7 @@ namespace rendering::bounding_geometry
 		}
 	}
 
-	void AABB::extendToFit(const std::vector<std::shared_ptr<BoundingGeometry>> boundingGeometries)
+	void AABB::extendToFitGeometries(const std::vector<std::shared_ptr<BoundingGeometry>> boundingGeometries)
 	{
 		for (std::shared_ptr<BoundingGeometry> boundingGeometry : boundingGeometries)
 		{
@@ -46,6 +46,12 @@ namespace rendering::bounding_geometry
 			glm::vec3(max.x, max.y, min.z),
 			glm::vec3(max.x, max.y, max.z)
 		};
+	}
+
+	std::shared_ptr<BoundingGeometry> AABB::toWorldSpace(const glm::mat4& modelMatrix)
+	{
+		std::pair<glm::vec3, glm::vec3> transformedParams = definitionSpace->convertToWorldSpace(*this, modelMatrix);
+		return std::make_shared<AABB>(transformedParams.first, transformedParams.second, new WorldSpace());
 	}
 
 	bool AABB::isInCameraFrustum(const std::array<glm::vec4, 6>& clippingPlanes, const glm::mat4& modelMatrix)

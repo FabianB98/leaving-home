@@ -56,7 +56,7 @@ namespace rendering::bounding_geometry
 		spheres.push_back(new Sphere(criticalPoints, new Sphere::WorldSpace()));
 	}
 
-	void Sphere::extendToFit(const std::vector<std::shared_ptr<BoundingGeometry>> boundingGeometries)
+	void Sphere::extendToFitGeometries(const std::vector<std::shared_ptr<BoundingGeometry>> boundingGeometries)
 	{
 		// Extension of Ritter's bounding sphere as explained in https://stackoverflow.com/a/39683025.
 		std::vector<glm::vec3> vertices;
@@ -104,6 +104,12 @@ namespace rendering::bounding_geometry
 			center + glm::vec3(-RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius, RELATIVE_DIAG * radius),
 			center + glm::vec3(-RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius, -RELATIVE_DIAG * radius)
 		};
+	}
+
+	std::shared_ptr<BoundingGeometry> Sphere::toWorldSpace(const glm::mat4& modelMatrix) 
+	{
+		std::pair<glm::vec3, float> transformedParams = definitionSpace->convertToWorldSpace(*this, modelMatrix);
+		return std::make_shared<Sphere>(transformedParams.first, transformedParams.second, new WorldSpace());
 	}
 
 	glm::vec3 Sphere::furthestPointAwayFrom(const std::vector<glm::vec3>& vertices, const glm::vec3& p)

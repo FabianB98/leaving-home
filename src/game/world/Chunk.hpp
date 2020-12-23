@@ -164,6 +164,8 @@ namespace game::world
 
 		void generateChunkTopology(std::array<Chunk*, 6> _neighbors, PlanarGraph* _worldGraph);
 
+		void createCullingEntityIfNotCreated();
+
 		void addedToWorld();
 
 		rendering::model::Mesh* generateWaterMesh();
