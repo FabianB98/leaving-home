@@ -109,7 +109,6 @@ namespace game::world
 		auto& picking = registry.ctx<rendering::systems::Picking>();
 
 		createCullingEntityIfNotCreated();
-		std::vector<std::shared_ptr<rendering::bounding_geometry::BoundingGeometry>> extendCullingGeometryBy;
 
 		if (ADD_TOPOLOGY_MESH)
 		{
@@ -123,7 +122,7 @@ namespace game::world
 				rendering::components::EulerComponentwiseTransform().toTransformationMatrix()
 			);
 
-			extendCullingGeometryBy.push_back(mesh->getBoundingGeometry());
+			cullingGeometry->extendToFitGeometry(mesh->getBoundingGeometry());
 			rendering::systems::cullingRelationship(registry, cullingEntity, topologyEntity);
 		}
 
@@ -142,34 +141,39 @@ namespace game::world
 			shading.shaders.insert(std::make_pair(mesh, terrainShader));
 			picking.enabled.insert(mesh);
 
-			extendCullingGeometryBy.push_back(mesh->getBoundingGeometry());
+			cullingGeometry->extendToFitGeometry(mesh->getBoundingGeometry());
 			rendering::systems::cullingRelationship(registry, cullingEntity, landscapeEntity);
 		}
 
 		if (ADD_WATER_MESH)
 		{
-			// Add an entity for the chunk's water mesh.
-			glm::mat4 waterModelMatrix = rendering::components::EulerComponentwiseTransform(
-				glm::vec3(centerPos.x, WATER_HEIGHT, centerPos.y),
-				0, 0, 0,
-				glm::vec3(1)
-			).toTransformationMatrix();
-			auto waterBoundingGeomtryWorldSpace = waterMesh->getBoundingGeometry()->toWorldSpace(waterModelMatrix);
+			std::vector<glm::vec3> extremaPoints = cullingGeometry->getExtremaPoints();
+			float minHeight = extremaPoints[0].y;
+			for (int i = 1; i < extremaPoints.size(); i++)
+				minHeight = std::min(minHeight, extremaPoints[i].y);
 
-			waterEntity = registry.create();
-			registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
-			registry.emplace<rendering::components::CullingGeometry>(waterEntity, waterBoundingGeomtryWorldSpace);
-			registry.emplace<rendering::components::MatrixTransform>(waterEntity, waterModelMatrix);
+			if (minHeight < WATER_HEIGHT)
+			{
+				// Add an entity for the chunk's water mesh.
+				glm::mat4 waterModelMatrix = rendering::components::EulerComponentwiseTransform(
+					glm::vec3(centerPos.x, WATER_HEIGHT, centerPos.y),
+					0, 0, 0,
+					glm::vec3(1)
+				).toTransformationMatrix();
+				auto waterBoundingGeomtryWorldSpace = waterMesh->getBoundingGeometry()->toWorldSpace(waterModelMatrix);
 
-			shading.shaders.insert(std::make_pair(waterMesh, waterShader));
-			shading.priorities.insert(std::make_pair(waterShader, 1));
+				waterEntity = registry.create();
+				registry.emplace<rendering::components::MeshRenderer>(waterEntity, waterMesh);
+				registry.emplace<rendering::components::CullingGeometry>(waterEntity, waterBoundingGeomtryWorldSpace);
+				registry.emplace<rendering::components::MatrixTransform>(waterEntity, waterModelMatrix);
 
-			extendCullingGeometryBy.push_back(waterBoundingGeomtryWorldSpace);
-			rendering::systems::cullingRelationship(registry, cullingEntity, waterEntity);
+				shading.shaders.insert(std::make_pair(waterMesh, waterShader));
+				shading.priorities.insert(std::make_pair(waterShader, 1));
+
+				cullingGeometry->extendToFitGeometry(waterBoundingGeomtryWorldSpace);
+				rendering::systems::cullingRelationship(registry, cullingEntity, waterEntity);
+			}
 		}
-
-		if (!extendCullingGeometryBy.empty())
-			cullingGeometry->extendToFitGeometries(extendCullingGeometryBy);
 	}
 
 	rendering::model::Mesh* Chunk::generateWaterMesh()
