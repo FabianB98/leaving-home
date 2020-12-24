@@ -15,7 +15,7 @@ namespace game::world
 	class Resource : public CellContent
 	{
 	public:
-		Resource(rendering::model::Mesh* _mesh) : CellContent(_mesh) {}
+		Resource(std::shared_ptr<rendering::model::MeshData> _meshData) : CellContent(_meshData) {}
 
 	protected:
 		virtual void addedToCell() = 0;

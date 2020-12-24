@@ -35,6 +35,7 @@ namespace game::world
 			noiseMap.insert(std::make_pair(cell, chunk->getHeightGenerator().getBlueNoise(cell->getRelaxedPosition())));
 
 		// Actually generate resources for all eligible cells.
+		std::set<Chunk*> chunksToUpdate;
 		for (Cell* cell : cellsToGenerateResourcesFor)
 		{
 			std::unordered_set<Cell*> cellsWithinDistance;
@@ -48,9 +49,15 @@ namespace game::world
 					max = noise;
 			}
 
-			if (noiseMap[cell] == max)
+			if (noiseMap[cell] == max && cell->getContent() == nullptr)
+			{
 				cell->setContent(new world::Tree());
+				chunksToUpdate.insert(cell->getChunk());
+			}
 		}
+
+		for (Chunk* chunkToUpdate : chunksToUpdate)
+			chunkToUpdate->updateCellContentMesh();
 	}
 
 	void ResourceGenerator::getCellsWithinDistance(Cell* startingCell, unsigned int maxMoves, std::unordered_set<Cell*>& result)

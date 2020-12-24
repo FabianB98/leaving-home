@@ -148,6 +148,62 @@ namespace rendering
 			}
 		}
 
+		MeshData::MeshData(const std::vector<std::pair<std::shared_ptr<MeshData>, std::vector<glm::mat4>>> instances)
+		{
+			std::unordered_map<Material, std::shared_ptr<MeshPartData>> materialMeshPartMap;
+
+			// Add all instances of all given MeshData to the resulting MeshData.
+			for (const std::pair<std::shared_ptr<MeshData>, std::vector<glm::mat4>>& meshDataInstances : instances)
+			{
+				// The vertices, UVs and normals of the current MeshData to add.
+				const std::vector<glm::vec3>& instanceVertices = meshDataInstances.first->vertices;
+				const std::vector<glm::vec2>& instanceUVs = meshDataInstances.first->uvs;
+				const std::vector<glm::vec3>& instanceNormals = meshDataInstances.first->normals;
+				const std::vector<std::shared_ptr<MeshPartData>>& instanceParts = meshDataInstances.first->parts;
+				size_t vertexCount = instanceVertices.size();
+
+				// Add all instances of the current MeshData to the resulting MeshData.
+				for (const glm::mat4& modelMatrix : meshDataInstances.second)
+				{
+					glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(modelMatrix)));
+					size_t offset = vertices.size();
+
+					// Add the vertex data (i.e. the transformed vertex positions, UV coordinates and transformed normals).
+					for (size_t i = 0; i < vertexCount; i++)
+					{
+						glm::vec4 transformedVertexPos = modelMatrix * glm::vec4(instanceVertices[i], 1.0f);
+						vertices.push_back(glm::vec3(transformedVertexPos) / transformedVertexPos.w);
+						uvs.push_back(instanceUVs[i]);
+						normals.push_back(normalMatrix * instanceNormals[i]);
+					}
+
+					// Add the indices.
+					for (const std::shared_ptr<MeshPartData> part : instanceParts)
+					{
+						// Get the correct MeshPartData to which the indices need to be added to.
+						std::shared_ptr<MeshPartData> resultPart;
+						auto& findResult = materialMeshPartMap.find(*part->material);
+						if (findResult != materialMeshPartMap.end())
+						{
+							resultPart = findResult->second;
+						}
+						else
+						{
+							resultPart = std::make_shared<MeshPartData>(part->material, std::vector<unsigned int>(), part->mode);
+							materialMeshPartMap.insert(std::make_pair(*part->material, resultPart));
+							parts.push_back(resultPart);
+						}
+
+						// Add the indices to the MeshPartData.
+						for (const unsigned int& index : part->indices)
+						{
+							resultPart->indices.push_back(index + offset);
+						}
+					}
+				}
+			}
+		}
+
 		Mesh::Mesh(
 			const std::vector<glm::vec3>& vertices,
 			const std::vector<glm::vec2>& uvs,
@@ -166,65 +222,6 @@ namespace rendering
 
 			for (const std::shared_ptr<MeshPartData> part : parts)
 				result.push_back(std::make_shared<MeshPart>(part->material, part->indices, part->mode));
-
-			return result;
-		}
-
-		MeshData Mesh::combineInstances(const std::vector<std::pair<MeshData, std::vector<glm::mat4>>> instances)
-		{
-			MeshData result;
-			std::unordered_map<Material, std::shared_ptr<MeshPartData>> materialMeshPartMap;
-
-			// Add all instances of all given MeshData to the resulting MeshData.
-			for (const std::pair<MeshData, std::vector<glm::mat4>>& meshDataInstances : instances)
-			{
-				// The vertices, UVs and normals of the current MeshData to add.
-				const std::vector<glm::vec3>& vertices = meshDataInstances.first.vertices;
-				const std::vector<glm::vec2>& uvs = meshDataInstances.first.uvs;
-				const std::vector<glm::vec3>& normals = meshDataInstances.first.normals;
-				const std::vector<std::shared_ptr<MeshPartData>>& parts = meshDataInstances.first.parts;
-				size_t vertexCount = meshDataInstances.first.vertices.size();
-
-				// Add all instances of the current MeshData to the resulting MeshData.
-				for (const glm::mat4& modelMatrix : meshDataInstances.second)
-				{
-					glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(modelMatrix)));
-					size_t offset = result.vertices.size();
-
-					// Add the vertex data (i.e. the transformed vertex positions, UV coordinates and transformed normals).
-					for (size_t i = 0; i < vertexCount; i++)
-					{
-						glm::vec4 transformedVertexPos = modelMatrix * glm::vec4(vertices[i], 1.0f);
-						result.vertices.push_back(glm::vec3(transformedVertexPos) / transformedVertexPos.w);
-						result.uvs.push_back(uvs[i]);
-						result.normals.push_back(normalMatrix * normals[i]);
-					}
-
-					// Add the indices.
-					for (const std::shared_ptr<MeshPartData> part : parts)
-					{
-						// Get the correct MeshPartData to which the indices need to be added to.
-						std::shared_ptr<MeshPartData> resultPart;
-						auto& findResult = materialMeshPartMap.find(*part->material);
-						if (findResult != materialMeshPartMap.end())
-						{
-							resultPart = findResult->second;
-						}
-						else
-						{
-							resultPart = std::make_shared<MeshPartData>(part->material, std::vector<unsigned int>(), part->mode);
-							materialMeshPartMap.insert(std::make_pair(*part->material, resultPart));
-							result.parts.push_back(resultPart);
-						}
-
-						// Add the indices to the MeshPartData.
-						for (const unsigned int& index : part->indices)
-						{
-							resultPart->indices.push_back(index + offset);
-						}
-					}
-				}
-			}
 
 			return result;
 		}
@@ -316,6 +313,47 @@ namespace rendering
 
 			for (auto& vbo : additionalVbos)
 				glDeleteBuffers(1, &vbo);
+		}
+
+
+		void Mesh::setData(const MeshData& data)
+		{
+			glBindVertexArray(vao);
+
+			// Update the VBO data (i.e. vertex positions, uv coordinates and normals).
+			glBindBuffer(GL_ARRAY_BUFFER, vertexVbo);
+			glBufferData(GL_ARRAY_BUFFER, data.vertices.size() * sizeof(glm::vec3), &data.vertices[0], GL_STATIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, uvVbo);
+			glBufferData(GL_ARRAY_BUFFER, data.uvs.size() * sizeof(glm::vec2), &data.uvs[0], GL_STATIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, normalVbo);
+			glBufferData(GL_ARRAY_BUFFER, data.normals.size() * sizeof(glm::vec3), &data.normals[0], GL_STATIC_DRAW);
+
+			// Update the MeshParts (i.e. indices and materials).
+			std::unordered_map<Material, std::shared_ptr<MeshPart>> oldParts;
+			for (std::shared_ptr<MeshPart> part : parts)
+				oldParts.insert(std::make_pair(*part->getMaterial(), part));
+
+			parts.clear();
+			for (std::shared_ptr<MeshPartData> part : data.parts)
+			{
+				auto& existingPart = oldParts.find(*part->material);
+				if (existingPart == oldParts.end())
+				{
+					parts.push_back(std::make_shared<MeshPart>(part));
+				}
+				else
+				{
+					existingPart->second->setData(part);
+					parts.push_back(existingPart->second);
+				}
+			}
+
+			// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
+			glBindVertexArray(0);
+
+			boundingGeometry->fitToVertices(data.vertices);
 		}
 
 		void Mesh::render(rendering::shading::Shader& shader)

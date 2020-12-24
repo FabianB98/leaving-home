@@ -17,6 +17,16 @@ namespace rendering
 			glDeleteBuffers(1, &indexBuffer);
 		}
 
+		void MeshPart::setData(std::shared_ptr<MeshPartData> data)
+		{
+			material = data->material;
+			numIndices = data->indices.size();
+			mode = data->mode;
+
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, data->indices.size() * sizeof(unsigned int), &data->indices[0], GL_STATIC_DRAW);
+		}
+
 		void MeshPart::render(rendering::shading::Shader& shader)
 		{
 			material->bind(shader);

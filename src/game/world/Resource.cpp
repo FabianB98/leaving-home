@@ -5,20 +5,9 @@ namespace game::world
 	std::default_random_engine generator;
 	std::uniform_real_distribution<float> randomFloat(0.0f, 1.0f);
 
-	static rendering::model::Mesh* _treeMesh = nullptr;
+	static std::shared_ptr<rendering::model::MeshData> treeMeshData = std::make_shared<rendering::model::MeshData>("tree");
 
-	static rendering::model::Mesh* getTreeMesh()
-	{
-		if (_treeMesh == nullptr)
-			_treeMesh = new rendering::model::Mesh(
-				"tree",
-				std::make_shared<rendering::bounding_geometry::Sphere>(new rendering::bounding_geometry::Sphere::ObjectSpace())
-			);
-
-		return _treeMesh;
-	}
-
-	Tree::Tree() : Resource(getTreeMesh()) {}
+	Tree::Tree() : Resource(treeMeshData) {}
 
 	void Tree::addedToCell()
 	{

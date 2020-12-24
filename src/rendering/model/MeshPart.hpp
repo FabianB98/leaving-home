@@ -41,11 +41,20 @@ namespace rendering
 
 			MeshPart(const MeshPartData& data) : MeshPart(data.material, data.indices, data.mode) {}
 
+			MeshPart(const std::shared_ptr<MeshPartData> data) : MeshPart(data->material, data->indices, data->mode) {}
+
 			~MeshPart();
 
 			void render(shading::Shader& shader);
 
 			void renderInstanced(shading::Shader& shader, size_t numInstances);
+
+			void setData(std::shared_ptr<MeshPartData> data);
+
+			const std::shared_ptr<Material> getMaterial()
+			{
+				return material;
+			}
 
 		private:
 			std::shared_ptr<Material> material;

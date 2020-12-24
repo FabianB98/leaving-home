@@ -104,6 +104,8 @@ namespace game::world
 			return heightGenerator;
 		}
 
+		void updateCellContentMesh();
+
 	private:
 		size_t chunkSeed;
 		uint16_t chunkId;
@@ -118,6 +120,7 @@ namespace game::world
 
 		rendering::model::Mesh* topologyMesh;
 		rendering::model::Mesh* landscapeMesh;
+		rendering::model::Mesh* cellContentMesh;
 
 		HeightGenerator& heightGenerator;
 
@@ -126,6 +129,7 @@ namespace game::world
 		entt::entity topologyEntity{ entt::null };
 		entt::entity landscapeEntity{ entt::null };
 		entt::entity waterEntity{ entt::null };
+		entt::entity cellContentEntity{ entt::null };
 
 		std::shared_ptr<rendering::bounding_geometry::AABB> cullingGeometry;
 
@@ -163,8 +167,6 @@ namespace game::world
 		);
 
 		void generateChunkTopology(std::array<Chunk*, 6> _neighbors, PlanarGraph* _worldGraph);
-
-		void createCullingEntityIfNotCreated();
 
 		void addedToWorld();
 
@@ -322,7 +324,6 @@ namespace game::world
 	private:
 		Chunk* chunk;
 		CellContent* content;
-		entt::entity entity;
 
 		uint16_t cellId;
 		uint32_t completeId;
@@ -349,9 +350,9 @@ namespace game::world
 	class CellContent
 	{
 	public:
-		CellContent(rendering::model::Mesh* _mesh) :
+		CellContent(std::shared_ptr<rendering::model::MeshData> _meshData) :
 			cell(nullptr),
-			mesh(_mesh),
+			meshData(_meshData),
 			transform(rendering::components::MatrixTransform(glm::mat4(1.0f))) {}
 
 		Cell* getCell()
@@ -359,9 +360,9 @@ namespace game::world
 			return cell;
 		}
 
-		rendering::model::Mesh* getMesh()
+		std::shared_ptr<rendering::model::MeshData> getMeshData()
 		{
-			return mesh;
+			return meshData;
 		}
 
 		rendering::components::MatrixTransform& getTransform()
@@ -372,7 +373,7 @@ namespace game::world
 	protected:
 		Cell* cell;
 
-		rendering::model::Mesh* mesh;
+		std::shared_ptr<rendering::model::MeshData> meshData;
 		rendering::components::MatrixTransform transform;
 
 		virtual void addedToCell() = 0;
