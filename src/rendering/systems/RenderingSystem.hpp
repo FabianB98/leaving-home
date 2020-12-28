@@ -27,14 +27,26 @@ namespace rendering::systems
 
 	void cullingRelationship(entt::registry& registry, entt::entity parent, entt::entity child);
 
-	void updateLights(entt::registry& registry, rendering::shading::Shader& shader);
+	void updateDirectionalLights(entt::registry& registry, rendering::shading::Shader& shader);
 
-	void renderRenderingSystemTransforms(entt::registry& registry,
+	void renderUpdateTransforms(entt::registry& registry,
 		rendering::components::Camera& camera, rendering::shading::Shader* defaultShader, bool overrideShaders = false);
 
-	void renderRenderingSystemForward(entt::registry& registry, rendering::components::Camera& camera, uint32_t pickingID);
 
-	void renderRenderingSystemPicking(entt::registry& registry,
+	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader, uint32_t pickingID);
+
+
+	void renderForward(entt::registry& registry, rendering::components::Camera& camera, uint32_t pickingID);
+
+
+	void renderDeferredGPass(entt::registry& registry, rendering::components::Camera& camera, uint32_t pickingID);
+
+
+	void renderDeferredLightingPass(entt::registry& registry, rendering::components::Camera& camera);
+
+
+
+	void renderPicking(entt::registry& registry,
 		rendering::components::Camera& camera, shading::Shader* pickingShader);
 
 	void cleanUpRenderingSystem(entt::registry& registry);

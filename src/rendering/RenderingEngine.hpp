@@ -139,6 +139,8 @@ namespace rendering
 		shading::LightSupportingShader* mainShader;
 		shading::Shader* pickingShader;
 		shading::Shader* wireframeShader;
+		
+		shading::Shader* quadShader;
 
 		// debug values
 		bool showWireframe = false;
@@ -153,15 +155,25 @@ namespace rendering
 		GLuint pbos[2];
 		uint32_t pickingResult;
 
+		// deferred rendering values
+		GLuint quadVAO;
+		GLuint gBuffer;
+		GLuint gDepthBuffer;
+		GLuint gPosition, gNormal, gAmbient, gDiffuse, gSpecular;
+
 		int init();
 
 		void initPicking();
+		void initDeferred();
 
 		void input(double deltaTime);
 
 		void update(double deltaTime);
 
+		void renderQuad(rendering::components::Camera& camera);
 		void render();
+
+		void doPicking();
 
 		rendering::components::Camera updateCamera(entt::entity cameraEntity, float aspectRatio);
 

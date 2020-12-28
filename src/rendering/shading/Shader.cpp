@@ -38,6 +38,11 @@ namespace rendering::shading
 		cleanUpShader(vertexShader);
 		cleanUpShader(fragmentShader);
 		if (useGeometryShader) cleanUpShader(geometryShader);
+
+		deferred = false;
+		auto def = definitions.find("deferred");
+		if (def != definitions.end())
+			deferred = std::stoi(def->second);
 	}
 
 	void Shader::use()

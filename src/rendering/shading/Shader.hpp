@@ -34,8 +34,14 @@ namespace rendering::shading
 		void setUniformMat4(const std::string name, const glm::mat4& matrix);
 
 		virtual void setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 direction) {}
-		virtual void setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position) {}
-		virtual void setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions) {}
+		virtual void setUniformDirectionalLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> directions) {}
+		//virtual void setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position) {}
+		//virtual void setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions) {}
+
+		bool usesDeferredRendering()
+		{
+			return deferred;
+		}
 		
 	protected:
 		GLuint programID;
@@ -47,6 +53,8 @@ namespace rendering::shading
 		GLuint getUniformLocation(std::string name);
 
 	private:
+		bool deferred;
+
 		void loadDefinitions(std::string shaderCode);
 		void linkProgram(std::initializer_list<GLuint> shaders);
 		void cleanUpShader(GLuint shader);
@@ -61,10 +69,11 @@ namespace rendering::shading
 		LightSupportingShader(std::string shaderName, bool useGeometryShader = false);
 
 		void setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 direction);
-		void setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position);
-		void setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions);
+		void setUniformDirectionalLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> directions);
+		/*void setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position);
+		void setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions);*/
 
 	private:
-		unsigned int maxPointLights{ 0 };
+		unsigned int maxDirectionalLights{ 0 };
 	};
 }

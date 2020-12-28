@@ -55,7 +55,7 @@ namespace game
 	{
 		simple = new rendering::shading::Shader("simpleInstanced");
 		waterShader = new rendering::shading::LightSupportingShader("waterInstanced", true);
-		terrainShader = new rendering::shading::LightSupportingShader("terrainInstanced");
+		terrainShader = new rendering::shading::Shader("deferred/terrain");
 
 		skybox = new rendering::Skybox("skybox", "skybox");
 
@@ -126,6 +126,8 @@ namespace game
 		pressed = pressedNew;
 	}
 
+	bool added = false;
+	float time = glfwGetTime();
 	void Game::update(rendering::RenderingEngine* renderingEngine, double deltaTime)
 	{
 		wrld->addGeneratedChunks();
@@ -137,6 +139,23 @@ namespace game
 
 		auto camPointer = selectedCamera == gui::CameraType::DEFAULT ? defaultCamera : freeFlightCamera;
 		renderingEngine->setMainCamera(camPointer);
+
+
+		//if (glfwGetTime() >= time + 10.f && !added) {
+		//	added = true;
+		//	for (auto c : wrld->getChunks()) {
+		//		for (auto cell : c.second->getCells()) {
+		//			auto* content = cell.second->getContent();
+		//			if (content == nullptr) continue;
+
+		//			//glm::vec3 pos = glm::vec3(content->getTransform().getTransform()[3]);
+		//			auto& registry = renderingEngine->getRegistry();
+		//			auto light = registry.create();
+		//			registry.emplace<rendering::components::MatrixTransform>(light, content->getTransform().getTransform());
+		//			registry.emplace<rendering::components::PointLight>(light, glm::vec3(40), glm::vec3(0,5,0));
+		//		}
+		//	}
+		//}
 	}
 	
 	void Game::render(rendering::RenderingEngine* renderingEngine)

@@ -70,30 +70,35 @@ namespace rendering::systems
 		registry.on_destroy<components::CullingGeometry>().connect<&removedCullingGeometry>();
 	}
 
-	void updateLights(entt::registry& registry, rendering::shading::Shader& shader)
+	void updateDirectionalLights(entt::registry& registry, rendering::shading::Shader& shader)
 	{
 		// DIRECTIONAL LIGHT
-		auto directional = registry.view<components::DirectionalLight, components::MatrixTransform>().front();
-		if (registry.valid(directional)) {
-			auto [light, transform] = registry.get<components::DirectionalLight, components::MatrixTransform>(directional);
-			// transform the direction to world space (multiply direction with transform matrix)
-			auto worldDir = transform.getTransform() * glm::vec4(light.direction, 0.f);
-			shader.setUniformDirectionalLight("directionalLight", light.intensity, worldDir);
-		}
-
-		// POINT LIGHTS
 		std::vector<glm::vec3> intensities;
-		std::vector<glm::vec3> positions;
-		auto lights = registry.view<components::PointLight, components::MatrixTransform>();
-		for (auto entity : lights) {
-			auto [light, transform] = registry.get<components::PointLight, components::MatrixTransform>(entity);
-
+		std::vector<glm::vec3> directions;
+		auto directional = registry.view<components::DirectionalLight, components::MatrixTransform>();
+		for (auto entity : directional) {
+			auto [light, transform] = registry.get<components::DirectionalLight, components::MatrixTransform>(entity);
+			
 			intensities.push_back(light.intensity);
-			// transform light position to world space
-			positions.push_back(transform.getTransform() * glm::vec4(light.position, 1.f));
+			// transform the direction to world space (multiply direction with transform matrix)
+			directions.push_back(transform.getTransform() * glm::vec4(light.direction, 0.f));
 		}
 
-		shader.setUniformPointLights("pointLights", intensities, positions);
+		shader.setUniformDirectionalLights("directionalLights", intensities, directions);
+
+		//// POINT LIGHTS
+		//std::vector<glm::vec3> intensities;
+		//std::vector<glm::vec3> positions;
+		//auto lights = registry.view<components::PointLight, components::MatrixTransform>();
+		//for (auto entity : lights) {
+		//	auto [light, transform] = registry.get<components::PointLight, components::MatrixTransform>(entity);
+
+		//	intensities.push_back(light.intensity);
+		//	// transform light position to world space
+		//	positions.push_back(transform.getTransform() * glm::vec4(light.position, 1.f));
+		//}
+
+		//shader.setUniformPointLights("pointLights", intensities, positions);
 	}
 
 	size_t updateMeshTransforms(entt::registry& registry)
@@ -134,7 +139,7 @@ namespace rendering::systems
 		shader.setUniformFloat("time", (float)glfwGetTime());
 		shader.setUniformInt("pick", pickingID);
 		camera.applyViewProjection(shader);
-		updateLights(registry, shader);
+		updateDirectionalLights(registry, shader);
 	}
 
 	void performFrustumCulling(entt::registry& registry, rendering::components::Camera& camera)
@@ -216,7 +221,7 @@ namespace rendering::systems
 		}
 	}
 
-	void renderRenderingSystemTransforms(entt::registry& registry, 
+	void renderUpdateTransforms(entt::registry& registry,
 		rendering::components::Camera& camera, rendering::shading::Shader* defaultShader, bool overrideShaders)
 	{
 		// Get all entities whose transformation was changed and store that their transformation was changed.
@@ -264,20 +269,22 @@ namespace rendering::systems
 		calculateMVPs(camera);
 	}
 
-	void renderRenderingSystemForward(entt::registry& registry, rendering::components::Camera& camera, uint32_t pickingID)
+	void renderForward(entt::registry& registry, rendering::components::Camera& camera, uint32_t pickingID)
 	{
 		// Render each mesh with the corresponding shader.
 		shading::Shader* activeShader = NULL;
 		for (const auto& meshShaderPairs : meshShaders)
 		{
 			auto* mesh = meshShaderPairs.first;
+			auto* shader = meshShaderPairs.second;
+			if (shader->usesDeferredRendering()) continue;
+
 			const auto& meshModels = modelMatricesToRender[mesh];
 			size_t numInstances = meshModels.size();
 
 			if (numInstances > 0)
 			{
 				// switch shader if necessary
-				auto* shader = meshShaderPairs.second;
 				if (shader != activeShader || activeShader == NULL) {
 					activeShader = shader;
 					activateShader(registry, camera, *activeShader, pickingID);
@@ -292,7 +299,7 @@ namespace rendering::systems
 		}
 	}
 
-	void renderRenderingSystemPicking(entt::registry& registry, rendering::components::Camera& camera, shading::Shader* pickingShader)
+	void renderPicking(entt::registry& registry, rendering::components::Camera& camera, shading::Shader* pickingShader)
 	{
 		auto& picking = registry.ctx<Picking>();
 		if (picking.enabled.size() == 0) return;
@@ -316,6 +323,52 @@ namespace rendering::systems
 			}
 		}
 	}
+
+	/*void activateShaderDeferred(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader, uint32_t pickingID)
+	{
+		shader.use();
+		shader.setUniformFloat("time", (float)glfwGetTime());
+		shader.setUniformInt("pick", pickingID);
+		camera.applyViewProjection(shader);
+	}*/
+
+
+	void renderDeferredGPass(entt::registry& registry, rendering::components::Camera& camera, uint32_t pickingID)
+	{
+		// Render each mesh with the corresponding shader.
+		shading::Shader* activeShader = NULL;
+		for (const auto& meshShaderPairs : meshShaders)
+		{
+			auto* mesh = meshShaderPairs.first;
+			auto* shader = meshShaderPairs.second;
+			if (!shader->usesDeferredRendering()) continue;
+
+			const auto& meshModels = modelMatricesToRender[mesh];
+			size_t numInstances = meshModels.size();
+
+			if (numInstances > 0)
+			{
+				// switch shader if necessary
+				if (shader != activeShader || activeShader == NULL) {
+					activeShader = shader;
+					activateShader(registry, camera, *activeShader, pickingID);
+				}
+
+				const auto& meshNormals = normalMatricesToRender[mesh];
+				const auto& meshMVPs = mvpMatricesToRender[mesh];
+
+				// Render all instances of the mesh.
+				mesh->renderInstanced(*activeShader, meshModels, meshNormals, meshMVPs);
+			}
+		}
+	}
+
+
+	void renderDeferredLightingPass(entt::registry& registry, rendering::components::Camera& camera)
+	{
+
+	}
+
 
 	void cleanUpRenderingSystem(entt::registry& registry)
 	{

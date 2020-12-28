@@ -101,7 +101,7 @@ namespace rendering
 
         glGenRenderbuffers(1, &pickingDepthbuffer);
         glBindRenderbuffer(GL_RENDERBUFFER, pickingDepthbuffer);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1920, 1080);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, getFramebufferWidth(), getFramebufferHeight());
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pickingDepthbuffer);
 
         glGenBuffers(2, pbos);
@@ -111,6 +111,59 @@ namespace rendering
         glBufferData(GL_PIXEL_PACK_BUFFER, 4, 0, GL_STREAM_READ);
 
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    }
+
+    void RenderingEngine::initDeferred()
+    {
+        glGenFramebuffers(1, &gBuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+
+        glGenTextures(1, &gPosition);
+        glBindTexture(GL_TEXTURE_2D, gPosition);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+
+        glGenTextures(1, &gNormal);
+        glBindTexture(GL_TEXTURE_2D, gNormal);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+
+        glGenTextures(1, &gAmbient);
+        glBindTexture(GL_TEXTURE_2D, gAmbient);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAmbient, 0);
+
+        glGenTextures(1, &gDiffuse);
+        glBindTexture(GL_TEXTURE_2D, gDiffuse);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, gDiffuse, 0);
+
+        glGenTextures(1, &gSpecular);
+        glBindTexture(GL_TEXTURE_2D, gSpecular);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, gSpecular, 0);
+
+        GLuint attachments[5] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
+            GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
+        glDrawBuffers(5, attachments);
+
+        glGenRenderbuffers(1, &gDepthBuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, gDepthBuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, getFramebufferWidth(), getFramebufferHeight());
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, gDepthBuffer);
+
+        
+        glGenVertexArrays(1, &quadVAO);
     }
 
     int RenderingEngine::init()
@@ -140,7 +193,7 @@ namespace rendering
         glfwMakeContextCurrent(window);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
-        glfwSwapInterval(1);    // enable vsync
+        glfwSwapInterval(0);    // enable vsync
 
         // Initialize GLEW in core profile.
         glewExperimental = true;
@@ -158,11 +211,14 @@ namespace rendering
         gui::init(window);
 
         // Initialize shaders
-        mainShader = new shading::LightSupportingShader("phongInstanced");
+        mainShader = new shading::LightSupportingShader("deferred/default");
         pickingShader = new shading::Shader("pickingInstanced");
         wireframeShader = new shading::Shader("simpleInstanced");
 
+        quadShader = new shading::LightSupportingShader("deferred/quad");
+
         initPicking();
+        initDeferred();
 
         return 0;
     }
@@ -205,24 +261,33 @@ namespace rendering
         rendering::systems::updateHierarchy(registry);
     }
 
-    void RenderingEngine::render()
+    void RenderingEngine::renderQuad(rendering::components::Camera& camera)
     {
-        // prepare gui for render
-        gui::startFrame();
+        //quadShader->use();
+        rendering::systems::activateShader(registry, camera, *quadShader, pickingResult);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, gPosition);
+        quadShader->setUniformInt("gPosition", 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, gNormal);
+        quadShader->setUniformInt("gNormal", 1);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, gAmbient);
+        quadShader->setUniformInt("gAmbient", 2);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, gDiffuse);
+        quadShader->setUniformInt("gDiffuse", 3);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, gSpecular);
+        quadShader->setUniformInt("gSpecular", 4);
 
-        // select default shader for rendering system
-        auto defaultShader = showWireframe ? wireframeShader : mainShader;
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
 
-        auto camera = updateCamera(mainCamera, (float) width / (float) height);
-        rendering::systems::renderRenderingSystemTransforms(registry, camera, defaultShader, showWireframe);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, pickingFramebuffer);
-        glClearColor(1.f, 1.f, 1.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
-
-        rendering::systems::renderRenderingSystemPicking(registry, camera, pickingShader);
-
+    void RenderingEngine::doPicking()
+    {
         // read picking framebuffer
         index = (index + 1) % 2;
         nextIndex = (index + 1) % 2;
@@ -247,15 +312,55 @@ namespace rendering
         else {
             pickingResult = 0xffffff;
         }
+    }
 
+    void RenderingEngine::render()
+    {
+        // prepare gui for render
+        gui::startFrame();
+
+        // select default shader for rendering system
+        auto defaultShader = showWireframe ? wireframeShader : mainShader;
+
+        auto camera = updateCamera(mainCamera, (float) width / (float) height);
+        rendering::systems::renderUpdateTransforms(registry, camera, defaultShader, showWireframe);
+
+        // PICKING PASS
+        glBindFramebuffer(GL_FRAMEBUFFER, pickingFramebuffer);
+        glClearColor(1.f, 1.f, 1.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        rendering::systems::renderPicking(registry, camera, pickingShader);
+        doPicking();
+
+        // DEFERRED - GEOMETRY PASS
+        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+        glClearColor(0.f, 0.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        rendering::systems::renderDeferredGPass(registry, camera, pickingResult);
+
+        // DEFERRED - LIGHTING PASS
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
 
-        rendering::systems::renderRenderingSystemForward(registry, camera, pickingResult);
-        //rendering::systems::renderRenderingSystemPicking(registry, camera, pickingShader);
+        renderQuad(camera);
+        rendering::systems::renderDeferredLightingPass(registry, camera);
+        
+        // SWITCH BACK TO FORWARD RENDERING
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(
+            0, 0, getFramebufferWidth(), getFramebufferHeight(), 
+            0, 0, getFramebufferWidth(), getFramebufferHeight(), 
+            GL_DEPTH_BUFFER_BIT, GL_NEAREST
+        );
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+        glEnable(GL_BLEND);
+        rendering::systems::renderForward(registry, camera, pickingResult);
+        glDisable(GL_BLEND);
 
 
         game->render(this);
@@ -338,6 +443,20 @@ namespace rendering
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 
         glBindRenderbuffer(GL_RENDERBUFFER, pickingDepthbuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+
+        glBindTexture(GL_TEXTURE_2D, gPosition);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glBindTexture(GL_TEXTURE_2D, gNormal);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glBindTexture(GL_TEXTURE_2D, gAmbient);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glBindTexture(GL_TEXTURE_2D, gDiffuse);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glBindTexture(GL_TEXTURE_2D, gSpecular);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, gDepthBuffer);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 
         glViewport(0, 0, _width, _height);

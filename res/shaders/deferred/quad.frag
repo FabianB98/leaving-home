@@ -1,4 +1,4 @@
-#version 330 core
+#version 400 core
 
 #define MAX_LIGHT_COUNT 2
 
@@ -7,26 +7,29 @@ struct DirectionalLight {
 	vec3 direction;
 };
 
-in vec3 world_normal;
-in vec3 world_pos;
+in vec2 uv;
 
-// Camera position in world space
+uniform sampler2D gPosition;
+uniform sampler2D gNormal;
+uniform sampler2D gAmbient;
+uniform sampler2D gDiffuse;
+uniform sampler2D gSpecular;
+
 uniform vec3 cameraPos;
-
-// Material parameters: ambient, diffuse, specular, phong exponent
-uniform vec3 kA;
-uniform vec3 kD;
-uniform vec3 kS;
-uniform int n;
-
-// Lights in the scene
 uniform DirectionalLight[MAX_LIGHT_COUNT] directionalLights;
 
-// Fragment shader output
 out vec4 color;
 
-// Calculate the effect of a light on the fragment (direction must be normalized)
+
 vec3 calcLight(vec3 intensity, vec3 direction) {
+	vec3 world_pos = texture(gPosition, uv).xyz;
+	vec3 world_normal = texture(gNormal, uv).xyz;
+
+	vec3 kA = texture(gAmbient, uv).xyz;
+	vec3 kD = texture(gDiffuse, uv).xyz;
+	vec3 kS = texture(gSpecular, uv).xyz;
+	float n = texture(gSpecular, uv).w;
+
 	float cosTheta = max(0, dot(world_normal, direction));
 	vec3 cameraDir = normalize(cameraPos - world_pos);
 	vec3 reflected = reflect(-direction, world_normal);
@@ -48,5 +51,5 @@ void main() {
 		sum += calcLight(light.intensity, normalize(light.direction));
 	}
 
-	color = vec4(sum, 0.625);
+	color = vec4(sum, 1);
 }
