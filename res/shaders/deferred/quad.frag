@@ -9,11 +9,11 @@ struct DirectionalLight {
 
 in vec2 uv;
 
-uniform sampler2D gPosition;
-uniform sampler2D gNormal;
-uniform sampler2D gAmbient;
-uniform sampler2D gDiffuse;
-uniform sampler2D gSpecular;
+uniform sampler2DMS gPosition;
+uniform sampler2DMS gNormal;
+uniform sampler2DMS gAmbient;
+uniform sampler2DMS gDiffuse;
+uniform sampler2DMS gSpecular;
 
 uniform vec3 cameraPos;
 uniform DirectionalLight[MAX_LIGHT_COUNT] directionalLights;
@@ -22,13 +22,13 @@ out vec4 color;
 
 
 vec3 calcLight(vec3 intensity, vec3 direction) {
-	vec3 world_pos = texture(gPosition, uv).xyz;
-	vec3 world_normal = texture(gNormal, uv).xyz;
+	vec3 world_pos = texelFetch(gNormal, ivec2(gl_FragCoord), gl_SampleID).xyz;
+	vec3 world_normal = texelFetch(gNormal, ivec2(gl_FragCoord), gl_SampleID).xyz;
 
-	vec3 kA = texture(gAmbient, uv).xyz;
-	vec3 kD = texture(gDiffuse, uv).xyz;
-	vec3 kS = texture(gSpecular, uv).xyz;
-	float n = texture(gSpecular, uv).w;
+	vec3 kA = texelFetch(gAmbient, ivec2(gl_FragCoord), gl_SampleID).xyz;
+	vec3 kD = texelFetch(gDiffuse, ivec2(gl_FragCoord), gl_SampleID).xyz;
+	vec3 kS = texelFetch(gSpecular, ivec2(gl_FragCoord), gl_SampleID).xyz;
+	float n = texelFetch(gSpecular, ivec2(gl_FragCoord), gl_SampleID).w;
 
 	float cosTheta = max(0, dot(world_normal, direction));
 	vec3 cameraDir = normalize(cameraPos - world_pos);

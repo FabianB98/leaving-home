@@ -24,6 +24,8 @@
 
 namespace rendering 
 {	
+	constexpr auto MSAA_SAMPLES = 4;
+
 	class RenderingEngine;
 
 	class AbstractGame
