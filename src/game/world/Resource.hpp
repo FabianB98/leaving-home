@@ -4,8 +4,6 @@
 #include <math.h>
 #include <random>
 
-#include "../../rendering/bounding_geometry/AABB.hpp"
-#include "../../rendering/bounding_geometry/Sphere.hpp"
 #include "../../rendering/components/Transform.hpp"
 #include "../../rendering/model/Mesh.hpp"
 #include "Chunk.hpp"
