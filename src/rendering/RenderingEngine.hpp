@@ -24,6 +24,8 @@
 
 namespace rendering 
 {	
+	constexpr auto MSAA_SAMPLES = 4;
+
 	class RenderingEngine;
 
 	class AbstractGame
@@ -43,12 +45,14 @@ namespace rendering
 		virtual void cleanUp(RenderingEngine* renderingEngine) = 0;
 	};
 
-	class RenderingEngine
+	class RenderingEngine : systems::ShaderManager
 	{
 	public:
 		RenderingEngine(AbstractGame& _game, const char* _title, int _width, int _height);
 
 		int start();
+
+		void setUniforms(shading::Shader& shader);
 
 		bool isKeyPressed(int keyCode);
 
@@ -139,6 +143,8 @@ namespace rendering
 		shading::LightSupportingShader* mainShader;
 		shading::Shader* pickingShader;
 		shading::Shader* wireframeShader;
+		
+		shading::Shader* quadShader;
 
 		// debug values
 		bool showWireframe = false;
@@ -153,17 +159,26 @@ namespace rendering
 		GLuint pbos[2];
 		uint32_t pickingResult;
 
+		// deferred rendering values
+		GLuint quadVAO;
+		GLuint gBuffer;
+		GLuint gDepthBuffer;
+		GLuint gPosition, gNormal, gAmbient, gDiffuse, gSpecular;
+
 		int init();
 
 		void initPicking();
+		void initDeferred();
 
 		void input(double deltaTime);
 
 		void update(double deltaTime);
 
-		void readPickingResult();
-
+		void setGeometryTextureUniforms(shading::Shader& shader);
+		void renderQuad(rendering::components::Camera& camera);
 		void render();
+
+		void doPicking();
 
 		rendering::components::Camera updateCamera(entt::entity cameraEntity, float aspectRatio);
 

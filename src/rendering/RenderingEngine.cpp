@@ -84,89 +84,6 @@ namespace rendering
         return 0;
     }
 
-    void RenderingEngine::initPicking()
-    {
-        glGenFramebuffers(1, &pickingFramebuffer);
-        glBindFramebuffer(GL_FRAMEBUFFER, pickingFramebuffer);
-
-        glGenTextures(1, &pickingColorbuffer);
-        glBindTexture(GL_TEXTURE_2D, pickingColorbuffer);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        // attach it to currently bound framebuffer object
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pickingColorbuffer, 0);
-
-        glGenRenderbuffers(1, &pickingDepthbuffer);
-        glBindRenderbuffer(GL_RENDERBUFFER, pickingDepthbuffer);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1920, 1080);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pickingDepthbuffer);
-
-        glGenBuffers(2, pbos);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[0]);
-        glBufferData(GL_PIXEL_PACK_BUFFER, 4, 0, GL_STREAM_READ);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[1]);
-        glBufferData(GL_PIXEL_PACK_BUFFER, 4, 0, GL_STREAM_READ);
-
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-    }
-
-    int RenderingEngine::init()
-    {
-        // Initialize GLFW in core profile.
-        if (!glfwInit())
-        {
-            std::cerr << "Failed to initialize GLFW!" << std::endl;
-            return -1;
-        }
-
-        // Set up the window hints to use OpenGL 3.3, 4x antialising and the OpenGL core profile (i.e. not the old OpenGL).
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_SAMPLES, 4);
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-        // Open a window and create its OpenGL context.
-        window = glfwCreateWindow(width, height, title, NULL, NULL);
-        if (window == NULL)
-        {
-            std::cerr << "Failed to open GLFW window! Does your graphics card support OpenGL 3.3?" << std::endl;
-            cleanUp();
-            return -2;
-        }
-        glfwMakeContextCurrent(window);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
-        glfwSwapInterval(1);    // enable vsync
-
-        // Initialize GLEW in core profile.
-        glewExperimental = true;
-        if (glewInit() != GLEW_OK) {
-            std::cerr << "Failed to initialize GLEW!" << std::endl;
-            cleanUp();
-            return -3;
-        }
-
-        // Initialize the rendering and hierarchy system
-        rendering::systems::initHierarchySystem(registry);
-        rendering::systems::initRenderingSystem(registry);
-
-        // Initialize gui
-        gui::init(window);
-
-        // Initialize shaders
-        mainShader = new shading::LightSupportingShader("phongInstanced");
-        pickingShader = new shading::Shader("pickingInstanced");
-        wireframeShader = new shading::Shader("simpleInstanced");
-
-        initPicking();
-
-        return 0;
-    }
-
     void RenderingEngine::input(double deltaTime)
     {
         glfwPollEvents();
@@ -203,70 +120,6 @@ namespace rendering
 
         rendering::systems::updateTransformConversion(registry);
         rendering::systems::updateHierarchy(registry);
-    }
-
-    void RenderingEngine::render()
-    {
-        // prepare gui for render
-        gui::startFrame();
-
-        // select default shader for rendering system
-        auto defaultShader = showWireframe ? wireframeShader : mainShader;
-
-        auto camera = updateCamera(mainCamera, (float) width / (float) height);
-        rendering::systems::renderRenderingSystemTransforms(registry, camera, defaultShader, showWireframe);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, pickingFramebuffer);
-        glClearColor(1.f, 1.f, 1.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
-
-        rendering::systems::renderRenderingSystemPicking(registry, camera, pickingShader);
-        readPickingResult();
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
-
-        rendering::systems::renderRenderingSystemForward(registry, camera, pickingResult);
-        //rendering::systems::renderRenderingSystemPicking(registry, camera, pickingShader);
-
-
-
-        game->render(this);
-        renderDebugWindow();
-        gui::render();
-
-        glfwSwapBuffers(window);
-    }
-
-    void RenderingEngine::readPickingResult()
-    {
-        // read picking framebuffer
-        index = (index + 1) % 2;
-        nextIndex = (index + 1) % 2;
-        glNamedFramebufferReadBuffer(pickingFramebuffer, GL_FRONT);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[index]);
-        double posX, posY;
-        glfwGetCursorPos(window, &posX, &posY);
-        if (posX <= getFramebufferWidth() && posY <= getFramebufferHeight() && posX >= 0 && posY >= 0) {
-            glReadPixels((int)posX, getFramebufferHeight() - (int)posY, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, 0);
-
-            glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos[nextIndex]);
-            GLubyte* ptr = (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-            if (ptr) {
-                GLubyte blue = ptr[0];
-                GLubyte green = ptr[1];
-                GLubyte red = ptr[2];
-                pickingResult = ((uint32_t)blue) + (((uint32_t)green) << 8) + (((uint32_t)red) << 16);
-                glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-            }
-            glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-        }
-        else {
-            pickingResult = 0xffffff;
-        }
     }
 
     components::Camera RenderingEngine::updateCamera(entt::entity cameraEntity, float aspectRatio)
@@ -343,6 +196,20 @@ namespace rendering
 
         glBindRenderbuffer(GL_RENDERBUFFER, pickingDepthbuffer);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gPosition);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA16F, width, height, GL_TRUE);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gNormal);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA16F, width, height, GL_TRUE);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gAmbient);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA, width, height, GL_TRUE);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gDiffuse);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA, width, height, GL_TRUE);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gSpecular);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA, width, height, GL_TRUE);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, gDepthBuffer);
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, MSAA_SAMPLES, GL_DEPTH_COMPONENT, width, height);
 
         glViewport(0, 0, _width, _height);
         render();

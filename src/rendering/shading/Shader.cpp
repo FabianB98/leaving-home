@@ -38,6 +38,11 @@ namespace rendering::shading
 		cleanUpShader(vertexShader);
 		cleanUpShader(fragmentShader);
 		if (useGeometryShader) cleanUpShader(geometryShader);
+
+		pass = RenderPass::FORWARD;
+		auto def = definitions.find("render");
+		if (def != definitions.end())
+			pass = renderPassValueOf(def->second);
 	}
 
 	void Shader::use()
