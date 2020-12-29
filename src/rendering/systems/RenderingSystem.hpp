@@ -15,6 +15,7 @@
 
 #include "../components/Camera.hpp"
 #include "../components/CullingGeometry.hpp"
+#include "../bounding_geometry/Sphere.hpp"
 #include "../components/MeshRenderer.hpp"
 #include "../components/Transform.hpp"
 #include "../components/Relationship.hpp"
@@ -23,7 +24,13 @@
 
 namespace rendering::systems
 {
-	void initRenderingSystem(entt::registry& registry);
+	class ShaderManager
+	{
+	public:
+		virtual void setUniforms(shading::Shader& shader) {}
+	};
+
+	void initRenderingSystem(entt::registry& registry, ShaderManager* manager);
 
 	void cullingRelationship(entt::registry& registry, entt::entity parent, entt::entity child);
 
@@ -33,15 +40,11 @@ namespace rendering::systems
 		rendering::components::Camera& camera, rendering::shading::Shader* defaultShader, bool overrideShaders = false);
 
 
-	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader, uint32_t pickingID);
+	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader);
 
 
-	void renderForward(entt::registry& registry, rendering::components::Camera& camera, uint32_t pickingID);
-
-
-	void renderDeferredGPass(entt::registry& registry, rendering::components::Camera& camera, uint32_t pickingID);
-
-
+	void renderForward(entt::registry& registry, rendering::components::Camera& camera);
+	void renderDeferredGPass(entt::registry& registry, rendering::components::Camera& camera);
 	void renderDeferredLightingPass(entt::registry& registry, rendering::components::Camera& camera);
 
 

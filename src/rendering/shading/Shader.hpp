@@ -18,6 +18,20 @@
 
 namespace rendering::shading
 {
+	enum class RenderPass
+	{
+		GEOMETRY,
+		LIGHTING,
+		FORWARD
+	};
+
+	static RenderPass renderPassValueOf(std::string expr)
+	{
+		if (expr.compare("geometry") == 0) return RenderPass::GEOMETRY;
+		else if (expr.compare("lighting") == 0) return RenderPass::LIGHTING;
+		else return RenderPass::FORWARD;
+	}
+
 	class Shader 
 	{
 	public:
@@ -38,9 +52,9 @@ namespace rendering::shading
 		//virtual void setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position) {}
 		//virtual void setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions) {}
 
-		bool usesDeferredRendering()
+		RenderPass getRenderPass()
 		{
-			return deferred;
+			return pass;
 		}
 		
 	protected:
@@ -53,7 +67,7 @@ namespace rendering::shading
 		GLuint getUniformLocation(std::string name);
 
 	private:
-		bool deferred;
+		RenderPass pass;
 
 		void loadDefinitions(std::string shaderCode);
 		void linkProgram(std::initializer_list<GLuint> shaders);

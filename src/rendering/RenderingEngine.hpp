@@ -45,12 +45,14 @@ namespace rendering
 		virtual void cleanUp(RenderingEngine* renderingEngine) = 0;
 	};
 
-	class RenderingEngine
+	class RenderingEngine : systems::ShaderManager
 	{
 	public:
 		RenderingEngine(AbstractGame& _game, const char* _title, int _width, int _height);
 
 		int start();
+
+		void setUniforms(shading::Shader& shader);
 
 		bool isKeyPressed(int keyCode);
 
@@ -172,6 +174,7 @@ namespace rendering
 
 		void update(double deltaTime);
 
+		void setGeometryTextureUniforms(shading::Shader& shader);
 		void renderQuad(rendering::components::Camera& camera);
 		void render();
 

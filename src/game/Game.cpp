@@ -140,22 +140,34 @@ namespace game
 		auto camPointer = selectedCamera == gui::CameraType::DEFAULT ? defaultCamera : freeFlightCamera;
 		renderingEngine->setMainCamera(camPointer);
 
+		int a = 0;
+		if (glfwGetTime() >= time + 6.f && !added) {
+			added = true;
+			std::cout << "ADDING LIGHTS" << std::endl;
+			for (auto c : wrld->getChunks()) {
+				for (auto cell : c.second->getCells()) {
+					auto* content = cell.second->getContent();
+					if (content == nullptr) continue;
 
-		//if (glfwGetTime() >= time + 10.f && !added) {
-		//	added = true;
-		//	for (auto c : wrld->getChunks()) {
-		//		for (auto cell : c.second->getCells()) {
-		//			auto* content = cell.second->getContent();
-		//			if (content == nullptr) continue;
+					a++;
+					if (a % 10 != 0) continue;
 
-		//			//glm::vec3 pos = glm::vec3(content->getTransform().getTransform()[3]);
-		//			auto& registry = renderingEngine->getRegistry();
-		//			auto light = registry.create();
-		//			registry.emplace<rendering::components::MatrixTransform>(light, content->getTransform().getTransform());
-		//			registry.emplace<rendering::components::PointLight>(light, glm::vec3(40), glm::vec3(0,5,0));
-		//		}
-		//	}
-		//}
+					//glm::vec3 pos = glm::vec3(content->getTransform().getTransform()[3]);
+					auto& registry = renderingEngine->getRegistry();
+					auto light = registry.create();
+					registry.emplace<rendering::components::MatrixTransform>(light, content->getTransform().getTransform());
+					registry.emplace<rendering::components::PointLight>(light, glm::vec3(10,10,10), glm::vec3(2,5,2), glm::vec3(0,0,0.2));
+				}
+			}
+		}
+
+		if (added) {
+			for (auto entity : registry.view<rendering::components::PointLight, rendering::components::MatrixTransform>()) {
+				auto& mt = registry.get<rendering::components::MatrixTransform>(entity);
+				registry.replace<rendering::components::MatrixTransform>(entity, 
+					mt.getTransform() * glm::rotate((float) deltaTime * 2.5f, glm::vec3(0, 1, 0)));
+			}
+		}
 	}
 	
 	void Game::render(rendering::RenderingEngine* renderingEngine)

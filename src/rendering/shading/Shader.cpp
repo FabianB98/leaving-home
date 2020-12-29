@@ -39,10 +39,10 @@ namespace rendering::shading
 		cleanUpShader(fragmentShader);
 		if (useGeometryShader) cleanUpShader(geometryShader);
 
-		deferred = false;
-		auto def = definitions.find("deferred");
+		pass = RenderPass::FORWARD;
+		auto def = definitions.find("render");
 		if (def != definitions.end())
-			deferred = std::stoi(def->second);
+			pass = renderPassValueOf(def->second);
 	}
 
 	void Shader::use()
