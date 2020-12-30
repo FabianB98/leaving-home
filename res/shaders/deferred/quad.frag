@@ -7,6 +7,5 @@ uniform sampler2D image;
 out vec4 color;
 
 void main() {
-	//float c = ;
-	color = texture(image, uv);
+	color = texture(image, uv).xxxw;
 }

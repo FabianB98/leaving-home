@@ -10,11 +10,20 @@ namespace rendering::systems
 	extern std::unordered_map<model::Mesh*, std::vector<glm::mat3>> normalMatricesToRender;
 	extern std::unordered_map<model::Mesh*, std::vector<glm::mat4>> mvpMatricesToRender;
 
+	extern glm::mat4 viewMatrix;
+	extern glm::mat3 viewNormalMatrix;
+
 	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader)
 	{
 		shader.use();
 		camera.applyViewProjection(shader);
 		updateDirectionalLights(registry, shader);
+
+		if (shader.getRenderPass() == shading::RenderPass::GEOMETRY) {
+			shader.setUniformMat4("T_V", viewMatrix);
+			shader.setUniformMat3("T_V_Normal", viewNormalMatrix);
+		}
+
 		shaderManager->setUniforms(shader);
 	}
 

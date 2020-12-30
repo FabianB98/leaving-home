@@ -18,6 +18,9 @@ namespace rendering::systems
 
 	extern components::CullingGeometry cullingRoot;
 
+	extern glm::mat4 viewMatrix;
+	extern glm::mat3 viewNormalMatrix;
+
 	std::unordered_map<shading::Shader*, int> shaderPriorities;
 	std::unordered_map<model::Mesh*, std::vector<std::size_t>> instancesToRender;
 	std::unordered_map<entt::entity, size_t> entityToTransformIndexMap;
@@ -27,17 +30,20 @@ namespace rendering::systems
 	void updateDirectionalLights(entt::registry& registry, rendering::shading::Shader& shader)
 	{
 		std::vector<glm::vec3> intensities;
-		std::vector<glm::vec3> directions;
+		std::vector<glm::vec3> directionsWorld;
+		std::vector<glm::vec3> directionsView;
 		auto directional = registry.view<components::DirectionalLight, components::MatrixTransform>();
 		for (auto entity : directional) {
 			auto [light, transform] = registry.get<components::DirectionalLight, components::MatrixTransform>(entity);
 
 			intensities.push_back(light.intensity);
 			// transform the direction to world space (multiply direction with transform matrix)
-			directions.push_back(transform.getTransform() * glm::vec4(light.direction, 0.f));
+			glm::vec4 worldDir = transform.getTransform() * glm::vec4(light.direction, 0.f);
+			directionsWorld.push_back(worldDir);
+			directionsView.push_back(viewMatrix * worldDir);
 		}
 
-		shader.setUniformDirectionalLights("directionalLights", intensities, directions);
+		shader.setUniformDirectionalLights("directionalLights", intensities, directionsWorld, directionsView);
 	}
 
 	void updateMeshTransforms(entt::registry& registry)
@@ -81,7 +87,7 @@ namespace rendering::systems
 
 			glm::mat4& modelMatrix = relationship ? relationship->totalTransform : transform.getTransform();
 			entityToTransformIndexMap[entity] = models.size();
-			glm::vec4 lightPos = modelMatrix * glm::vec4(pLight.position, 1.f);
+			glm::vec4 lightPos = viewMatrix * modelMatrix * glm::vec4(pLight.position, 1.f);
 			float radius = pLight.getRadius();
 
 			// Calculate the model matrix without matrix multiplications
@@ -181,6 +187,9 @@ namespace rendering::systems
 	void renderUpdateTransforms(entt::registry& registry,
 		rendering::components::Camera& camera, rendering::shading::Shader* defaultShader, bool overrideShaders)
 	{
+		viewMatrix = camera.getViewMatrix();
+		viewNormalMatrix = glm::mat3(glm::transpose(glm::inverse(viewMatrix)));
+
 		// Get all entities whose transformation was changed and store that their transformation was changed.
 		for (const auto entity : transformObserver) {
 			changedMeshRenderer(registry, entity);
