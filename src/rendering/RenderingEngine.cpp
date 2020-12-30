@@ -156,6 +156,8 @@ namespace rendering
         if (ImGui::Checkbox("Show wireframe", &showWireframe))
             toggleWireframe(showWireframe);
 
+        ImGui::Checkbox("SSAO Blur", &ssaoBlur);
+
         ImGui::End();
     }
 
@@ -210,6 +212,11 @@ namespace rendering
 
         glBindRenderbuffer(GL_RENDERBUFFER, gDepthBuffer);
         glRenderbufferStorageMultisample(GL_RENDERBUFFER, MSAA_SAMPLES, GL_DEPTH_COMPONENT, width, height);
+
+        glBindTexture(GL_TEXTURE_2D, ssaoColor);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_FLOAT, NULL);
+        glBindTexture(GL_TEXTURE_2D, ssaoBlurColor);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_FLOAT, NULL);
 
         glViewport(0, 0, _width, _height);
         render();

@@ -28,13 +28,73 @@ namespace rendering
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gSpecular);
         shader.setUniformInt("gSpecular", 4);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, ssaoBlur ? ssaoBlurColor : ssaoColor);
+        shader.setUniformInt("ssao", 5);
     }
 
-    void RenderingEngine::renderQuad(rendering::components::Camera& camera)
+    void RenderingEngine::renderScreen(rendering::components::Camera& camera)
     {
-        //quadShader->use();
-        rendering::systems::activateShader(registry, camera, *quadShader);
-        setGeometryTextureUniforms(*quadShader);
+        shading::Shader& shader = *screenShader;
+        /*shader.use();
+        camera.applyViewProjection(shader);*/
+        rendering::systems::activateShader(registry, camera, shader);
+        setGeometryTextureUniforms(shader);
+
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
+
+    void RenderingEngine::renderQuad(GLuint image)
+    {
+        shading::Shader& shader = *quadShader;
+        shader.use();
+        //camera.applyViewProjection(shader);
+        //rendering::systems::activateShader(registry, camera, shader);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, image);
+        shader.setUniformInt("image", 0);
+
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
+
+    void RenderingEngine::renderSSAO(rendering::components::Camera& camera)
+    {
+        shading::Shader& shader = *ssaoShader;
+        shader.use();
+        camera.applyViewProjection(shader);
+
+        glm::mat4 viewProjection = camera.getProjectionMatrix() * camera.getViewMatrix();
+        //rendering::systems::activateShader(registry, camera, shader);
+        shader.setUniformMat4("T_VP", viewProjection);
+        shader.setUniformVec3List("samples", ssaoKernel);
+       
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gPosition);
+        shader.setUniformInt("gPosition", 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gNormal);
+        shader.setUniformInt("gNormal", 1);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, ssaoNoiseTexture);
+        shader.setUniformInt("noiseTex", 2);
+
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
+
+    void RenderingEngine::renderSSAOBlur()
+    {
+        shading::Shader& shader = *blurShader;
+        shader.use();
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, ssaoColor);
+        shader.setUniformInt("image", 0);
 
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -95,38 +155,65 @@ namespace rendering
 
         rendering::systems::renderDeferredGPass(registry, camera);
 
+
+        // SSAO PASS
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoBuffer);
+        glClearColor(0.f, 0.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        renderSSAO(camera);
+
+        if (ssaoBlur)
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBuffer);
+            glClearColor(0.f, 0.f, 0.f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            renderSSAOBlur();
+        }
+
+
         // DEFERRED - LIGHTING PASS
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        renderQuad(camera);
 
-        //copy depth buffer of geometry pass to the default framebuffer
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBlitFramebuffer(
-            0, 0, getFramebufferWidth(), getFramebufferHeight(),
-            0, 0, getFramebufferWidth(), getFramebufferHeight(),
-            GL_DEPTH_BUFFER_BIT, GL_NEAREST
-        );
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        if (true) {
+            renderScreen(camera);
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_ONE, GL_ONE);    // additive blending
-        glDepthMask(GL_FALSE);          // disable depth writing (lights should overlap)
-        glDisable(GL_DEPTH_TEST);
-        glCullFace(GL_FRONT);
+            //copy depth buffer of geometry pass to the default framebuffer
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+            glBlitFramebuffer(
+                0, 0, getFramebufferWidth(), getFramebufferHeight(),
+                0, 0, getFramebufferWidth(), getFramebufferHeight(),
+                GL_DEPTH_BUFFER_BIT, GL_NEAREST
+            );
+            //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        rendering::systems::renderDeferredLightingPass(registry, camera);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE, GL_ONE);    // additive blending
+            glDepthMask(GL_FALSE);          // disable depth writing (lights should overlap)
+            glDisable(GL_DEPTH_TEST);
+            glCullFace(GL_FRONT);
 
-        glCullFace(GL_BACK);
-        glEnable(GL_DEPTH_TEST);
-        glDepthMask(GL_TRUE);
+            rendering::systems::renderDeferredLightingPass(registry, camera);
 
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        rendering::systems::renderForward(registry, camera);
-        glDisable(GL_BLEND);
+            glCullFace(GL_BACK);
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(GL_TRUE);
+
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            rendering::systems::renderForward(registry, camera);
+            glDisable(GL_BLEND);
+        }
+        else {
+            renderQuad(pickingColorbuffer);
+
+            glDisable(GL_BLEND);
+        }
+        
 
 
         game->render(this);

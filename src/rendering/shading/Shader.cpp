@@ -76,6 +76,12 @@ namespace rendering::shading
 		glUniform3f(id, vector.x, vector.y, vector.z);
 	}
 
+	void Shader::setUniformVec3List(const std::string name, const std::vector<glm::vec3>& vectors)
+	{
+		for (unsigned int i = 0; i < vectors.size(); ++i)
+			setUniformVec3(name + "[" + std::to_string(i) + "]", vectors[i]);
+	}
+
 	void Shader::setUniformVec4(const std::string name, const glm::vec4& vector)
 	{
 		GLuint id = getUniformLocation(name);
