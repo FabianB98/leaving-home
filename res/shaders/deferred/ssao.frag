@@ -1,9 +1,9 @@
 #version 400 core
 
 #define NOISE_SIZE 32
-#define KERNEL_SIZE 128
+#define KERNEL_SIZE 64
 
-#define RADIUS 10f
+#define RADIUS 5f
 #define BIAS 0.05f
 
 in vec2 uv;

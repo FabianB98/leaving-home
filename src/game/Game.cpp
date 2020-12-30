@@ -135,13 +135,14 @@ namespace game
 		wrld->addGeneratedChunks();
 
 		auto& registry = renderingEngine->getRegistry();
-		selectChunks(registry, renderingEngine, wrld);
 
 		daynight.update(deltaTime);
 		registry.replace<rendering::components::DirectionalLight>(sun, daynight.getSunColor(), daynight.getSunDirection());
 
 		auto camPointer = selectedCamera == gui::CameraType::DEFAULT ? defaultCamera : freeFlightCamera;
 		renderingEngine->setMainCamera(camPointer);
+
+		selectChunks(registry, renderingEngine, wrld);
 
 		//int a = 0;
 		//if (glfwGetTime() >= time + 5.f && !added) {
