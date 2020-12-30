@@ -13,10 +13,10 @@ namespace game::world
 	class Resource : public CellContent
 	{
 	public:
-		Resource(std::shared_ptr<rendering::model::MeshData> _meshData) : CellContent(_meshData) {}
+		Resource(std::shared_ptr<rendering::model::MeshData> _meshData) : CellContent(false, _meshData) {}
 
 	protected:
-		virtual void addedToCell() = 0;
+		virtual void addedToCell(Cell* cell) = 0;
 	};
 
 	class Tree : public Resource
@@ -25,6 +25,6 @@ namespace game::world
 		Tree();
 
 	protected:
-		void addedToCell();
+		void addedToCell(Cell* cell);
 	};
 }

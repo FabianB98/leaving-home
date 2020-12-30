@@ -9,7 +9,7 @@ namespace game::world
 
 	Tree::Tree() : Resource(treeMeshData) {}
 
-	void Tree::addedToCell()
+	void Tree::addedToCell(Cell* cell)
 	{
 		transform.setTransform(rendering::components::EulerComponentwiseTransform(
 			cell->getRelaxedPositionAndHeight(),

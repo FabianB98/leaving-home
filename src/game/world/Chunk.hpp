@@ -350,14 +350,19 @@ namespace game::world
 	class CellContent
 	{
 	public:
-		CellContent(std::shared_ptr<rendering::model::MeshData> _meshData) :
-			cell(nullptr),
+		CellContent(bool _multiCellPlaceable, std::shared_ptr<rendering::model::MeshData> _meshData) :
+			multiCellPlaceable(_multiCellPlaceable),
 			meshData(_meshData),
 			transform(rendering::components::MatrixTransform(glm::mat4(1.0f))) {}
 
-		Cell* getCell()
+		const std::unordered_set<Cell*>& getCells()
 		{
-			return cell;
+			return cells;
+		}
+
+		bool canBePlacedOnMultipleCells()
+		{
+			return multiCellPlaceable;
 		}
 
 		std::shared_ptr<rendering::model::MeshData> getMeshData()
@@ -371,12 +376,13 @@ namespace game::world
 		}
 
 	protected:
-		Cell* cell;
+		std::unordered_set<Cell*> cells;
+		const bool multiCellPlaceable;
 
 		std::shared_ptr<rendering::model::MeshData> meshData;
 		rendering::components::MatrixTransform transform;
 
-		virtual void addedToCell() = 0;
+		virtual void addedToCell(Cell* cell) = 0;
 
 		friend Cell;
 	};

@@ -184,7 +184,8 @@ namespace game::world
 			if (content != nullptr)
 			{
 				std::shared_ptr<rendering::model::MeshData> meshData = content->getMeshData();
-				instancesPerMesh[meshData].push_back(content->getTransform().getTransform());
+				if (meshData != nullptr)
+					instancesPerMesh[meshData].push_back(content->getTransform().getTransform());
 			}
 		}
 
@@ -961,17 +962,21 @@ namespace game::world
 
 	void Cell::setContent(CellContent* _content)
 	{
-		if (_content != nullptr && _content->cell != nullptr)
+		if (_content != nullptr && !_content->multiCellPlaceable && _content->cells.find(this) != _content->cells.end())
 			return;
 
 		if (content != nullptr)
-			delete content;
+		{
+			content->cells.erase(this);
+			if (content->cells.empty())
+				delete content;
+		}
 
 		content = _content;
 		if (content != nullptr)
 		{
-			content->cell = this;
-			content->addedToCell();
+			content->cells.insert(this);
+			content->addedToCell(this);
 		}
 	}
 

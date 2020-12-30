@@ -265,14 +265,22 @@ namespace game::world
 	{
 	public:
 		Building(
-			std::shared_ptr<rendering::model::MeshData> _meshData,
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
-		) : CellContent(_meshData), buildingPieceSet(_buildingPieceSet) {}
+		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet) {}
 
 	protected:
-		virtual void addedToCell() = 0;
+		virtual void addedToCell(Cell* cell) = 0;
 
 	private:
 		std::shared_ptr<BuildingPieceSet> buildingPieceSet;
+	};
+
+	class TestBuilding : public Building
+	{
+	public:
+		TestBuilding();
+
+	protected:
+		void addedToCell(Cell* cell);
 	};
 }

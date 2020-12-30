@@ -10,7 +10,11 @@ namespace rendering
 		MeshData::MeshData(std::string assetName)
 		{
 			// Construct the actual path to the obj file.
-			std::string fileName = "./res/models/" + assetName + ".obj";
+			std::string baseDir = "./res/models/";
+			std::string fileName = baseDir + assetName + ".obj";
+			std::size_t found = assetName.find_last_of("/\\");
+			if (found != std::string::npos)
+				baseDir += assetName.substr(0, found + 1);
 
 			// The results of the LoadObj function.
 			tinyobj::attrib_t attrib;
@@ -23,7 +27,7 @@ namespace rendering
 			bool success = tinyobj::LoadObj(
 				&attrib, &shapes, &materials,
 				&warnings, &errors,
-				fileName.c_str(), "./res/models/");
+				fileName.c_str(), baseDir.c_str());
 
 			// Print any errors and warnings that might have occurred while trying to load the obj file.
 			if (!errors.empty())
