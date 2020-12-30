@@ -85,10 +85,22 @@ namespace game::world
 		) }
 	);
 
-	TestBuilding::TestBuilding() : Building(testBuildingPieceSet) {}
-
-	void TestBuilding::addedToCell(Cell* cell)
+	void Building::addedToCell(Cell* cell)
 	{
+		auto& height = heightPerCell.find(cell);
+		if (height != heightPerCell.end())
+			height->second += 1;
+		else
+			heightPerCell.insert(std::make_pair(cell, 1));
 
+		meshNeedsToBeRegenerated = true;
 	}
+
+	void Building::removedFromCell(Cell* cell)
+	{
+		heightPerCell.erase(cell);
+		meshNeedsToBeRegenerated = false;
+	}
+
+	TestBuilding::TestBuilding() : Building(testBuildingPieceSet) {}
 }

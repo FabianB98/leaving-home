@@ -266,21 +266,22 @@ namespace game::world
 	public:
 		Building(
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
-		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet) {}
+		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet), meshNeedsToBeRegenerated(false) {}
 
 	protected:
-		virtual void addedToCell(Cell* cell) = 0;
+		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
+		std::unordered_map<Cell*, unsigned int> heightPerCell;
 
-	private:
-		std::shared_ptr<BuildingPieceSet> buildingPieceSet;
+		bool meshNeedsToBeRegenerated;
+
+		void addedToCell(Cell* cell);
+
+		void removedFromCell(Cell* cell);
 	};
 
 	class TestBuilding : public Building
 	{
 	public:
 		TestBuilding();
-
-	protected:
-		void addedToCell(Cell* cell);
 	};
 }

@@ -274,6 +274,36 @@ namespace game::world
 
 		void setContent(CellContent* _content);
 
+		template<class T>
+		void placeBuilding()
+		{
+			static_assert(std::is_base_of<Building, T>::value, "Template parameter T must be a subclass of Building!");
+
+			if (height < WATER_HEIGHT)
+				return;
+
+			if (content != nullptr && dynamic_cast<T*>(content))
+			{
+				content->addedToCell(this);
+			}
+			else if (content == nullptr)
+			{
+				bool added = false;
+				for (auto cell : getNeighbors())
+					if (cell->height == height && dynamic_cast<T*>(cell->content))
+					{
+						setContent(cell->content);
+						added = true;
+						break;
+					}
+
+				// TODO: The new building piece might be neighboring multiple buildings of the same type which need to be connected in this case.
+
+				if (!added)
+					setContent(new T());
+			}
+		}
+
 		uint16_t getCellId()
 		{
 			return cellId;
@@ -383,6 +413,8 @@ namespace game::world
 		rendering::components::MatrixTransform transform;
 
 		virtual void addedToCell(Cell* cell) = 0;
+
+		virtual void removedFromCell(Cell* cell) = 0;
 
 		friend Cell;
 	};

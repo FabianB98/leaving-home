@@ -962,11 +962,12 @@ namespace game::world
 
 	void Cell::setContent(CellContent* _content)
 	{
-		if (_content != nullptr && !_content->multiCellPlaceable && _content->cells.find(this) != _content->cells.end())
+		if (_content != nullptr && !_content->multiCellPlaceable && !_content->cells.empty())
 			return;
 
 		if (content != nullptr)
 		{
+			content->removedFromCell(this);
 			content->cells.erase(this);
 			if (content->cells.empty())
 				delete content;

@@ -17,6 +17,8 @@ namespace game::world
 
 	protected:
 		virtual void addedToCell(Cell* cell) = 0;
+
+		virtual void removedFromCell(Cell* cell) = 0;
 	};
 
 	class Tree : public Resource
@@ -26,5 +28,7 @@ namespace game::world
 
 	protected:
 		void addedToCell(Cell* cell);
+
+		void removedFromCell(Cell* cell);
 	};
 }
