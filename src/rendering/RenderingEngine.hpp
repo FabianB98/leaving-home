@@ -144,12 +144,17 @@ namespace rendering
 		shading::Shader* pickingShader;
 		shading::Shader* wireframeShader;
 		
+		shading::SSAOShader* ssaoShader;
+		shading::Shader* blurShader;
+
 		shading::Shader* quadShader;
+		shading::Shader* screenShader;
 
 		// debug values
 		bool showWireframe = false;
 		double frameTimeMillis = 0.0;
 		int lastFrameCount = 0;
+		bool ssaoBlur = true;
 
 		// picking values
 		GLuint pickingFramebuffer;
@@ -165,9 +170,19 @@ namespace rendering
 		GLuint gDepthBuffer;
 		GLuint gPosition, gNormal, gAmbient, gDiffuse, gSpecular;
 
+		// SSAO values
+		std::vector<glm::vec3> ssaoNoise;
+		GLuint ssaoNoiseTexture;
+		std::vector<glm::vec3> ssaoKernel;
+		GLuint ssaoBuffer;
+		GLuint ssaoColor;
+		GLuint ssaoBlurBuffer;
+		GLuint ssaoBlurColor;
+
 		int init();
 
 		void initPicking();
+		void initSSAO();
 		void initDeferred();
 
 		void input(double deltaTime);
@@ -175,7 +190,10 @@ namespace rendering
 		void update(double deltaTime);
 
 		void setGeometryTextureUniforms(shading::Shader& shader);
-		void renderQuad(rendering::components::Camera& camera);
+		void renderScreen(rendering::components::Camera& camera);
+		void renderSSAO(rendering::components::Camera& camera);
+		void renderSSAOBlur();
+		void renderQuad(GLuint image);
 		void render();
 
 		void doPicking();

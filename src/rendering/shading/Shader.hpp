@@ -43,6 +43,7 @@ namespace rendering::shading
 		void setUniformFloat(const std::string name, const float value);
 		void setUniformVec2(const std::string name, const glm::vec2& vector);
 		void setUniformVec3(const std::string name, const glm::vec3& vector);
+		void setUniformVec3List(const std::string name, const std::vector<glm::vec3>& vectors);
 		void setUniformVec4(const std::string name, const glm::vec4& vector);
 		void setUniformMat3(const std::string name, const glm::mat3& matrix);
 		void setUniformMat4(const std::string name, const glm::mat4& matrix);
@@ -89,5 +90,18 @@ namespace rendering::shading
 
 	private:
 		unsigned int maxDirectionalLights{ 0 };
+	};
+
+	class SSAOShader : public Shader
+	{
+	public:
+		SSAOShader(std::string shaderName, bool useGeometryShader = false);
+
+		unsigned int getNoiseSize() { return noiseSize; }
+		unsigned int getKernelSize() { return kernelSize; }
+
+	private:
+		unsigned int noiseSize{ 4 };
+		unsigned int kernelSize{ 64 };
 	};
 }

@@ -31,16 +31,16 @@ const vec3 baseColors[4] = vec3[4](
 	vec3(0.96094, 0.89062, 0.67578)		// Sand
 );
 const float ambientCoeffs[4] = float[4](
-	.1,		// Grass
-	.1,		// Stone
+	.25,		// Grass
+	.25,		// Stone
 	.25,	// Snow
-	.1		// Sand
+	.25		// Sand
 );
 const float diffuseCoeffs[4] = float[4](
-	.3,		// Grass
-	.3,		// Stone
-	.3,		// Snow
-	.3		// Sand
+	.25,		// Grass
+	.25,		// Stone
+	.25,		// Snow
+	.25		// Sand
 );
 const float specularCoeffs[4] = float[4](
 	.0,		// Grass
