@@ -67,9 +67,8 @@ namespace rendering
         shader.use();
         camera.applyViewProjection(shader);
 
-        glm::mat4 viewProjection = camera.getProjectionMatrix() * camera.getViewMatrix();
         //rendering::systems::activateShader(registry, camera, shader);
-        shader.setUniformMat4("T_VP", viewProjection);
+        shader.setUniformMat4("T_P", camera.getProjectionMatrix());
         shader.setUniformVec3List("samples", ssaoKernel);
        
         glActiveTexture(GL_TEXTURE0);
@@ -209,7 +208,7 @@ namespace rendering
             glDisable(GL_BLEND);
         }
         else {
-            renderQuad(pickingColorbuffer);
+            renderQuad(ssaoBlur ? ssaoBlurColor : ssaoColor);
 
             glDisable(GL_BLEND);
         }

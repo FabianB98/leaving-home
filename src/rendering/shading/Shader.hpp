@@ -48,8 +48,8 @@ namespace rendering::shading
 		void setUniformMat3(const std::string name, const glm::mat3& matrix);
 		void setUniformMat4(const std::string name, const glm::mat4& matrix);
 
-		virtual void setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 direction) {}
-		virtual void setUniformDirectionalLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> directions) {}
+		virtual void setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 directionWorld, glm::vec3 directionView) {}
+		virtual void setUniformDirectionalLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> directionsWorld, std::vector<glm::vec3> directionsView) {}
 		//virtual void setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position) {}
 		//virtual void setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions) {}
 
@@ -83,8 +83,8 @@ namespace rendering::shading
 	public:
 		LightSupportingShader(std::string shaderName, bool useGeometryShader = false);
 
-		void setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 direction);
-		void setUniformDirectionalLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> directions);
+		void setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 directionWorld, glm::vec3 directionView);
+		void setUniformDirectionalLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> directionsWorld, std::vector<glm::vec3> directionsView);
 		/*void setUniformPointLight(const std::string name, glm::vec3 intensity, glm::vec3 position);
 		void setUniformPointLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> positions);*/
 

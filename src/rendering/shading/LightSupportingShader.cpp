@@ -17,15 +17,16 @@ namespace rendering::shading
 		}
 	}
 
-	void LightSupportingShader::setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 direction)
+	void LightSupportingShader::setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 directionWorld, glm::vec3 directionView)
 	{
 		setUniformVec3(name + ".intensity", intensity);
-		setUniformVec3(name + ".direction", direction);
+		setUniformVec3(name + ".direction_world", directionWorld);
+		setUniformVec3(name + ".direction_view", directionView);
 	}
 
-	void LightSupportingShader::setUniformDirectionalLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> directions)
+	void LightSupportingShader::setUniformDirectionalLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> directionsWorld, std::vector<glm::vec3> directionsView)
 	{
-		if (intensities.size() != directions.size())
+		if (intensities.size() != directionsWorld.size() || directionsWorld.size() != directionsView.size())
 			throw std::invalid_argument("Directional light intensity and direction list size must be equal!");
 
 		unsigned int numLights = intensities.size();
@@ -37,12 +38,12 @@ namespace rendering::shading
 			<< "Lights " << std::to_string(maxDirectionalLights) << " to " << std::to_string(numLights - 1) << " will be ignored." << std::endl;
 
 		for (unsigned int i = 0; i < lightsToSet; ++i)
-			setUniformDirectionalLight(name + "[" + std::to_string(i) + "]", intensities[i], directions[i]);
+			setUniformDirectionalLight(name + "[" + std::to_string(i) + "]", intensities[i], directionsWorld[i], directionsView[i]);
 
 		// fill up the unused directional light uniforms with zeros
 		if (numLights >= maxDirectionalLights) return;
 		for (unsigned int i = numLights; i < maxDirectionalLights; ++i)
-			setUniformDirectionalLight(name + "[" + std::to_string(i) + "]", glm::vec3(0), glm::vec3(0));
+			setUniformDirectionalLight(name + "[" + std::to_string(i) + "]", glm::vec3(0), glm::vec3(0), glm::vec3(0));
 
 	}
 }

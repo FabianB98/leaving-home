@@ -23,6 +23,9 @@ namespace rendering::systems
 	std::unordered_map<model::Mesh*, std::vector<glm::mat3>> normalMatricesToRender;
 	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> mvpMatricesToRender;
 
+	glm::mat4 viewMatrix;
+	glm::mat3 viewNormalMatrix;
+
 	components::CullingGeometry cullingRoot = components::CullingGeometry(std::make_shared<bounding_geometry::None>());
 
 	void changedMeshRenderer(entt::registry& registry, entt::entity entity)

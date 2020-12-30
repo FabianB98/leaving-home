@@ -4,7 +4,8 @@
 
 struct DirectionalLight {
 	vec3 intensity;
-	vec3 direction;
+	vec3 direction_world;
+	vec3 direction_view;
 };
 
 in vec3 world_normal;
@@ -45,7 +46,7 @@ void main() {
 	// accumulate the effect of all lights
 	for (int i = 0; i < MAX_LIGHT_COUNT; i++) {
 		DirectionalLight light = directionalLights[i];
-		sum += calcLight(light.intensity, normalize(light.direction));
+		sum += calcLight(light.intensity, normalize(light.direction_world));
 	}
 
 	color = vec4(sum, 0.625);

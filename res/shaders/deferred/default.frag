@@ -10,6 +10,9 @@ in vec2 UV; // unused (for now)
 in vec3 world_normal;
 in vec3 world_pos;
 
+uniform mat4 T_V;
+uniform mat3 T_V_Normal;
+
 // Material parameters: ambient, diffuse, specular, phong exponent
 uniform vec3 kA;
 uniform vec3 kD;
@@ -17,8 +20,8 @@ uniform vec3 kS;
 uniform int n;
 
 void main() {
-	gPosition = world_pos;
-	gNormal = world_normal;
+	gPosition = (T_V * vec4(world_pos, 1)).xyz;
+	gNormal = T_V_Normal * world_normal;
 	gAmbient = kA;
 	gDiffuse = kD;
 	gSpecular = vec4(kS, float(n));
