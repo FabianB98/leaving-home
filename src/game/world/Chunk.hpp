@@ -359,6 +359,7 @@ namespace game::world
 		uint32_t completeId;
 
 		Node* node;
+		std::unordered_set<Face*> faces;
 
 		bool relaxed;
 		glm::vec2 relaxedPosition;
