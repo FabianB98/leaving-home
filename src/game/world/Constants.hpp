@@ -30,6 +30,9 @@ namespace game::world
 	constexpr bool GENERATE_RESOURCES = true;
 	constexpr int TREE_DENSITY = 1;
 
+	// Constants related to the generation of buildings.
+	constexpr float BUILDING_FLOOR_HEIGHT = 4.0f;
+
 	// Constants related to the mesh generation of chunks.
 	constexpr bool ADD_TOPOLOGY_MESH = false;
 	constexpr bool ADD_LANDSCAPE_MESH = true;

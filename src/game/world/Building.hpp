@@ -1,11 +1,15 @@
 #pragma once
 
 #include <functional>
+#include <stdexcept>
 #include <vector>
+
+#include <entt/entt.hpp>
 
 #include "../../rendering/components/Transform.hpp"
 #include "../../rendering/model/Mesh.hpp"
 #include "Chunk.hpp"
+#include "Constants.hpp"
 
 namespace game::world
 {
@@ -266,17 +270,44 @@ namespace game::world
 	public:
 		Building(
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
-		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet), meshNeedsToBeRegenerated(false) {}
+		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet), registry(nullptr), mesh(nullptr) {}
+
+		~Building();
 
 	protected:
 		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
 		std::unordered_map<Cell*, unsigned int> heightPerCell;
 
-		bool meshNeedsToBeRegenerated;
+		entt::registry* registry;
+		entt::entity meshEntity{ entt::null };
+		rendering::model::Mesh* mesh;
 
 		void addedToCell(Cell* cell);
 
 		void removedFromCell(Cell* cell);
+
+	private:
+		void rebuildMesh();
+
+		void addMeshPieces(
+			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+			Cell* cell,
+			Face* face,
+			unsigned int floor
+		);
+
+		void addMeshPiece(
+			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+			std::shared_ptr<BuildingPiece> piece,
+			glm::vec2 frontLeft,
+			glm::vec2 frontRight,
+			glm::vec2 backLeft,
+			glm::vec2 backRight,
+			float lowerHeight,
+			float upperHeight
+		);
+
+		bool occupies(Cell* cell, unsigned int floor);
 	};
 
 	class TestBuilding : public Building

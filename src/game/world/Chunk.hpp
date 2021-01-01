@@ -104,6 +104,11 @@ namespace game::world
 			return heightGenerator;
 		}
 
+		entt::registry& getRegistry()
+		{
+			return registry;
+		}
+
 		void updateCellContentMesh();
 
 	private:
@@ -312,6 +317,11 @@ namespace game::world
 		uint32_t getCompleteId()
 		{
 			return completeId;
+		}
+
+		const std::unordered_set<Face*> getFaces()
+		{
+			return faces;
 		}
 
 		bool isRelaxed()
