@@ -27,6 +27,22 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
 		) },
+		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
+			"0",
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall_Roof_Left"),
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" }
+		) },
+		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
+			"0",
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall_Roof_Right"),
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" }
+		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall"),
@@ -99,7 +115,9 @@ namespace game::world
 	void Building::removedFromCell(Cell* cell)
 	{
 		heightPerCell.erase(cell);
-		rebuildMesh();
+
+		if (!heightPerCell.empty())
+			rebuildMesh();
 	}
 
 	void Building::rebuildMesh()
@@ -166,7 +184,7 @@ namespace game::world
 		bool outerCornerDown = !occupiedClockwiseDown && !occupiedCounterClockwiseDown;
 		bool outerCornerUp = !occupiedClockwiseUp && !occupiedCounterClockwiseUp;
 		bool innerCornerDown = occupiedClockwiseDown && occupiedCounterClockwiseDown && !occupiedDiagonalDown;
-		bool innerEdgeUp = occupiedClockwiseUp && occupiedCounterClockwiseUp && !occupiedDiagonalUp;
+		bool innerCornerUp = occupiedClockwiseUp && occupiedCounterClockwiseUp && !occupiedDiagonalUp;
 		bool noEdgeDown = occupiedClockwiseDown && occupiedCounterClockwiseDown && occupiedDiagonalDown;
 		bool noEdgeUp = occupiedClockwiseUp && occupiedCounterClockwiseUp && occupiedDiagonalUp;
 
@@ -181,7 +199,9 @@ namespace game::world
 
 		// Determine the positions of the piece's four corners (from a top-down view).
 		glm::vec2 frontLeft, frontRight, backLeft, backRight;
-		if (straightEdgeDown && occupiedClockwiseDown || !straightEdgeDown)
+		bool onRightHalf = straightEdgeDown && occupiedClockwiseDown || !straightEdgeDown && !noEdgeDown
+			|| noEdgeDown && (straightEdgeUp && occupiedClockwiseUp || !straightEdgeUp);
+		if (onRightHalf)
 		{
 			frontLeft = faceCenterPos;
 			frontRight = (cell->getRelaxedPosition() + counterClockwiseNeighborCell->getRelaxedPosition()) / 2.0f;
@@ -196,44 +216,96 @@ namespace game::world
 			backRight = (cell->getRelaxedPosition() + counterClockwiseNeighborCell->getRelaxedPosition()) / 2.0f;
 		}
 
-		// Determine which pieces need to be placed.
+		// Determine which pieces need to be placed. Beware: Ugly tree of nested if-else-branches ahead!
 		std::shared_ptr<BuildingPiece> lowerPiece;
 		std::shared_ptr<BuildingPiece> upperPiece;
 		if (straightEdgeDown)
 		{
+			// TODO: As of now, only the first building piece of each type will be used. Once we have buildings which
+			// have multiple pieces per type, some algorithm (for example Wave Function Collapse) should be used to
+			// determine the actual piece to place.
 			lowerPiece = buildingPieceSet->getStraightEdgeWallPieces()[0];
 			if (occupiedCellUp)
-				upperPiece = buildingPieceSet->getStraightEdgeWallPieces()[0];
+			{
+				if (outerCornerUp && onRightHalf)
+				{
+					upperPiece = buildingPieceSet->getStraightEdgeWallRoofRightPieces()[0];
+				}
+				else if (outerCornerUp && !onRightHalf)
+				{
+					upperPiece = buildingPieceSet->getStraightEdgeWallRoofLeftPieces()[0];
+				}
+				else 
+				{
+					upperPiece = buildingPieceSet->getStraightEdgeWallPieces()[0];
+				}
+			}
 			else
+			{
 				upperPiece = buildingPieceSet->getStraightEdgeWallRoofOuterCornerPieces()[0];
+			}
 		}
 		else if (outerCornerDown)
 		{
 			lowerPiece = buildingPieceSet->getOuterCornerWallPieces()[0];
 			if (occupiedCellUp)
+			{
 				upperPiece = buildingPieceSet->getOuterCornerWallPieces()[0];
+			}
 			else
+			{
 				upperPiece = buildingPieceSet->getOuterCornerWallRoofOuterCornerPieces()[0];
+			}
 		}
 		else if (innerCornerDown)
 		{
 			lowerPiece = buildingPieceSet->getInnerCornerWallPieces()[0];
 			if (occupiedCellUp)
+			{
+				// TODO: Edge pieces for roof wall connections.
 				upperPiece = buildingPieceSet->getInnerCornerWallPieces()[0];
+			}
 			else
+			{
 				upperPiece = buildingPieceSet->getInnerCornerWallRoofOuterCornerPieces()[0];
+			}
 		}
 		else if (noEdgeDown)
 		{
 			lowerPiece = nullptr;
 			if (!occupiedCellUp)
+			{
 				upperPiece = buildingPieceSet->getNoEdgeRoofPieces()[0];
+			}
 			else
-				// TODO: Connection pieces between roofs and walls are still missing and need to be added here.
-				upperPiece = nullptr;
+			{
+				if (straightEdgeUp)
+				{
+					upperPiece = buildingPieceSet->getStraightEdgeRoofWallInnerCornerPieces()[0];
+				}
+				else if (outerCornerUp)
+				{
+					upperPiece = buildingPieceSet->getOuterCornerRoofWallInnerCornerPieces()[0];
+				}
+				else if (innerCornerUp)
+				{
+					upperPiece = buildingPieceSet->getInnerCornerRoofWallInnerCornerPieces()[0];
+				}
+				else if (noEdgeUp)
+				{
+					upperPiece = nullptr;
+				}
+				else
+				{
+					throw std::logic_error("Piece is neither an edge nor a corner nor an inner piece! This must be a bug.");
+				}
+			}
+				
 		}
 		else
+		{
 			throw std::logic_error("Piece is neither an edge nor a corner nor an inner piece! This must be a bug.");
+		}
 
 		if (lowerPiece != nullptr)
 			addMeshPiece(meshPieces, lowerPiece, frontLeft, frontRight, backLeft, backRight, lowerHeight, centerHeight);
@@ -288,17 +360,20 @@ namespace game::world
 
 	bool Building::occupies(Cell* cell, unsigned int floor)
 	{
-		return cell->getContent() == this && heightPerCell[cell] > floor;
+		if (cell->getContent() != this)
+			return false;
+
+		auto& found = heightPerCell.find(cell);
+		return found != heightPerCell.end() && found->second > floor;
 	}
 
 	Building::~Building()
 	{
-		if (mesh != nullptr)
-		{
+		if (meshEntity != entt::null)
 			registry->destroy(meshEntity);
 
+		if (mesh != nullptr)
 			delete mesh;
-		}
 	}
 
 	TestBuilding::TestBuilding() : Building(testBuildingPieceSet) {}

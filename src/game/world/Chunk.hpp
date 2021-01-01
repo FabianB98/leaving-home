@@ -396,6 +396,8 @@ namespace game::world
 			meshData(_meshData),
 			transform(rendering::components::MatrixTransform(glm::mat4(1.0f))) {}
 
+		virtual ~CellContent() {}
+
 		const std::unordered_set<Cell*>& getCells()
 		{
 			return cells;

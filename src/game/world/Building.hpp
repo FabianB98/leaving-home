@@ -181,6 +181,8 @@ namespace game::world
 			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeWallPieces,
 			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeWallRoofOuterCornerPieces,
 			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeRoofWallInnerCornerPieces,
+			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeWallRoofLeftPieces,
+			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeWallRoofRightPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofOuterCornerPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerRoofWallInnerCornerPieces,
@@ -191,6 +193,8 @@ namespace game::world
 		) : straightEdgeWallPieces(_straightEdgeWallPieces),
 			straightEdgeWallRoofOuterCornerPieces(_straightEdgeWallRoofOuterCornerPieces),
 			straightEdgeRoofWallInnerCornerPieces(_straightEdgeRoofWallInnerCornerPieces),
+			straightEdgeWallRoofLeftPieces(_straightEdgeWallRoofLeftPieces),
+			straightEdgeWallRoofRightPieces(_straightEdgeWallRoofRightPieces),
 			innerCornerWallPieces(_innerCornerWallPieces),
 			innerCornerWallRoofOuterCornerPieces(_innerCornerWallRoofOuterCornerPieces),
 			innerCornerRoofWallInnerCornerPieces(_innerCornerRoofWallInnerCornerPieces),
@@ -212,6 +216,16 @@ namespace game::world
 		const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& getStraightEdgeRoofWallInnerCornerPieces()
 		{
 			return straightEdgeRoofWallInnerCornerPieces;
+		}
+
+		const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& getStraightEdgeWallRoofLeftPieces()
+		{
+			return straightEdgeWallRoofLeftPieces;
+		}
+
+		const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& getStraightEdgeWallRoofRightPieces()
+		{
+			return straightEdgeWallRoofRightPieces;
 		}
 
 		const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& getInnerCornerWallPieces()
@@ -253,6 +267,8 @@ namespace game::world
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeWallPieces;
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeWallRoofOuterCornerPieces;
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeRoofWallInnerCornerPieces;
+		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeWallRoofLeftPieces;
+		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeWallRoofRightPieces;
 
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallPieces;
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofOuterCornerPieces;
@@ -272,7 +288,7 @@ namespace game::world
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
 		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet), registry(nullptr), mesh(nullptr) {}
 
-		~Building();
+		virtual ~Building();
 
 	protected:
 		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
@@ -314,5 +330,7 @@ namespace game::world
 	{
 	public:
 		TestBuilding();
+
+		virtual ~TestBuilding() {}
 	};
 }
