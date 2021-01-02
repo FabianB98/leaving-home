@@ -109,7 +109,7 @@ namespace game::world
 			return registry;
 		}
 
-		void updateCellContentMesh();
+		void enqueueUpdate();
 
 	private:
 		size_t chunkSeed;
@@ -176,6 +176,8 @@ namespace game::world
 		void addedToWorld();
 
 		rendering::model::Mesh* generateWaterMesh();
+
+		void update();
 
 		class Generator
 		{
@@ -258,6 +260,11 @@ namespace game::world
 		friend class Cell;
 		friend class World;
 		friend class ChunkCluster;
+	};
+
+	struct ChunkUpdate
+	{
+		Chunk* chunk;
 	};
 
 	class Cell

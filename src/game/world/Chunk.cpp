@@ -169,7 +169,18 @@ namespace game::world
 		}
 	}
 
-	void Chunk::updateCellContentMesh()
+	void Chunk::enqueueUpdate()
+	{
+		if (cullingEntity == entt::null)
+		{
+			// Chunk was not added to the world yet. There's no need to do anything at all.
+			return;
+		}
+
+		registry.emplace_or_replace<ChunkUpdate>(cullingEntity, this);
+	}
+
+	void Chunk::update()
 	{
 		if (cullingEntity == entt::null)
 		{
@@ -969,6 +980,9 @@ namespace game::world
 
 		if (content != nullptr)
 		{
+			if (content->getMeshData() != nullptr)
+				chunk->enqueueUpdate();
+
 			content->removedFromCell(this);
 			content->cells.erase(this);
 			if (content->cells.empty())
@@ -980,6 +994,9 @@ namespace game::world
 		{
 			content->cells.insert(this);
 			content->addedToCell(this);
+
+			if (content->getMeshData() != nullptr)
+				chunk->enqueueUpdate();
 		}
 	}
 

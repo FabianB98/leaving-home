@@ -67,7 +67,7 @@ namespace game::world
 			return heightGenerator;
 		}
 
-		void addGeneratedChunks();
+		void update();
 
 	private:
 		size_t worldSeed;
