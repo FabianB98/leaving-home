@@ -186,6 +186,9 @@ namespace game::world
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofOuterCornerPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerRoofWallInnerCornerPieces,
+			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofLeftPieces,
+			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofRightPieces,
+			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofBothPieces,
 			const std::vector<std::shared_ptr<OuterCornerBuildingPiece>>& _outerCornerWallPieces,
 			const std::vector<std::shared_ptr<OuterCornerBuildingPiece>>& _outerCornerWallRoofOuterCornerPieces,
 			const std::vector<std::shared_ptr<OuterCornerBuildingPiece>>& _outerCornerRoofWallInnerCornerPieces,
@@ -198,6 +201,9 @@ namespace game::world
 			innerCornerWallPieces(_innerCornerWallPieces),
 			innerCornerWallRoofOuterCornerPieces(_innerCornerWallRoofOuterCornerPieces),
 			innerCornerRoofWallInnerCornerPieces(_innerCornerRoofWallInnerCornerPieces),
+			innerCornerWallRoofLeftPieces(_innerCornerWallRoofLeftPieces),
+			innerCornerWallRoofRightPieces(_innerCornerWallRoofRightPieces),
+			innerCornerWallRoofBothPieces(_innerCornerWallRoofBothPieces),
 			outerCornerWallPieces(_outerCornerWallPieces),
 			outerCornerWallRoofOuterCornerPieces(_outerCornerWallRoofOuterCornerPieces),
 			outerCornerRoofWallInnerCornerPieces(_outerCornerRoofWallInnerCornerPieces),
@@ -243,6 +249,21 @@ namespace game::world
 			return innerCornerRoofWallInnerCornerPieces;
 		}
 
+		const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& getInnerCornerWallRoofLeftPieces()
+		{
+			return innerCornerWallRoofLeftPieces;
+		}
+
+		const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& getInnerCornerWallRoofRightPieces()
+		{
+			return innerCornerWallRoofRightPieces;
+		}
+
+		const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& getInnerCornerWallRoofBothPieces()
+		{
+			return innerCornerWallRoofBothPieces;
+		}
+
 		const std::vector<std::shared_ptr<OuterCornerBuildingPiece>>& getOuterCornerWallPieces()
 		{
 			return outerCornerWallPieces;
@@ -273,6 +294,9 @@ namespace game::world
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallPieces;
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofOuterCornerPieces;
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerRoofWallInnerCornerPieces;
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofLeftPieces;
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofRightPieces;
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofBothPieces;
 
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>> outerCornerWallPieces;
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>> outerCornerWallRoofOuterCornerPieces;

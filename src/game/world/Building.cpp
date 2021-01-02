@@ -67,6 +67,30 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
 		) },
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
+			"0",
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Left"),
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" }
+		) },
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
+			"0",
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Right"),
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" }
+		) },
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
+			"0",
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Both"),
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" }
+		) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Outer_Corner_Wall"),
@@ -262,8 +286,22 @@ namespace game::world
 			lowerPiece = buildingPieceSet->getInnerCornerWallPieces()[0];
 			if (occupiedCellUp)
 			{
-				// TODO: Edge pieces for roof wall connections.
-				upperPiece = buildingPieceSet->getInnerCornerWallPieces()[0];
+				if (straightEdgeUp && occupiedCounterClockwiseUp)
+				{
+					upperPiece = buildingPieceSet->getInnerCornerWallRoofRightPieces()[0];
+				}
+				else if (straightEdgeUp && occupiedClockwiseUp)
+				{
+					upperPiece = buildingPieceSet->getInnerCornerWallRoofLeftPieces()[0];
+				}
+				else if (outerCornerUp)
+				{
+					upperPiece = buildingPieceSet->getInnerCornerWallRoofBothPieces()[0];
+				}
+				else
+				{
+					upperPiece = buildingPieceSet->getInnerCornerWallPieces()[0];
+				}
 			}
 			else
 			{
