@@ -91,17 +91,4 @@ namespace rendering::shading
 	private:
 		unsigned int maxDirectionalLights{ 0 };
 	};
-
-	class SSAOShader : public Shader
-	{
-	public:
-		SSAOShader(std::string shaderName, bool useGeometryShader = false);
-
-		unsigned int getNoiseSize() { return noiseSize; }
-		unsigned int getKernelSize() { return kernelSize; }
-
-	private:
-		unsigned int noiseSize{ 4 };
-		unsigned int kernelSize{ 64 };
-	};
 }

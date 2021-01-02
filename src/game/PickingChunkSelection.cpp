@@ -34,8 +34,8 @@ namespace game
 			auto dist = glm::length(l.x * b.y - b.x * l.y) / glm::length(b);
 
 			// check if chunk is near view line (and y coordinate >= 0)
-			auto radius = 2.f * world::CHUNK_SIZE * world::CELL_SIZE;
-			auto height = (camPos + glm::length(l) * viewDir).y;
+			auto radius = 1.1f * 2.f * world::CHUNK_SIZE * world::CELL_SIZE;
+			auto height = (camPos + (glm::length(l) - radius) * viewDir).y;
 			if (dist <= radius && height >= 0)
 				picking.enabled.insert(chunk->getLandscapeMesh());
 		}

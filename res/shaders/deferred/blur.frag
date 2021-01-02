@@ -4,18 +4,37 @@ in vec2 uv;
 
 uniform sampler2D image;
 
-out float color;
+uniform vec2 axis;
+
+out vec3 color;
+
+const float gaussian[4 + 1] = 
+    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // stddev = 1.0
+
+
+float combineZ(vec2 store) {
+    return (store.x * 256.0 + store.y) / 257.0;
+}
 
 void main() {
-	vec2 texelSize = 1.f / textureSize(image, 0);
-	float result = 0.f;
+	vec4 value = texelFetch(image, ivec2(gl_FragCoord), gl_SampleID);
+	float z = combineZ(value.gb);
 
-	for (int x = -2; x < 2; ++x) {
-		for (int y = -2; y < 2; ++y) {
-			vec2 offset = vec2(float(x), float(y)) * texelSize;
-			result += texture(image, uv + offset).r;
-		}	
+	float result = 0.f;
+	float sumW = 0.f;
+
+	for (int i = -3; i <= 3; ++i) {
+		ivec2 offset = ivec2(axis * 3 * i);
+
+		vec3 offset_val = texelFetch(image, ivec2(gl_FragCoord) + offset, gl_SampleID).rgb;
+		float offset_z = combineZ(offset_val.gb);
+
+		float fac = 2000 * abs(z - offset_z);
+
+		float w = gaussian[abs(i)] * max(0, 1.0 - fac);
+		sumW += w;
+		result += offset_val.r * w;
 	}
 
-	color = result / (4.0 * 4.0);
+	color = vec3(result / sumW, value.g, value.b);
 }

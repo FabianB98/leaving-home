@@ -67,32 +67,61 @@ namespace rendering
         shader.use();
         camera.applyViewProjection(shader);
 
-        //rendering::systems::activateShader(registry, camera, shader);
-        shader.setUniformMat4("T_P", camera.getProjectionMatrix());
-        shader.setUniformVec3List("samples", ssaoKernel);
+        float width = (float) getFramebufferWidth();
+        float height = (float) getFramebufferHeight();
+
+        glm::mat4& proj = camera.getProjectionMatrix();
+        // calculate the height in pixels of a 1m object at z=-1m
+        glm::vec4 p1 = proj * glm::vec4(0, -0.5, -1, 1);
+        glm::vec4 p2 = proj * glm::vec4(0, 0.5, -1, 1);
+        float scale = height * abs(p1.y / p1.w - p2.y / p2.w) / 2.f;
+        shader.setUniformFloat("screenScale", scale);
        
+        // parameters for inverse projection calculations (Eqn. 3 in McGuire paper)
+        glm::vec4 invProjection(
+            (1.f - proj[0][2]) / proj[0][0],
+            2.f / (width * proj[0][0]),
+            (1.f + proj[1][2]) / proj[1][1],
+            2.f / (height * proj[1][1])
+        );
+        shader.setUniformVec4("invProjection", invProjection);
+
+
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gPosition);
-        shader.setUniformInt("gPosition", 0);
-        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gNormal);
-        shader.setUniformInt("gNormal", 1);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, ssaoNoiseTexture);
-        shader.setUniformInt("noiseTex", 2);
+        shader.setUniformInt("gNormal", 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, ssaoZ);
+        shader.setUniformInt("gZ", 1);
 
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
     }
 
-    void RenderingEngine::renderSSAOBlur()
+    void RenderingEngine::renderSSAOZ(rendering::components::Camera& camera)
+    {
+        shading::Shader& shader = *ssaoZShader;
+        shader.use();
+        //camera.applyViewProjection(shader);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gZ);
+        shader.setUniformInt("depth", 0);
+
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
+
+    void RenderingEngine::renderSSAOBlur(GLuint input, glm::vec2 axis)
     {
         shading::Shader& shader = *blurShader;
         shader.use();
 
+        shader.setUniformVec2("axis", axis);
+
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, ssaoColor);
+        glBindTexture(GL_TEXTURE_2D, input);
         shader.setUniformInt("image", 0);
 
         glBindVertexArray(quadVAO);
@@ -128,6 +157,8 @@ namespace rendering
         }
     }
 
+#include <chrono>
+
     void RenderingEngine::render()
     {
         // prepare gui for render
@@ -154,21 +185,38 @@ namespace rendering
 
         rendering::systems::renderDeferredGPass(registry, camera);
 
+        // SSAO
+        // this pass creates a texture with high precision camera space z values (and resolves geometry pass multisampling)
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoZBuffer);
+        glClearColor(0.f, 0.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // SSAO PASS
+        renderSSAOZ(camera);
+        // this is important! generating mipmaps of the z texture reduces cache misses for AO samples
+        glBindTexture(GL_TEXTURE_2D, ssaoZ);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        // noisy AO sample pass
         glBindFramebuffer(GL_FRAMEBUFFER, ssaoBuffer);
         glClearColor(0.f, 0.f, 0.f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         renderSSAO(camera);
 
+        // AO blur passes (one horizontal, one vertical)
         if (ssaoBlur)
         {
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBufferI);
+            glClearColor(0.f, 0.f, 0.f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            renderSSAOBlur(ssaoColor, glm::vec2(1, 0));
+
             glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBuffer);
             glClearColor(0.f, 0.f, 0.f, 1.f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            renderSSAOBlur();
+            renderSSAOBlur(ssaoBlurColorI, glm::vec2(0, 1));
         }
 
 
