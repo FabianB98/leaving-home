@@ -104,6 +104,11 @@ namespace game::world
 			return heightGenerator;
 		}
 
+		entt::registry& getRegistry()
+		{
+			return registry;
+		}
+
 		void updateCellContentMesh();
 
 	private:
@@ -274,6 +279,36 @@ namespace game::world
 
 		void setContent(CellContent* _content);
 
+		template<class T>
+		void placeBuilding()
+		{
+			static_assert(std::is_base_of<Building, T>::value, "Template parameter T must be a subclass of Building!");
+
+			if (height < WATER_HEIGHT)
+				return;
+
+			if (content != nullptr && dynamic_cast<T*>(content))
+			{
+				content->addedToCell(this);
+			}
+			else if (content == nullptr)
+			{
+				bool added = false;
+				for (auto cell : getNeighbors())
+					if (cell->height == height && dynamic_cast<T*>(cell->content))
+					{
+						setContent(cell->content);
+						added = true;
+						break;
+					}
+
+				// TODO: The new building piece might be neighboring multiple buildings of the same type which need to be connected in this case.
+
+				if (!added)
+					setContent(new T());
+			}
+		}
+
 		uint16_t getCellId()
 		{
 			return cellId;
@@ -282,6 +317,11 @@ namespace game::world
 		uint32_t getCompleteId()
 		{
 			return completeId;
+		}
+
+		const std::unordered_set<Face*> getFaces()
+		{
+			return faces;
 		}
 
 		bool isRelaxed()
@@ -329,6 +369,7 @@ namespace game::world
 		uint32_t completeId;
 
 		Node* node;
+		std::unordered_set<Face*> faces;
 
 		bool relaxed;
 		glm::vec2 relaxedPosition;
@@ -354,6 +395,8 @@ namespace game::world
 			multiCellPlaceable(_multiCellPlaceable),
 			meshData(_meshData),
 			transform(rendering::components::MatrixTransform(glm::mat4(1.0f))) {}
+
+		virtual ~CellContent() {}
 
 		const std::unordered_set<Cell*>& getCells()
 		{
@@ -383,6 +426,8 @@ namespace game::world
 		rendering::components::MatrixTransform transform;
 
 		virtual void addedToCell(Cell* cell) = 0;
+
+		virtual void removedFromCell(Cell* cell) = 0;
 
 		friend Cell;
 	};

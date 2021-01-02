@@ -570,6 +570,34 @@ namespace game::world
 			size_t borderIndex = i * chunk->numCellsAlongOneChunkEdge;
 			chunk->cornerPositions[i] = chunk->cellsAlongChunkBorder[borderIndex]->getUnrelaxedPosition();
 		}
+
+		// Determine all planar graph faces within the chunk.
+		traversedEdges.clear();
+		for (auto& cell : chunk->cells)
+		{
+			Node* node = cell.second->node;
+			for (auto& edgeAndDestination : node->getEdges())
+			{
+				DirectedEdge* outgoingEdge = edgeAndDestination.second;
+				if (traversedEdges.find(outgoingEdge) == traversedEdges.end())
+				{
+					Face face = outgoingEdge->calculateFace();
+
+					// All faces of the planar graph are quads (except for the outside of the chunk, which we don't
+					// want to store).
+					if (face.getNumEdges() == 4)
+					{
+						Face* facePointer = new Face(face);
+
+						for (Node* n : face.getNodes())
+							((Cell*)n->getAdditionalData())->faces.insert(facePointer);
+					}
+
+					for (DirectedEdge* edge : face.getEdges())
+						traversedEdges.insert(edge);
+				}
+			}
+		}
 	}
 
 	void Chunk::Generator::addCell(
@@ -604,47 +632,31 @@ namespace game::world
 		for (auto& cell : chunk->getCellsAndCellsAlongChunkBorder())
 			addCell(vertices, uvs, normals, nodeIndices, currentIndex, cell);
 
-		std::unordered_set<DirectedEdge*> traversedEdges;
+		std::unordered_set<Face*> traversedFaces;
 		for (auto& cell : chunk->cells)
 		{
-			Node* node = cell.second->node;
-			for (auto& edgeAndDestination : node->getEdges())
+			for (Face* face : cell.second->faces)
 			{
-				DirectedEdge* outgoingEdge = edgeAndDestination.second;
-				if (traversedEdges.find(outgoingEdge) == traversedEdges.end())
+				if (traversedFaces.find(face) == traversedFaces.end())
 				{
-					Face face = outgoingEdge->calculateFace();
+					traversedFaces.insert(face);
 
-					// All faces of the planar graph are quads (except for the outside of the chunk, which we don't
-					// want to render).
-					if (face.getNumEdges() == 4)
+					bool allNodesWithinChunk = true;
+					for (Node* node : face->getNodes())
 					{
-						bool allNodesWithinChunk = true;
-						for (Node* node : face.getNodes())
+						if (nodeIndices.find(node) == nodeIndices.end())
 						{
-							if (nodeIndices.find(node) == nodeIndices.end())
-							{
-								allNodesWithinChunk = false;
-								break;
-							}
-						}
-
-						if (allNodesWithinChunk)
-						{
-							for (DirectedEdge* edge : face.getEdges())
-							{
-								indices.push_back(nodeIndices[edge->getFrom()]);
-								indices.push_back(nodeIndices[edge->getTo()]);
-
-								traversedEdges.insert(edge);
-							}
+							allNodesWithinChunk = false;
+							break;
 						}
 					}
-					else
+
+					if (allNodesWithinChunk)
 					{
-						for (DirectedEdge* edge : face.getEdges())
+						for (DirectedEdge* edge : face->getEdges())
 						{
-							traversedEdges.insert(edge);
+							indices.push_back(nodeIndices[edge->getFrom()]);
+							indices.push_back(nodeIndices[edge->getTo()]);
 						}
 					}
 				}
@@ -692,40 +704,22 @@ namespace game::world
 	{
 		// Determine the center positions of all planar graph faces within the chunk.
 		std::unordered_map<DirectedEdge*, glm::vec2> facePositionMap;
-		std::unordered_set<DirectedEdge*> traversedEdges;
+		std::unordered_set<Face*> traversedFaces;
 		for (Cell* cell : chunk->getCellsAndCellsAlongChunkBorder())
 		{
-			Node* node = cell->node;
-			for (auto& edgeAndDestination : node->getEdges())
+			for (Face* face : cell->faces)
 			{
-				DirectedEdge* outgoingEdge = edgeAndDestination.second;
-				if (traversedEdges.find(outgoingEdge) == traversedEdges.end())
+				if (traversedFaces.find(face) == traversedFaces.end())
 				{
-					Face face = outgoingEdge->calculateFace();
+					traversedFaces.insert(face);
 
-					// All faces of the planar graph are quads (except for the outside of the chunk, which we don't
-					// want to render).
-					if (face.getNumEdges() == 4)
-					{
-						glm::vec2 faceCenterPos = glm::vec2(0.0f, 0.0f);
-						for (Node* node : face.getNodes())
-							faceCenterPos += ((Cell*)node->getAdditionalData())->getRelaxedPosition();
-						faceCenterPos /= 4.0f;
+					glm::vec2 faceCenterPos = glm::vec2(0.0f, 0.0f);
+					for (Node* node : face->getNodes())
+						faceCenterPos += ((Cell*)node->getAdditionalData())->getRelaxedPosition();
+					faceCenterPos /= 4.0f;
 
-						for (DirectedEdge* edge : face.getEdges())
-						{
-							facePositionMap.insert(std::make_pair(edge, faceCenterPos));
-
-							traversedEdges.insert(edge);
-						}
-					}
-					else
-					{
-						for (DirectedEdge* edge : face.getEdges())
-						{
-							traversedEdges.insert(edge);
-						}
-					}
+					for (DirectedEdge* edge : face->getEdges())
+						facePositionMap.insert(std::make_pair(edge, faceCenterPos));
 				}
 			}
 		}
@@ -762,7 +756,7 @@ namespace game::world
 		std::vector<unsigned int> indices;
 		unsigned int index = 0;
 
-		traversedEdges.clear();
+		std::unordered_set<DirectedEdge*> traversedEdges;
 
 		for (Cell* cell : cellsToTraverse)
 		{
@@ -955,18 +949,27 @@ namespace game::world
 	Cell::~Cell()
 	{
 		if (content != nullptr)
-			delete content;
+			setContent(nullptr);
 
 		delete node;
+		for (Face* face : faces)
+		{
+			for (Node* n : face->getNodes())
+				if (n != node)
+					((Cell*)n->getAdditionalData())->faces.erase(face);
+
+			delete face;
+		}
 	}
 
 	void Cell::setContent(CellContent* _content)
 	{
-		if (_content != nullptr && !_content->multiCellPlaceable && _content->cells.find(this) != _content->cells.end())
+		if (_content != nullptr && !_content->multiCellPlaceable && !_content->cells.empty())
 			return;
 
 		if (content != nullptr)
 		{
+			content->removedFromCell(this);
 			content->cells.erase(this);
 			if (content->cells.empty())
 				delete content;

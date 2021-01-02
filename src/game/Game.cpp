@@ -18,6 +18,7 @@
 #include "systems/MovementInputSystem.hpp"
 #include "DayNightCycle.hpp"
 #include "PickingChunkSelection.hpp"
+#include "world/Building.hpp"
 #include "world/Chunk.hpp"
 #include "world/World.hpp"
 #include "world/Resource.hpp"
@@ -120,10 +121,21 @@ namespace game
 		auto io = ImGui::GetIO();
 		
 		bool pressedNew = renderingEngine->isMouseButtonPressed(GLFW_MOUSE_BUTTON_1) && !io.WantCaptureMouse;
-		if (!pressedNew && pressed && selectedTool == gui::Tool::VIEW){
+		if (!pressedNew && pressed)
+		{
 			auto pick = renderingEngine->getPickingResult();
-			auto* selected = wrld->getChunkByCompleteCellId(pick)->getCellByCompleteCellId(pick);
-			gui::openCellInfo(renderingEngine->getMousePosition(), renderingEngine->getFramebufferSize(), selected);
+			auto* selectedChunk = wrld->getChunkByCompleteCellId(pick);
+			if (selectedChunk != nullptr)
+			{
+				auto* selected = selectedChunk->getCellByCompleteCellId(pick);
+
+				if (selectedTool == gui::Tool::VIEW)
+					gui::openCellInfo(renderingEngine->getMousePosition(), renderingEngine->getFramebufferSize(), selected);
+				else if (selectedTool == gui::Tool::BUILD && selected != nullptr)
+					selected->placeBuilding<world::TestBuilding>();
+				else if (selectedTool == gui::Tool::REMOVE && selected != nullptr)
+					selected->setContent(nullptr);
+			}
 		}
 		pressed = pressedNew;
 	}

@@ -17,4 +17,9 @@ namespace game::world
 			glm::vec3(1.0f)
 		).toTransformationMatrix());
 	}
+
+	void Tree::removedFromCell(Cell* cell)
+	{
+		// Nothing to do here...
+	}
 }

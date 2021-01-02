@@ -1,10 +1,14 @@
 #include "Info.hpp"
 
+// TODO: This is just a temporary include for displaying the cell's content. Remove this later on.
+#include "../game/world/Building.hpp"
+#include <sstream>
+
 namespace gui
 {
 	constexpr auto cellInfoMargin = 12.f;
-	constexpr auto cellInfoWidth = 250.f;
-	constexpr auto cellInfoHeight = 80.f;
+	constexpr auto cellInfoWidth = 300.f; // TODO: Change this value back to 250.f when removing the temporary code for displaying the cell's content.
+	constexpr auto cellInfoHeight = 85.f; // TODO: Change this value back to 80.f when removing the temporary code for displaying the cell's content.
 
 	bool cellInfoOpen = false;
 	ImVec2 cellInfoPos;
@@ -54,6 +58,17 @@ namespace gui
 
 		ImGui::Text("Type: %s", cellType);
 		ImGui::Text("Height: %i", (int) selection->getHeight());
+
+		// TODO: This is just temporary code for showing the cell's content. Remove this (and the temporary include at the top of this file) later on.
+		game::world::CellContent* cellContent = selection->getContent();
+		std::string cellContentText = "Unknown";
+		if (cellContent == nullptr)
+			cellContentText = "Empty";
+		else if (dynamic_cast<game::world::Tree*>(cellContent))
+			cellContentText = "Tree";
+		else if (dynamic_cast<game::world::TestBuilding*>(cellContent))
+			cellContentText = "TestBuilding";
+		ImGui::Text("Content: %s %p", cellContentText, cellContent);
 
 		ImGui::End();
 	}

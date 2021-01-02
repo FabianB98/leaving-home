@@ -1,11 +1,15 @@
 #pragma once
 
 #include <functional>
+#include <stdexcept>
 #include <vector>
+
+#include <entt/entt.hpp>
 
 #include "../../rendering/components/Transform.hpp"
 #include "../../rendering/model/Mesh.hpp"
 #include "Chunk.hpp"
+#include "Constants.hpp"
 
 namespace game::world
 {
@@ -177,6 +181,8 @@ namespace game::world
 			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeWallPieces,
 			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeWallRoofOuterCornerPieces,
 			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeRoofWallInnerCornerPieces,
+			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeWallRoofLeftPieces,
+			const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& _straightEdgeWallRoofRightPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofOuterCornerPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerRoofWallInnerCornerPieces,
@@ -187,6 +193,8 @@ namespace game::world
 		) : straightEdgeWallPieces(_straightEdgeWallPieces),
 			straightEdgeWallRoofOuterCornerPieces(_straightEdgeWallRoofOuterCornerPieces),
 			straightEdgeRoofWallInnerCornerPieces(_straightEdgeRoofWallInnerCornerPieces),
+			straightEdgeWallRoofLeftPieces(_straightEdgeWallRoofLeftPieces),
+			straightEdgeWallRoofRightPieces(_straightEdgeWallRoofRightPieces),
 			innerCornerWallPieces(_innerCornerWallPieces),
 			innerCornerWallRoofOuterCornerPieces(_innerCornerWallRoofOuterCornerPieces),
 			innerCornerRoofWallInnerCornerPieces(_innerCornerRoofWallInnerCornerPieces),
@@ -208,6 +216,16 @@ namespace game::world
 		const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& getStraightEdgeRoofWallInnerCornerPieces()
 		{
 			return straightEdgeRoofWallInnerCornerPieces;
+		}
+
+		const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& getStraightEdgeWallRoofLeftPieces()
+		{
+			return straightEdgeWallRoofLeftPieces;
+		}
+
+		const std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>& getStraightEdgeWallRoofRightPieces()
+		{
+			return straightEdgeWallRoofRightPieces;
 		}
 
 		const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& getInnerCornerWallPieces()
@@ -249,6 +267,8 @@ namespace game::world
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeWallPieces;
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeWallRoofOuterCornerPieces;
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeRoofWallInnerCornerPieces;
+		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeWallRoofLeftPieces;
+		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>> straightEdgeWallRoofRightPieces;
 
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallPieces;
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofOuterCornerPieces;
@@ -266,13 +286,44 @@ namespace game::world
 	public:
 		Building(
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
-		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet) {}
+		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet), registry(nullptr), mesh(nullptr) {}
+
+		virtual ~Building();
 
 	protected:
-		virtual void addedToCell(Cell* cell) = 0;
+		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
+		std::unordered_map<Cell*, unsigned int> heightPerCell;
+
+		entt::registry* registry;
+		entt::entity meshEntity{ entt::null };
+		rendering::model::Mesh* mesh;
+
+		void addedToCell(Cell* cell);
+
+		void removedFromCell(Cell* cell);
 
 	private:
-		std::shared_ptr<BuildingPieceSet> buildingPieceSet;
+		void rebuildMesh();
+
+		void addMeshPieces(
+			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+			Cell* cell,
+			Face* face,
+			unsigned int floor
+		);
+
+		void addMeshPiece(
+			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+			std::shared_ptr<BuildingPiece> piece,
+			glm::vec2 frontLeft,
+			glm::vec2 frontRight,
+			glm::vec2 backLeft,
+			glm::vec2 backRight,
+			float lowerHeight,
+			float upperHeight
+		);
+
+		bool occupies(Cell* cell, unsigned int floor);
 	};
 
 	class TestBuilding : public Building
@@ -280,7 +331,6 @@ namespace game::world
 	public:
 		TestBuilding();
 
-	protected:
-		void addedToCell(Cell* cell);
+		virtual ~TestBuilding() {}
 	};
 }
