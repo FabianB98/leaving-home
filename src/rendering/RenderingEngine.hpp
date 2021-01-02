@@ -24,7 +24,7 @@
 
 namespace rendering 
 {	
-	constexpr auto MSAA_SAMPLES = 4;
+	constexpr auto MSAA_SAMPLES = 2;
 
 	class RenderingEngine;
 
@@ -144,7 +144,8 @@ namespace rendering
 		shading::Shader* pickingShader;
 		shading::Shader* wireframeShader;
 		
-		shading::SSAOShader* ssaoShader;
+		shading::Shader* ssaoShader;
+		shading::Shader* ssaoZShader;
 		shading::Shader* blurShader;
 
 		shading::Shader* quadShader;
@@ -154,7 +155,7 @@ namespace rendering
 		bool showWireframe = false;
 		double frameTimeMillis = 0.0;
 		int lastFrameCount = 0;
-		bool ssaoBlur = true;
+		bool ssaoBlur = false;
 
 		// picking values
 		GLuint pickingFramebuffer;
@@ -168,16 +169,17 @@ namespace rendering
 		GLuint quadVAO;
 		GLuint gBuffer;
 		GLuint gDepthBuffer;
-		GLuint gPosition, gNormal, gAmbient, gDiffuse, gSpecular;
+		GLuint gPosition, gNormal, gAmbient, gDiffuse, gSpecular, gZ;
 
 		// SSAO values
-		std::vector<glm::vec3> ssaoNoise;
-		GLuint ssaoNoiseTexture;
-		std::vector<glm::vec3> ssaoKernel;
 		GLuint ssaoBuffer;
 		GLuint ssaoColor;
+		GLuint ssaoBlurBufferI;
+		GLuint ssaoBlurColorI;
 		GLuint ssaoBlurBuffer;
 		GLuint ssaoBlurColor;
+		GLuint ssaoZBuffer;
+		GLuint ssaoZ;
 
 		int init();
 
@@ -192,7 +194,8 @@ namespace rendering
 		void setGeometryTextureUniforms(shading::Shader& shader);
 		void renderScreen(rendering::components::Camera& camera);
 		void renderSSAO(rendering::components::Camera& camera);
-		void renderSSAOBlur();
+		void renderSSAOZ(rendering::components::Camera& camera);
+		void renderSSAOBlur(GLuint input, glm::vec2 axis);
 		void renderQuad(GLuint image);
 		void render();
 

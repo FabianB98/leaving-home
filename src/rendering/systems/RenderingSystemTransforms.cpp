@@ -37,7 +37,8 @@ namespace rendering::systems
 			auto [light, transform] = registry.get<components::DirectionalLight, components::MatrixTransform>(entity);
 
 			intensities.push_back(light.intensity);
-			// transform the direction to world space (multiply direction with transform matrix)
+			// transform the direction to world space and view space (multiply direction with transform matrix)
+			// deferred shading uses view space, forward shading uses world space
 			glm::vec4 worldDir = transform.getTransform() * glm::vec4(light.direction, 0.f);
 			directionsWorld.push_back(worldDir);
 			directionsView.push_back(viewMatrix * worldDir);

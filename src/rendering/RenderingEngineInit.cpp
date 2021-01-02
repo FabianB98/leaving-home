@@ -53,7 +53,8 @@ namespace rendering
 
         screenShader = new shading::LightSupportingShader("deferred/screen");
         quadShader = new shading::Shader("deferred/quad");
-        ssaoShader = new shading::SSAOShader("deferred/ssao");
+        ssaoShader = new shading::Shader("deferred/ssao");
+        ssaoZShader = new shading::Shader("deferred/ssaoZ");
         blurShader = new shading::Shader("deferred/blur");
 
         initPicking();
@@ -134,9 +135,16 @@ namespace rendering
         glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D_MULTISAMPLE, gSpecular, 0);
 
-        GLuint attachments[5] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
-            GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
-        glDrawBuffers(5, attachments);
+        glGenTextures(1, &gZ);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gZ);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_R32F, getFramebufferWidth(), getFramebufferHeight(), GL_TRUE);
+        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D_MULTISAMPLE, gZ, 0);
+
+        GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
+            GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
+        glDrawBuffers(6, attachments);
 
         glGenRenderbuffers(1, &gDepthBuffer);
         glBindRenderbuffer(GL_RENDERBUFFER, gDepthBuffer);
@@ -146,81 +154,47 @@ namespace rendering
         glGenVertexArrays(1, &quadVAO);
     }
 
-    void generateNoise(std::vector<glm::vec3>& noise, unsigned int size)
-    {
-        std::uniform_real_distribution<float> randomFloats(0.f, 1.f);
-        std::default_random_engine generator;
-
-        for (unsigned int i = 0; i < size; ++i)
-        {
-            glm::vec3 value(
-                randomFloats(generator) * 2.f - 1.f, 
-                randomFloats(generator) * 2.f - 1.f,
-                0.f
-            );
-            noise.push_back(value);
-        }
-    }
-
-    float lerpf(float a, float b, float f)
-    {
-        return a + f * (b - a);
-    }
-
-    void generateKernel(std::vector<glm::vec3>& kernel, unsigned int size)
-    {
-        std::uniform_real_distribution<float> randomFloats(0.f, 1.f);
-        std::default_random_engine generator;
-
-        for (unsigned int i = 0; i < size; ++i) {
-            glm::vec3 sample(
-                randomFloats(generator) * 2.f - 1.f,
-                randomFloats(generator) * 2.f - 1.f,
-                randomFloats(generator)
-            );
-            sample = glm::normalize(sample);
-            sample *= randomFloats(generator);
-            
-            float scale = float(i) / 64.f;
-            scale = lerpf(0.1f, 1.f, scale * scale);
-            sample *= scale;
-            kernel.push_back(sample);
-        }
-    }
-
     void RenderingEngine::initSSAO()
     {
-        unsigned int noiseSize = ssaoShader->getNoiseSize();
-        unsigned int kernelSize = ssaoShader->getKernelSize();
+        glGenFramebuffers(1, &ssaoZBuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoZBuffer);
 
-        generateNoise(ssaoNoise, noiseSize * noiseSize);
-        generateKernel(ssaoKernel, kernelSize);
-
-        glGenTextures(1, &ssaoNoiseTexture);
-        glBindTexture(GL_TEXTURE_2D, ssaoNoiseTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseSize, noiseSize, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
+        glGenTextures(1, &ssaoZ);
+        glBindTexture(GL_TEXTURE_2D, ssaoZ);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoZ, 0);
+
+
 
         glGenFramebuffers(1, &ssaoBuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, ssaoBuffer);
 
         glGenTextures(1, &ssaoColor);
         glBindTexture(GL_TEXTURE_2D, ssaoColor);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RED, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGB, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColor, 0);
 
+
+        glGenFramebuffers(1, &ssaoBlurBufferI);
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBufferI);
+
+        glGenTextures(1, &ssaoBlurColorI);
+        glBindTexture(GL_TEXTURE_2D, ssaoBlurColorI);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoBlurColorI, 0);
 
         glGenFramebuffers(1, &ssaoBlurBuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBuffer);
 
         glGenTextures(1, &ssaoBlurColor);
         glBindTexture(GL_TEXTURE_2D, ssaoBlurColor);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RED, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, getFramebufferWidth(), getFramebufferHeight(), 0, GL_RGB, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoBlurColor, 0);
