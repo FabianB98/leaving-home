@@ -172,7 +172,7 @@ namespace game
 		//			auto& registry = renderingEngine->getRegistry();
 		//			auto light = registry.create();
 		//			registry.emplace<rendering::components::MatrixTransform>(light, content->getTransform().getTransform());
-		//			registry.emplace<rendering::components::PointLight>(light, glm::vec3(10,10,10), glm::vec3(2,5,2), glm::vec3(0,0,0.2));
+		//			registry.emplace<rendering::components::PointLight>(light, glm::vec3(30), glm::vec3(0,5,0), glm::vec3(0,0,2));
 		//		}
 		//	}
 		//}

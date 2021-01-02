@@ -216,7 +216,7 @@ namespace rendering
         glRenderbufferStorageMultisample(GL_RENDERBUFFER, MSAA_SAMPLES, GL_DEPTH_COMPONENT, width, height);
 
         glBindTexture(GL_TEXTURE_2D, ssaoColor);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_FLOAT, NULL);
         glBindTexture(GL_TEXTURE_2D, ssaoZ);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
         glBindTexture(GL_TEXTURE_2D, ssaoBlurColorI);
