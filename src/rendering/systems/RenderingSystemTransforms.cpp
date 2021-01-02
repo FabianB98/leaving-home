@@ -88,12 +88,14 @@ namespace rendering::systems
 
 			glm::mat4& modelMatrix = relationship ? relationship->totalTransform : transform.getTransform();
 			entityToTransformIndexMap[entity] = models.size();
-			glm::vec4 lightPos = viewMatrix * modelMatrix * glm::vec4(pLight.position, 1.f);
+			glm::vec4 lightPosWorld = modelMatrix * glm::vec4(pLight.position, 1.f);
 			float radius = pLight.getRadius();
 
 			// Calculate the model matrix without matrix multiplications
 			glm::mat4 model = glm::scale(glm::vec3(radius));
-			model[3] = lightPos;
+			model[3] = lightPosWorld;
+
+			glm::vec4 lightPos = viewMatrix * lightPosWorld;
 
 			// fill the "normal" matrix with light info
 			glm::mat3 lightInfo;
@@ -200,7 +202,7 @@ namespace rendering::systems
 		if (transformChanged.size() != 0)
 			updateMeshTransforms(registry);
 
-		if (pointLightObserver.size() != 0)
+		//if (pointLightObserver.size() != 0)
 			updatePointLights(registry);
 
 		transformObserver.clear();
