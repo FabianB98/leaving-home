@@ -169,7 +169,7 @@ namespace game::world
 		}
 	}
 
-	void Chunk::updateCellContentMesh()
+	void Chunk::enqueueUpdate()
 	{
 		if (cullingEntity == entt::null)
 		{
@@ -177,15 +177,29 @@ namespace game::world
 			return;
 		}
 
+		registry.emplace_or_replace<ChunkUpdate>(cullingEntity, this);
+	}
+
+	void Chunk::update()
+	{
+		if (cullingEntity == entt::null)
+		{
+			// Chunk was not added to the world yet. There's no need to do anything at all.
+			return;
+		}
+
+		if (cellContentEntity == entt::null)
+			cellContentEntity = registry.create();
+
 		std::map<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>> instancesPerMesh;
 		for (const auto& cell : cells)
 		{
 			CellContent* content = cell.second->content;
 			if (content != nullptr)
 			{
-				std::shared_ptr<rendering::model::MeshData> meshData = content->getMeshData();
-				if (meshData != nullptr)
-					instancesPerMesh[meshData].push_back(content->getTransform().getTransform());
+				CellContentCellData cellData = content->getCells().find(cell.second)->second;
+				if (cellData.meshData != nullptr)
+					instancesPerMesh[cellData.meshData].push_back(cellData.transform.getTransform());
 			}
 		}
 
@@ -193,12 +207,11 @@ namespace game::world
 		for (const auto& meshAndInstances : instancesPerMesh)
 			instances.push_back(meshAndInstances);
 
-		if (instances.empty())
-			return;
-
-		if (cellContentEntity == entt::null)
+		if (cellContentMesh == nullptr)
 		{
-			cellContentEntity = registry.create();
+			if (instances.empty())
+				return;
+
 			cellContentMesh = new rendering::model::Mesh(
 				instances, 
 				std::make_shared<rendering::bounding_geometry::AABB>(new rendering::bounding_geometry::AABB::WorldSpace)
@@ -215,9 +228,17 @@ namespace game::world
 		}
 		else
 		{
-			cellContentMesh->setData(instances);
-			registry.get<rendering::components::CullingGeometry>(cellContentEntity).boundingGeometry = cellContentMesh->getBoundingGeometry();
-			cullingGeometry->extendToFitGeometry(cellContentMesh->getBoundingGeometry());
+			if (instances.empty())
+			{
+				registry.remove_if_exists<rendering::components::MeshRenderer>(cellContentEntity);
+			}
+			else
+			{
+				cellContentMesh->setData(instances);
+				registry.emplace_or_replace<rendering::components::MeshRenderer>(cellContentEntity, cellContentMesh);
+				registry.get<rendering::components::CullingGeometry>(cellContentEntity).boundingGeometry = cellContentMesh->getBoundingGeometry();
+				cullingGeometry->extendToFitGeometry(cellContentMesh->getBoundingGeometry());
+			}
 		}
 	}
 
@@ -969,6 +990,9 @@ namespace game::world
 
 		if (content != nullptr)
 		{
+			if (content->hasMeshData())
+				chunk->enqueueUpdate();
+
 			content->removedFromCell(this);
 			content->cells.erase(this);
 			if (content->cells.empty())
@@ -978,8 +1002,11 @@ namespace game::world
 		content = _content;
 		if (content != nullptr)
 		{
-			content->cells.insert(this);
+			content->cells.insert(std::make_pair(this, CellContentCellData()));
 			content->addedToCell(this);
+
+			if (content->hasMeshData())
+				chunk->enqueueUpdate();
 		}
 	}
 
@@ -1014,5 +1041,84 @@ namespace game::world
 			cellType = CellType::STONE;
 		else
 			cellType = CellType::SNOW;
+	}
+
+	CellContent::~CellContent()
+	{
+		if (registry != nullptr)
+			registry->destroy(entity);
+	}
+
+	void CellContent::addedToCell(Cell* cell)
+	{
+		if (registry == nullptr)
+		{
+			registry = &cell->getChunk()->getRegistry();
+			entity = registry->create();
+		}
+
+		_addedToCell(cell);
+	}
+
+	void CellContent::removedFromCell(Cell* cell)
+	{
+		_removedFromCell(cell);
+	}
+
+	void CellContent::enqueueUpdate()
+	{
+		if (entity == entt::null)
+		{
+			// CellContent was not added to the world yet. There's no need to do anything at all.
+			return;
+		}
+
+		registry->emplace_or_replace<CellContentUpdate>(entity, this);
+	}
+
+	bool CellContent::hasMeshData()
+	{
+		for (auto& cell : cells)
+			if (cell.second.meshData != nullptr)
+				return true;
+
+		return false;
+	}
+
+	void CellContent::setMeshData(Cell* cell, std::shared_ptr<rendering::model::MeshData> meshData)
+	{
+		auto& found = cells.find(cell);
+		if (found != cells.end())
+		{
+			found->second.meshData = meshData;
+
+			cell->getChunk()->enqueueUpdate();
+		}
+	}
+
+	void CellContent::setTransform(Cell* cell, const rendering::components::MatrixTransform& transform)
+	{
+		auto& found = cells.find(cell);
+		if (found != cells.end())
+		{
+			found->second.transform = transform;
+
+			cell->getChunk()->enqueueUpdate();
+		}
+	}
+
+	void CellContent::setMeshDataAndTransform(
+		Cell* cell,
+		std::shared_ptr<rendering::model::MeshData> meshData,
+		const rendering::components::MatrixTransform& transform
+	) {
+		auto& found = cells.find(cell);
+		if (found != cells.end())
+		{
+			found->second.meshData = meshData;
+			found->second.transform = transform;
+
+			cell->getChunk()->enqueueUpdate();
+		}
 	}
 }

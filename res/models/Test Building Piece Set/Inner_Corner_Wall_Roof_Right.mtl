@@ -1,0 +1,10 @@
+# Blender MTL File: 'Test Building Piece Set.blend'
+# Material Count: 1
+
+newmtl None
+Ns 5
+Ka 0.1 0.1 0.1
+Kd 0.2392 0.2118 0.2078
+Ks 0.25 0.25 0.15
+d 1
+illum 2

@@ -67,6 +67,30 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
 		) },
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
+			"0",
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Left"),
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" }
+		) },
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
+			"0",
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Right"),
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" }
+		) },
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
+			"0",
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Both"),
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" },
+			std::vector<std::string>{ "0" }
+		) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Outer_Corner_Wall"),
@@ -101,7 +125,7 @@ namespace game::world
 		) }
 	);
 
-	void Building::addedToCell(Cell* cell)
+	void Building::_addedToCell(Cell* cell)
 	{
 		auto& height = heightPerCell.find(cell);
 		if (height != heightPerCell.end())
@@ -109,50 +133,42 @@ namespace game::world
 		else
 			heightPerCell.insert(std::make_pair(cell, 1));
 
-		rebuildMesh();
+		enqueueUpdate();
 	}
 
-	void Building::removedFromCell(Cell* cell)
+	void Building::_removedFromCell(Cell* cell)
 	{
 		heightPerCell.erase(cell);
 
 		if (!heightPerCell.empty())
-			rebuildMesh();
+			enqueueUpdate();
 	}
 
-	void Building::rebuildMesh()
+	void Building::update()
 	{
-		registry = &(*cells.begin())->getChunk()->getRegistry();
-		if (meshEntity != entt::null && !registry->valid(meshEntity))
-			return;
+		rebuildMeshData();
+	}
 
-		std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>> meshPieces;
+	void Building::rebuildMeshData()
+	{
+		std::unordered_map<Cell*, std::vector<std::shared_ptr<rendering::model::MeshData>>> meshPieces;
 		for (auto& cellAndHeight : heightPerCell)
 			for (auto& face : cellAndHeight.first->getFaces())
 				for (unsigned int floor = 0; floor < cellAndHeight.second; floor++)
 					addMeshPieces(meshPieces, cellAndHeight.first, face, floor);
-		rendering::model::MeshData data = rendering::model::MeshData(meshPieces);
 		
-		if (meshEntity == entt::null)
+		for (auto& cellAndPieces : meshPieces)
 		{
-			meshEntity = registry->create();
-			mesh = new rendering::model::Mesh(
-				data,
-				std::make_shared<rendering::bounding_geometry::AABB>(new rendering::bounding_geometry::AABB::WorldSpace)
-			);
-			registry->emplace<rendering::components::MeshRenderer>(meshEntity, mesh);
-			registry->emplace<rendering::components::CullingGeometry>(meshEntity, mesh->getBoundingGeometry());
-			registry->emplace<rendering::components::MatrixTransform>(meshEntity, glm::mat4(1.0f));
-		}
-		else
-		{
-			mesh->setData(data);
-			registry->get<rendering::components::CullingGeometry>(meshEntity).boundingGeometry = mesh->getBoundingGeometry();
+			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>> instances;
+			for (auto piece : cellAndPieces.second)
+				instances.push_back(std::make_pair(piece, std::vector<glm::mat4> { glm::mat4(1.0f) }));
+
+			setMeshData(cellAndPieces.first, std::make_shared<rendering::model::MeshData>(instances));
 		}
 	}
 
 	void Building::addMeshPieces(
-		std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+		std::unordered_map<Cell*, std::vector<std::shared_ptr<rendering::model::MeshData>>>& meshPieces,
 		Cell* cell,
 		Face* face,
 		unsigned int floor
@@ -262,8 +278,22 @@ namespace game::world
 			lowerPiece = buildingPieceSet->getInnerCornerWallPieces()[0];
 			if (occupiedCellUp)
 			{
-				// TODO: Edge pieces for roof wall connections.
-				upperPiece = buildingPieceSet->getInnerCornerWallPieces()[0];
+				if (straightEdgeUp && occupiedCounterClockwiseUp)
+				{
+					upperPiece = buildingPieceSet->getInnerCornerWallRoofRightPieces()[0];
+				}
+				else if (straightEdgeUp && occupiedClockwiseUp)
+				{
+					upperPiece = buildingPieceSet->getInnerCornerWallRoofLeftPieces()[0];
+				}
+				else if (outerCornerUp)
+				{
+					upperPiece = buildingPieceSet->getInnerCornerWallRoofBothPieces()[0];
+				}
+				else
+				{
+					upperPiece = buildingPieceSet->getInnerCornerWallPieces()[0];
+				}
 			}
 			else
 			{
@@ -308,26 +338,19 @@ namespace game::world
 		}
 
 		if (lowerPiece != nullptr)
-			addMeshPiece(meshPieces, lowerPiece, frontLeft, frontRight, backLeft, backRight, lowerHeight, centerHeight);
+		{
+			auto data = constructMeshDataForPiece(lowerPiece, frontLeft, frontRight, backLeft, backRight, lowerHeight, centerHeight);
+			meshPieces[cell].push_back(data);
+		}
+
 		if (upperPiece != nullptr)
-			addMeshPiece(meshPieces, upperPiece, frontLeft, frontRight, backLeft, backRight, centerHeight, upperHeight);
+		{
+			auto data = constructMeshDataForPiece(upperPiece, frontLeft, frontRight, backLeft, backRight, centerHeight, upperHeight);
+			meshPieces[cell].push_back(data);
+		}
 	}
 
-	glm::vec2 interpolateBilinear(
-		const glm::vec2& point,
-		const glm::vec2& frontLeft,
-		const glm::vec2& frontRight,
-		const glm::vec2& backLeft,
-		const glm::vec2& backRight
-	) {
-		return (1 - point.x) * (1 - point.y) * frontLeft
-			+ point.x * (1 - point.y) * frontRight
-			+ (1 - point.x) * point.y * backLeft
-			+ point.x * point.y * backRight;
-	}
-
-	void Building::addMeshPiece(
-		std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+	std::shared_ptr<rendering::model::MeshData> Building::constructMeshDataForPiece(
 		std::shared_ptr<BuildingPiece> piece,
 		glm::vec2 frontLeft,
 		glm::vec2 frontRight,
@@ -355,7 +378,20 @@ namespace game::world
 			normal = glm::normalize(glm::vec3(normalDir.x, normalEpsilon * normal.y * deltaHeight, normalDir.y));
 		}
 
-		meshPieces.push_back(std::make_pair(meshData, std::vector<glm::mat4>{ glm::mat4(1.0f) }));
+		return meshData;
+	}
+
+	glm::vec2 Building::interpolateBilinear(
+		const glm::vec2& point,
+		const glm::vec2& frontLeft,
+		const glm::vec2& frontRight,
+		const glm::vec2& backLeft,
+		const glm::vec2& backRight
+	) {
+		return (1 - point.x) * (1 - point.y) * frontLeft
+			+ point.x * (1 - point.y) * frontRight
+			+ (1 - point.x) * point.y * backLeft
+			+ point.x * point.y * backRight;
 	}
 
 	bool Building::occupies(Cell* cell, unsigned int floor)
@@ -365,15 +401,6 @@ namespace game::world
 
 		auto& found = heightPerCell.find(cell);
 		return found != heightPerCell.end() && found->second > floor;
-	}
-
-	Building::~Building()
-	{
-		if (meshEntity != entt::null)
-			registry->destroy(meshEntity);
-
-		if (mesh != nullptr)
-			delete mesh;
 	}
 
 	TestBuilding::TestBuilding() : Building(testBuildingPieceSet) {}

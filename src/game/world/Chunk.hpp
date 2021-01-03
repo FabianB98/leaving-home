@@ -109,7 +109,7 @@ namespace game::world
 			return registry;
 		}
 
-		void updateCellContentMesh();
+		void enqueueUpdate();
 
 	private:
 		size_t chunkSeed;
@@ -176,6 +176,8 @@ namespace game::world
 		void addedToWorld();
 
 		rendering::model::Mesh* generateWaterMesh();
+
+		void update();
 
 		class Generator
 		{
@@ -258,6 +260,11 @@ namespace game::world
 		friend class Cell;
 		friend class World;
 		friend class ChunkCluster;
+	};
+
+	struct ChunkUpdate
+	{
+		Chunk* chunk;
 	};
 
 	class Cell
@@ -388,47 +395,67 @@ namespace game::world
 		GRASS, STONE, SNOW, SAND
 	};
 
+	struct CellContentCellData
+	{
+		std::shared_ptr<rendering::model::MeshData> meshData{ nullptr };
+		rendering::components::MatrixTransform transform{ glm::mat4(1.0f) };
+	};
+
 	class CellContent
 	{
 	public:
-		CellContent(bool _multiCellPlaceable, std::shared_ptr<rendering::model::MeshData> _meshData) :
-			multiCellPlaceable(_multiCellPlaceable),
-			meshData(_meshData),
-			transform(rendering::components::MatrixTransform(glm::mat4(1.0f))) {}
+		CellContent(bool _multiCellPlaceable) : multiCellPlaceable(_multiCellPlaceable) {}
 
-		virtual ~CellContent() {}
+		virtual ~CellContent();
 
-		const std::unordered_set<Cell*>& getCells()
+		void enqueueUpdate();
+
+		const std::unordered_map<Cell*, CellContentCellData>& getCells()
 		{
 			return cells;
 		}
+
+		bool hasMeshData();
 
 		bool canBePlacedOnMultipleCells()
 		{
 			return multiCellPlaceable;
 		}
 
-		std::shared_ptr<rendering::model::MeshData> getMeshData()
-		{
-			return meshData;
-		}
-
-		rendering::components::MatrixTransform& getTransform()
-		{
-			return transform;
-		}
-
 	protected:
-		std::unordered_set<Cell*> cells;
+		void addedToCell(Cell* cell);
+
+		virtual void _addedToCell(Cell* cell) = 0;
+
+		void removedFromCell(Cell* cell);
+
+		virtual void _removedFromCell(Cell* cell) = 0;
+
+		virtual void update() = 0;
+
+		void setMeshData(Cell* cell, std::shared_ptr<rendering::model::MeshData> meshData);
+
+		void setTransform(Cell* cell, const rendering::components::MatrixTransform& transform);
+
+		void setMeshDataAndTransform(
+			Cell* cell,
+			std::shared_ptr<rendering::model::MeshData> meshData,
+			const rendering::components::MatrixTransform& transform
+		);
+
+	private:
+		std::unordered_map<Cell*, CellContentCellData> cells;
 		const bool multiCellPlaceable;
 
-		std::shared_ptr<rendering::model::MeshData> meshData;
-		rendering::components::MatrixTransform transform;
-
-		virtual void addedToCell(Cell* cell) = 0;
-
-		virtual void removedFromCell(Cell* cell) = 0;
+		entt::registry* registry{ nullptr };
+		entt::entity entity{ entt::null };
 
 		friend Cell;
+		friend class World;
+	};
+
+	struct CellContentUpdate
+	{
+		CellContent* cellContent;
 	};
 }

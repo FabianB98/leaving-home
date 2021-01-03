@@ -186,6 +186,9 @@ namespace game::world
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofOuterCornerPieces,
 			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerRoofWallInnerCornerPieces,
+			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofLeftPieces,
+			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofRightPieces,
+			const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& _innerCornerWallRoofBothPieces,
 			const std::vector<std::shared_ptr<OuterCornerBuildingPiece>>& _outerCornerWallPieces,
 			const std::vector<std::shared_ptr<OuterCornerBuildingPiece>>& _outerCornerWallRoofOuterCornerPieces,
 			const std::vector<std::shared_ptr<OuterCornerBuildingPiece>>& _outerCornerRoofWallInnerCornerPieces,
@@ -198,6 +201,9 @@ namespace game::world
 			innerCornerWallPieces(_innerCornerWallPieces),
 			innerCornerWallRoofOuterCornerPieces(_innerCornerWallRoofOuterCornerPieces),
 			innerCornerRoofWallInnerCornerPieces(_innerCornerRoofWallInnerCornerPieces),
+			innerCornerWallRoofLeftPieces(_innerCornerWallRoofLeftPieces),
+			innerCornerWallRoofRightPieces(_innerCornerWallRoofRightPieces),
+			innerCornerWallRoofBothPieces(_innerCornerWallRoofBothPieces),
 			outerCornerWallPieces(_outerCornerWallPieces),
 			outerCornerWallRoofOuterCornerPieces(_outerCornerWallRoofOuterCornerPieces),
 			outerCornerRoofWallInnerCornerPieces(_outerCornerRoofWallInnerCornerPieces),
@@ -243,6 +249,21 @@ namespace game::world
 			return innerCornerRoofWallInnerCornerPieces;
 		}
 
+		const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& getInnerCornerWallRoofLeftPieces()
+		{
+			return innerCornerWallRoofLeftPieces;
+		}
+
+		const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& getInnerCornerWallRoofRightPieces()
+		{
+			return innerCornerWallRoofRightPieces;
+		}
+
+		const std::vector<std::shared_ptr<InnerCornerBuildingPiece>>& getInnerCornerWallRoofBothPieces()
+		{
+			return innerCornerWallRoofBothPieces;
+		}
+
 		const std::vector<std::shared_ptr<OuterCornerBuildingPiece>>& getOuterCornerWallPieces()
 		{
 			return outerCornerWallPieces;
@@ -273,6 +294,9 @@ namespace game::world
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallPieces;
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofOuterCornerPieces;
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerRoofWallInnerCornerPieces;
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofLeftPieces;
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofRightPieces;
+		std::vector<std::shared_ptr<InnerCornerBuildingPiece>> innerCornerWallRoofBothPieces;
 
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>> outerCornerWallPieces;
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>> outerCornerWallRoofOuterCornerPieces;
@@ -286,34 +310,31 @@ namespace game::world
 	public:
 		Building(
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
-		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet), registry(nullptr), mesh(nullptr) {}
+		) : CellContent(true), buildingPieceSet(_buildingPieceSet) {}
 
-		virtual ~Building();
+		virtual ~Building() {}
 
 	protected:
 		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
 		std::unordered_map<Cell*, unsigned int> heightPerCell;
 
-		entt::registry* registry;
-		entt::entity meshEntity{ entt::null };
-		rendering::model::Mesh* mesh;
+		void _addedToCell(Cell* cell);
 
-		void addedToCell(Cell* cell);
+		void _removedFromCell(Cell* cell);
 
-		void removedFromCell(Cell* cell);
+		void update();
 
 	private:
-		void rebuildMesh();
+		void rebuildMeshData();
 
 		void addMeshPieces(
-			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+			std::unordered_map<Cell*, std::vector<std::shared_ptr<rendering::model::MeshData>>>& meshPieces,
 			Cell* cell,
 			Face* face,
 			unsigned int floor
 		);
 
-		void addMeshPiece(
-			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+		std::shared_ptr<rendering::model::MeshData> constructMeshDataForPiece(
 			std::shared_ptr<BuildingPiece> piece,
 			glm::vec2 frontLeft,
 			glm::vec2 frontRight,
@@ -321,6 +342,14 @@ namespace game::world
 			glm::vec2 backRight,
 			float lowerHeight,
 			float upperHeight
+		);
+
+		glm::vec2 interpolateBilinear(
+			const glm::vec2& point,
+			const glm::vec2& frontLeft,
+			const glm::vec2& frontRight,
+			const glm::vec2& backLeft,
+			const glm::vec2& backRight
 		);
 
 		bool occupies(Cell* cell, unsigned int floor);

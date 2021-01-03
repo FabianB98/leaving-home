@@ -1,7 +1,7 @@
 # Blender v2.81 (sub 16) OBJ File: 'Test Building Piece Set.blend'
 # www.blender.org
 mtllib Outer_Corner_Roof_Wall_Inner_Corner.mtl
-o Outer_Corner_Roof_Wall_Inner_Corner_Plane.002
+o Outer_Corner_Roof_Wall_Inner_Corner
 v 0.000000 0.900000 1.000000
 v 1.000000 0.900000 0.000000
 v 0.100000 1.000000 1.000000

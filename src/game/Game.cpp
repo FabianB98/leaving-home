@@ -163,7 +163,7 @@ namespace game
 	double time = glfwGetTime();
 	void Game::update(rendering::RenderingEngine* renderingEngine, double deltaTime)
 	{
-		wrld->addGeneratedChunks();
+		wrld->update();
 
 		auto& registry = renderingEngine->getRegistry();
 

@@ -222,7 +222,7 @@ namespace game::world
 		std::cout << "Stopped world generation thread!" << std::endl;
 	}
 
-	void World::addGeneratedChunks()
+	void World::update()
 	{
 		// In order to not hinder the rendering from continuing, at most one chunk is added per frame.
 		Chunk* nextChunkToAdd;
@@ -236,6 +236,18 @@ namespace game::world
 				resourceGenerator.generateResources();
 			}
 		}
+
+		// Update all dirty CellContents.
+		registry.view<CellContentUpdate>().each([&](const auto entity, CellContentUpdate& cellContentUpdate) {
+			cellContentUpdate.cellContent->update();
+			registry.remove<CellContentUpdate>(entity);
+		});
+
+		// Update all dirty Chunks.
+		registry.view<ChunkUpdate>().each([&](const auto entity, ChunkUpdate& chunkUpdate) {
+			chunkUpdate.chunk->update();
+			registry.remove<ChunkUpdate>(entity);
+		});
 	}
 
 	void World::stopWorldGenerationThread()
