@@ -310,34 +310,29 @@ namespace game::world
 	public:
 		Building(
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
-		) : CellContent(true, nullptr), buildingPieceSet(_buildingPieceSet), registry(nullptr), mesh(nullptr) {}
+		) : CellContent(true), buildingPieceSet(_buildingPieceSet) {}
 
-		virtual ~Building();
+		virtual ~Building() {}
 
 	protected:
 		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
 		std::unordered_map<Cell*, unsigned int> heightPerCell;
-
-		entt::registry* registry;
-		entt::entity meshEntity{ entt::null };
-		rendering::model::Mesh* mesh;
 
 		void addedToCell(Cell* cell);
 
 		void removedFromCell(Cell* cell);
 
 	private:
-		void rebuildMesh();
+		void rebuildMeshData();
 
 		void addMeshPieces(
-			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+			std::unordered_map<Cell*, std::vector<std::shared_ptr<rendering::model::MeshData>>>& meshPieces,
 			Cell* cell,
 			Face* face,
 			unsigned int floor
 		);
 
-		void addMeshPiece(
-			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>>& meshPieces,
+		std::shared_ptr<rendering::model::MeshData> constructMeshDataForPiece(
 			std::shared_ptr<BuildingPiece> piece,
 			glm::vec2 frontLeft,
 			glm::vec2 frontRight,
@@ -345,6 +340,14 @@ namespace game::world
 			glm::vec2 backRight,
 			float lowerHeight,
 			float upperHeight
+		);
+
+		glm::vec2 interpolateBilinear(
+			const glm::vec2& point,
+			const glm::vec2& frontLeft,
+			const glm::vec2& frontRight,
+			const glm::vec2& backLeft,
+			const glm::vec2& backRight
 		);
 
 		bool occupies(Cell* cell, unsigned int floor);

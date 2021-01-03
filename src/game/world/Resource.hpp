@@ -13,12 +13,19 @@ namespace game::world
 	class Resource : public CellContent
 	{
 	public:
-		Resource(std::shared_ptr<rendering::model::MeshData> _meshData) : CellContent(false, _meshData) {}
+		Resource(std::shared_ptr<rendering::model::MeshData> _meshData) : CellContent(false), meshData(_meshData) {}
 
 	protected:
-		virtual void addedToCell(Cell* cell) = 0;
+		void addedToCell(Cell* cell);
 
-		virtual void removedFromCell(Cell* cell) = 0;
+		void removedFromCell(Cell* cell);
+
+		virtual void _addedToCell(Cell* cell) = 0;
+
+		virtual void _removedFromCell(Cell* cell) = 0;
+
+	private:
+		std::shared_ptr<rendering::model::MeshData> meshData;
 	};
 
 	class Tree : public Resource
@@ -27,8 +34,8 @@ namespace game::world
 		Tree();
 
 	protected:
-		void addedToCell(Cell* cell);
+		void _addedToCell(Cell* cell);
 
-		void removedFromCell(Cell* cell);
+		void _removedFromCell(Cell* cell);
 	};
 }
