@@ -16,13 +16,9 @@
 
 in vec2 uv;
 
-uniform sampler2DMS gNormal;
 uniform sampler2D gZ;
-
 uniform float screenScale;
-
 uniform vec4 invProjection;
-
 
 out vec3 color;
 
@@ -31,6 +27,11 @@ vec3 toCameraSpace(vec2 screenPos, float depth) {
 	// Eqn. 3 McGuire et al.
 	vec2 xy = depth * (invProjection.xz - invProjection.yw * screenPos);
 	return vec3(xy, depth);
+}
+
+vec3 cameraSpaceNormal(vec3 position) {
+	// code from McGuire et al.
+	return normalize(cross(dFdx(position), dFdy(position)));
 }
 
 vec3 sampleScreenPos(vec2 screenPos, float screenRadius, int index, float random) {
@@ -67,7 +68,7 @@ void main() {
 	ivec2 screenPos = ivec2(gl_FragCoord);
 	float depth = texelFetch(gZ, screenPos, 0).r; // higher precision than geometry pass position
 	vec3 pos = toCameraSpace(screenPos, depth);
-	vec3 normal = texelFetch(gNormal, screenPos, gl_SampleID).xyz; // normal should be accurate enough
+	vec3 normal = cameraSpaceNormal(pos);
 	
 	// pseudo random hash function from Alchemy AO (Eqn. 8 in the paper)
 	float random = (3 * screenPos.x ^ screenPos.y + screenPos.x * screenPos.y) * 10;
@@ -83,7 +84,7 @@ void main() {
 
 	// finalize occlusion estimator
 	float occlusion = max(0, 1.f - (2.f * INTENSITY / SAMPLES) * sum);
-	occlusion = pow(occlusion, 2);
+	occlusion = occlusion * occlusion;
 
 	// 2x2 blur filter using GPU derivative functions
 	// code from McGuire et al.
@@ -101,25 +102,25 @@ void main() {
 
 	// OLD ALGORITHM
 	//	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
-//	vec3 bitangent = cross(normal, tangent);
-//	mat3 TBN = mat3(tangent, bitangent, normal);
-//
-//	float occlusion = 0;
-//
-//	for (int i = 0; i < KERNEL_SIZE; ++i) {
-//		vec3 samplePos = TBN * samples[i];
-//		samplePos = pos + samplePos * RADIUS;
-//
-//		vec4 offset = T_P * vec4(samplePos, 1.f);
-//		offset.xyz /= offset.w;
-//		offset.xyz = offset.xyz * 0.5 + vec3(0.5);
-//
-//		float sampleDepth = texelFetch(gPosition, ivec2(offset.xy * size), gl_SampleID).z;
-//		float rangeCheck = smoothstep(0.0, 1.0, RADIUS / abs(pos.z - sampleDepth));
-//		occlusion += (sampleDepth >= samplePos.z + BIAS ? 1.f : 0.f) * rangeCheck;
-//	}
-//
-//	color = 1.0 - (occlusion / KERNEL_SIZE);
-//	//color = color * color;
-//	color = pow(color, 1.5);
+	//	vec3 bitangent = cross(normal, tangent);
+	//	mat3 TBN = mat3(tangent, bitangent, normal);
+	//
+	//	float occlusion = 0;
+	//
+	//	for (int i = 0; i < KERNEL_SIZE; ++i) {
+	//		vec3 samplePos = TBN * samples[i];
+	//		samplePos = pos + samplePos * RADIUS;
+	//
+	//		vec4 offset = T_P * vec4(samplePos, 1.f);
+	//		offset.xyz /= offset.w;
+	//		offset.xyz = offset.xyz * 0.5 + vec3(0.5);
+	//
+	//		float sampleDepth = texelFetch(gPosition, ivec2(offset.xy * size), gl_SampleID).z;
+	//		float rangeCheck = smoothstep(0.0, 1.0, RADIUS / abs(pos.z - sampleDepth));
+	//		occlusion += (sampleDepth >= samplePos.z + BIAS ? 1.f : 0.f) * rangeCheck;
+	//	}
+	//
+	//	color = 1.0 - (occlusion / KERNEL_SIZE);
+	//	//color = color * color;
+	//	color = pow(color, 1.5);
 }

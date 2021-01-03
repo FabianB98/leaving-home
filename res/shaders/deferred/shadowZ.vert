@@ -1,7 +1,5 @@
 #version 330 core
 
-#define render lighting
-
 out vec2 uv;
 
 void main() {
@@ -9,6 +7,6 @@ void main() {
 	float x = float(((uint(gl_VertexID) + 2u) / 3u) % 2u); 
     float y = float(((uint(gl_VertexID) + 1u) / 3u) % 2u); 
 
-    gl_Position = vec4(-1.f + x*2.f, -1.f+y*2.f, 0.0f, 1.f);
+    gl_Position = vec4(-1.f + x*2.f, -1.f+y*2.f, 0.f, 1.f);
     uv = vec2(x, y);
 }

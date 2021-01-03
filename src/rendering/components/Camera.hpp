@@ -24,10 +24,36 @@ namespace rendering::components
 		bool cameraParametersChanged = true;
 	};
 
-	//class OrthographicCameraParameters : public CameraParameters
-	//{
-	//	// TODO: Add orthographic camera parameters...
-	//};
+	class OrthographicCameraParameters : public CameraParameters
+	{
+	public:
+		OrthographicCameraParameters(float _width, float _aspectRatio, float _nearClippingPlane, float _farClippingPlane) :
+			width(_width), height(_width / _aspectRatio), nearClippingPlane(_nearClippingPlane), farClippingPlane(_farClippingPlane) {};
+
+		float getWidth();
+
+		void setWidth(float _width);
+
+		float getHeight();
+
+		void setAspectRatio(float _aspectRatio);
+
+		float getNearClippingPlane();
+
+		void setNearClippingPlane(float _nearClippingPlane);
+
+		float getFarClippingPlane();
+
+		void setFarClippingPlane(float _farClippingPlane);
+
+		glm::mat4 getProjectionMatrix();
+	private:
+		float width;
+		float height;
+		float aspectRatio;
+		float nearClippingPlane;
+		float farClippingPlane;
+	};
 
 	class PerspectiveCameraParameters : public CameraParameters
 	{

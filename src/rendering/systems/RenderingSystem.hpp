@@ -34,21 +34,19 @@ namespace rendering::systems
 
 	void cullingRelationship(entt::registry& registry, entt::entity parent, entt::entity child);
 
-	void updateDirectionalLights(entt::registry& registry, rendering::shading::Shader& shader);
-
 	void renderUpdateTransforms(entt::registry& registry,
-		rendering::components::Camera& camera, rendering::shading::Shader* defaultShader, bool overrideShaders = false);
+		rendering::components::Camera& mainCamera, entt::entity shadowCamera,
+		rendering::shading::Shader* defaultShader, bool overrideShaders = false);
+	void renderUpdateMVPs(entt::registry& registry, components::Camera& camera, std::function<bool(model::Mesh*)> exclude);
 
 
 	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader);
 
 
+	void renderShadowMap(entt::registry& registry, rendering::components::Camera& camera, rendering::shading::Shader* shader);
 	void renderForward(entt::registry& registry, rendering::components::Camera& camera);
 	void renderDeferredGPass(entt::registry& registry, rendering::components::Camera& camera);
 	void renderDeferredLightingPass(entt::registry& registry, rendering::components::Camera& camera);
-
-
-
 	void renderPicking(entt::registry& registry,
 		rendering::components::Camera& camera, shading::Shader* pickingShader);
 
@@ -63,5 +61,10 @@ namespace rendering::systems
 	struct Picking
 	{
 		std::unordered_set<model::Mesh*> enabled;
+	};
+
+	struct ShadowMapping
+	{
+		std::unordered_set<model::Mesh*> castShadow;
 	};
 }

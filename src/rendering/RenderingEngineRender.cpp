@@ -8,10 +8,10 @@ namespace rendering
         shader.setUniformInt("pick", pickingResult);
 
         if (shader.getRenderPass() == shading::RenderPass::LIGHTING)
-            setGeometryTextureUniforms(shader);
+            setLightingTextureUniforms(shader);
     }
 
-    void RenderingEngine::setGeometryTextureUniforms(shading::Shader& shader)
+    void RenderingEngine::setLightingTextureUniforms(shading::Shader& shader)
     {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gPosition);
@@ -31,15 +31,15 @@ namespace rendering
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, ssaoBlur ? ssaoBlurColor : ssaoColor);
         shader.setUniformInt("ssao", 5);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, shadowMap);
+        shader.setUniformInt("shadowMap", 6);
     }
 
     void RenderingEngine::renderScreen(rendering::components::Camera& camera)
     {
         shading::Shader& shader = *screenShader;
-        /*shader.use();
-        camera.applyViewProjection(shader);*/
         rendering::systems::activateShader(registry, camera, shader);
-        setGeometryTextureUniforms(shader);
 
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -86,13 +86,9 @@ namespace rendering
         );
         shader.setUniformVec4("invProjection", invProjection);
 
-
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gNormal);
-        shader.setUniformInt("gNormal", 0);
-        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, ssaoZ);
-        shader.setUniformInt("gZ", 1);
+        shader.setUniformInt("gZ", 0);
 
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -113,10 +109,11 @@ namespace rendering
         glBindVertexArray(0);
     }
 
-    void RenderingEngine::renderSSAOBlur(GLuint input, glm::vec2 axis)
+    void RenderingEngine::renderSSAOBlur(GLuint input, bool first)
     {
+        glm::vec2 axis = first ? glm::vec2(1, 0) : glm::vec2(0, 1);
         shading::Shader& shader = *blurShader;
-        shader.use();
+        if (first) shader.use();
 
         shader.setUniformVec2("axis", axis);
 
@@ -168,14 +165,32 @@ namespace rendering
         auto defaultShader = showWireframe ? wireframeShader : mainShader;
 
         auto camera = updateCamera(mainCamera, (float)width / (float)height);
-        rendering::systems::renderUpdateTransforms(registry, camera, defaultShader, showWireframe);
+        auto shadow = updateCamera(shadowCamera, 1.f);
+
+        systems::renderUpdateTransforms(registry, camera, shadowCamera, defaultShader, showWireframe);
+        systems::renderUpdateMVPs(registry, shadow, [this](auto* mesh) {
+            auto& castShadow = registry.ctx<systems::ShadowMapping>().castShadow;
+            return castShadow.find(mesh) == castShadow.end(); 
+        });
+
+        // SHADOW PASS
+        glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
+        glClearColor(1.f, 1.f, 1.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glViewport(0, 0, SHADOW_MAP_RES, SHADOW_MAP_RES);
+
+        systems::renderShadowMap(registry, camera, shadowZShader);
+
+        // recalculate MVPs for main camera
+        systems::renderUpdateMVPs(registry, camera, [](const auto* mesh) { return false; }); // exclude nothing
 
         // PICKING PASS
         glBindFramebuffer(GL_FRAMEBUFFER, pickingFramebuffer);
         glClearColor(1.f, 1.f, 1.f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glViewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
 
-        rendering::systems::renderPicking(registry, camera, pickingShader);
+        systems::renderPicking(registry, camera, pickingShader);
         doPicking();
 
         // DEFERRED - GEOMETRY PASS
@@ -183,7 +198,7 @@ namespace rendering
         glClearColor(0.f, 0.f, 0.f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        rendering::systems::renderDeferredGPass(registry, camera);
+        systems::renderDeferredGPass(registry, camera);
 
         // SSAO
         // this pass creates a texture with high precision camera space z values (and resolves geometry pass multisampling)
@@ -210,13 +225,13 @@ namespace rendering
             glClearColor(0.f, 0.f, 0.f, 1.f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            renderSSAOBlur(ssaoColor, glm::vec2(1, 0));
+            renderSSAOBlur(ssaoColor, true);
 
             glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBuffer);
             glClearColor(0.f, 0.f, 0.f, 1.f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            renderSSAOBlur(ssaoBlurColorI, glm::vec2(0, 1));
+            renderSSAOBlur(ssaoBlurColorI, false);
         }
 
 

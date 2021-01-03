@@ -23,8 +23,13 @@ namespace rendering::systems
 	std::unordered_map<model::Mesh*, std::vector<glm::mat3>> normalMatricesToRender;
 	std::unordered_map<model::Mesh*, std::vector<glm::mat4>> mvpMatricesToRender;
 
+	std::vector<glm::vec3> directionalIntensities;
+	std::vector<glm::vec3> directionalDirsWorld;
+	std::vector<glm::vec3> directionalDirsView;
+
 	glm::mat4 viewMatrix;
 	glm::mat3 viewNormalMatrix;
+	glm::mat4 shadowMatrix;
 
 	components::CullingGeometry cullingRoot = components::CullingGeometry(std::make_shared<bounding_geometry::None>());
 
@@ -92,6 +97,7 @@ namespace rendering::systems
 
 		registry.set<MeshShading>();
 		registry.set<Picking>();
+		registry.set<ShadowMapping>();
 
 		// default light volumes are always rendered with the default phong shader
 		registry.ctx<MeshShading>().shaders.insert(std::make_pair(lightVolume, phongShader));

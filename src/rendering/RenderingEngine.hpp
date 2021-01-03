@@ -25,6 +25,7 @@
 namespace rendering 
 {	
 	constexpr auto MSAA_SAMPLES = 2;
+	constexpr auto SHADOW_MAP_RES = 1024;
 
 	class RenderingEngine;
 
@@ -115,6 +116,11 @@ namespace rendering
 			mainCamera = _mainCamera;
 		}
 
+		void setShadowCamera(entt::entity _shadowCamera)
+		{
+			shadowCamera = _shadowCamera;
+		}
+
 		uint32_t getPickingResult()
 		{
 			return pickingResult;
@@ -139,11 +145,13 @@ namespace rendering
 		entt::registry registry;
 
 		entt::entity mainCamera;
+		entt::entity shadowCamera;
 
 		shading::LightSupportingShader* mainShader;
 		shading::Shader* pickingShader;
 		shading::Shader* wireframeShader;
 		
+		shading::Shader* shadowZShader;
 		shading::Shader* ssaoShader;
 		shading::Shader* ssaoZShader;
 		shading::Shader* blurShader;
@@ -156,6 +164,10 @@ namespace rendering
 		double frameTimeMillis = 0.0;
 		int lastFrameCount = 0;
 		bool ssaoBlur = false;
+
+		// shadow mapping values
+		GLuint shadowBuffer;
+		GLuint shadowMap;
 
 		// picking values
 		GLuint pickingFramebuffer;
@@ -183,6 +195,7 @@ namespace rendering
 
 		int init();
 
+		void initShadowMapping();
 		void initPicking();
 		void initSSAO();
 		void initDeferred();
@@ -191,11 +204,11 @@ namespace rendering
 
 		void update(double deltaTime);
 
-		void setGeometryTextureUniforms(shading::Shader& shader);
+		void setLightingTextureUniforms(shading::Shader& shader);
 		void renderScreen(rendering::components::Camera& camera);
 		void renderSSAO(rendering::components::Camera& camera);
 		void renderSSAOZ(rendering::components::Camera& camera);
-		void renderSSAOBlur(GLuint input, glm::vec2 axis);
+		void renderSSAOBlur(GLuint input, bool first);
 		void renderQuad(GLuint image);
 		void render();
 

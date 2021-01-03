@@ -98,4 +98,74 @@ namespace rendering::components
 
 		return projectionMatrix;
 	}
+
+
+
+
+	float OrthographicCameraParameters::getWidth()
+	{
+		return width;
+	}
+
+	void OrthographicCameraParameters::setWidth(float _width)
+	{
+		if (_width != width)
+			cameraParametersChanged = true;
+
+		width = _width;
+		height = width / aspectRatio;
+	}
+
+	float OrthographicCameraParameters::getHeight()
+	{
+		return height;
+	}
+
+	void OrthographicCameraParameters::setAspectRatio(float _aspectRatio)
+	{
+		if (_aspectRatio != aspectRatio)
+			cameraParametersChanged = true;
+
+		aspectRatio = _aspectRatio;
+		height = width / aspectRatio;
+	}
+
+	float OrthographicCameraParameters::getNearClippingPlane()
+	{
+		return nearClippingPlane;
+	}
+
+	void OrthographicCameraParameters::setNearClippingPlane(float _nearClippingPlane)
+	{
+		if (_nearClippingPlane != nearClippingPlane)
+			cameraParametersChanged = true;
+
+		nearClippingPlane = _nearClippingPlane;
+	}
+
+	float OrthographicCameraParameters::getFarClippingPlane()
+	{
+		return farClippingPlane;
+	}
+
+	void OrthographicCameraParameters::setFarClippingPlane(float _farClippingPlane)
+	{
+		if (_farClippingPlane != farClippingPlane)
+			cameraParametersChanged = true;
+
+		farClippingPlane = _farClippingPlane;
+	}
+
+	glm::mat4 OrthographicCameraParameters::getProjectionMatrix()
+	{
+		if (cameraParametersChanged)
+		{
+			float rH = width / 2;
+			float rV = height / 2;
+			projectionMatrix = glm::orthoLH(-rH, rH, -rV, rV, nearClippingPlane, farClippingPlane);
+			cameraParametersChanged = false;
+		}
+
+		return projectionMatrix;
+	}
 }

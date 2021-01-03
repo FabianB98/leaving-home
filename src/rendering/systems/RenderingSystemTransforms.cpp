@@ -20,6 +20,11 @@ namespace rendering::systems
 
 	extern glm::mat4 viewMatrix;
 	extern glm::mat3 viewNormalMatrix;
+	extern glm::mat4 shadowMatrix;
+
+	extern std::vector<glm::vec3> directionalIntensities;
+	extern std::vector<glm::vec3> directionalDirsWorld;
+	extern std::vector<glm::vec3> directionalDirsView;
 
 	std::unordered_map<shading::Shader*, int> shaderPriorities;
 	std::unordered_map<model::Mesh*, std::vector<std::size_t>> instancesToRender;
@@ -27,24 +32,33 @@ namespace rendering::systems
 
 	extern void changedMeshRenderer(entt::registry&, entt::entity);
 
-	void updateDirectionalLights(entt::registry& registry, rendering::shading::Shader& shader)
+	void updateDirectionalLights(entt::registry& registry, entt::entity shadowLight)
 	{
-		std::vector<glm::vec3> intensities;
-		std::vector<glm::vec3> directionsWorld;
-		std::vector<glm::vec3> directionsView;
+		directionalIntensities.clear();
+		directionalDirsWorld.clear();
+		directionalDirsView.clear();
+		int shadowLightIndex = 0;
+
 		auto directional = registry.view<components::DirectionalLight, components::MatrixTransform>();
 		for (auto entity : directional) {
 			auto [light, transform] = registry.get<components::DirectionalLight, components::MatrixTransform>(entity);
+			if (entity == shadowLight)
+				shadowLightIndex = directionalIntensities.size();
 
-			intensities.push_back(light.intensity);
+			directionalIntensities.push_back(light.intensity);
 			// transform the direction to world space and view space (multiply direction with transform matrix)
 			// deferred shading uses view space, forward shading uses world space
 			glm::vec4 worldDir = transform.getTransform() * glm::vec4(light.direction, 0.f);
-			directionsWorld.push_back(worldDir);
-			directionsView.push_back(viewMatrix * worldDir);
+			directionalDirsWorld.push_back(worldDir);
+			directionalDirsView.push_back(viewMatrix * worldDir);
 		}
 
-		shader.setUniformDirectionalLights("directionalLights", intensities, directionsWorld, directionsView);
+		// move shading casting light to the first position in lists
+		if (shadowLightIndex != 0) {
+			std::swap(directionalIntensities[0], directionalIntensities[shadowLightIndex]);
+			std::swap(directionalDirsWorld[0], directionalDirsWorld[shadowLightIndex]);
+			std::swap(directionalDirsView[0], directionalDirsView[shadowLightIndex]);
+		}
 	}
 
 	void updateMeshTransforms(entt::registry& registry)
@@ -140,7 +154,7 @@ namespace rendering::systems
 		}
 	}
 
-	void performFrustumCulling(entt::registry& registry, rendering::components::Camera& camera)
+	void performFrustumCulling(entt::registry& registry, rendering::components::Camera& camera, std::function<bool(model::Mesh*)> exclude)
 	{
 		std::queue<entt::entity> entitiesToCheck;
 		for (auto& entity : cullingRoot.children)
@@ -165,6 +179,8 @@ namespace rendering::systems
 			if (meshRenderer != nullptr)
 			{
 				mesh = meshRenderer->getMesh();
+				if (exclude(mesh)) continue;
+
 				index = entityToTransformIndexMap[entity];
 				modelMatrix = meshTransforms[mesh].first[index];
 			}
@@ -188,10 +204,14 @@ namespace rendering::systems
 	}
 
 	void renderUpdateTransforms(entt::registry& registry,
-		rendering::components::Camera& camera, rendering::shading::Shader* defaultShader, bool overrideShaders)
+		rendering::components::Camera& mainCamera, entt::entity shadowCamera,
+		rendering::shading::Shader* defaultShader, bool overrideShaders)
 	{
-		viewMatrix = camera.getViewMatrix();
+		viewMatrix = mainCamera.getViewMatrix();
 		viewNormalMatrix = glm::mat3(glm::transpose(glm::inverse(viewMatrix)));
+
+		auto& shadowCamComp = registry.get<components::Camera>(shadowCamera);
+		shadowMatrix = shadowCamComp.getViewProjectionMatrix() * glm::inverse(mainCamera.getViewMatrix());
 
 		// Get all entities whose transformation was changed and store that their transformation was changed.
 		for (const auto entity : transformObserver) {
@@ -203,7 +223,8 @@ namespace rendering::systems
 			updateMeshTransforms(registry);
 
 		//if (pointLightObserver.size() != 0)
-			updatePointLights(registry);
+		updatePointLights(registry);
+		updateDirectionalLights(registry, shadowCamera);
 
 		transformObserver.clear();
 		transformChanged.clear();
@@ -236,9 +257,11 @@ namespace rendering::systems
 
 			return p1 != p2 ? p1 < p2 : std::less<shading::Shader*>()(ms1.second, ms2.second);
 			});
+	}
 
-		// update MVPs
-		performFrustumCulling(registry, camera);
+	void renderUpdateMVPs(entt::registry& registry, components::Camera& camera, std::function<bool(model::Mesh*)> exclude)
+	{
+		performFrustumCulling(registry, camera, exclude);
 		calculateMVPs(camera);
 	}
 }

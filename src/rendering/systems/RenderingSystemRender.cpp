@@ -12,30 +12,38 @@ namespace rendering::systems
 
 	extern glm::mat4 viewMatrix;
 	extern glm::mat3 viewNormalMatrix;
+	extern glm::mat4 shadowMatrix;
+
+	extern std::vector<glm::vec3> directionalIntensities;
+	extern std::vector<glm::vec3> directionalDirsWorld;
+	extern std::vector<glm::vec3> directionalDirsView;
 
 	void activateShader(entt::registry& registry, rendering::components::Camera& camera, shading::Shader& shader)
 	{
 		shader.use();
 		camera.applyViewProjection(shader);
-		updateDirectionalLights(registry, shader);
 
 		if (shader.getRenderPass() == shading::RenderPass::GEOMETRY) {
 			shader.setUniformMat4("T_V", viewMatrix);
 			shader.setUniformMat3("T_V_Normal", viewNormalMatrix);
 		}
+		else {
+			shader.setUniformMat4("T_S", shadowMatrix);
+			shader.setUniformDirectionalLights("directionalLights", 
+				directionalIntensities, directionalDirsWorld, directionalDirsView);
+		}
 
 		shaderManager->setUniforms(shader);
 	}
 
-	void renderPicking(entt::registry& registry, rendering::components::Camera& camera, shading::Shader* pickingShader)
+	void renderSelection(entt::registry& registry, std::unordered_set<model::Mesh*>& selection, rendering::components::Camera& camera, shading::Shader* shader)
 	{
-		auto& picking = registry.ctx<Picking>();
-		if (picking.enabled.size() == 0) return;
+		if (selection.size() == 0) return;
 
-		pickingShader->use();
-		camera.applyViewProjection(*pickingShader);
+		shader->use();
+		camera.applyViewProjection(*shader);
 
-		for (const auto& mesh : picking.enabled)
+		for (const auto& mesh : selection)
 		{
 			const auto& meshInstances = meshTransforms[mesh];
 			const auto& meshModels = modelMatricesToRender[mesh];
@@ -47,9 +55,21 @@ namespace rendering::systems
 				const auto& meshMVPs = mvpMatricesToRender[mesh];
 
 				// Render all instances of the mesh.
-				mesh->renderInstanced(*pickingShader, meshModels, meshNormals, meshMVPs);
+				mesh->renderInstanced(*shader, meshModels, meshNormals, meshMVPs);
 			}
 		}
+	}
+
+	void renderShadowMap(entt::registry& registry, rendering::components::Camera& camera, shading::Shader* shader)
+	{
+		auto& shadows = registry.ctx<ShadowMapping>();
+		renderSelection(registry, shadows.castShadow, camera, shader);
+	}
+
+	void renderPicking(entt::registry& registry, rendering::components::Camera& camera, shading::Shader* pickingShader)
+	{
+		auto& picking = registry.ctx<Picking>();
+		renderSelection(registry, picking.enabled, camera, pickingShader);
 	}
 
 	void renderMeshes(entt::registry& registry, rendering::components::Camera& camera, shading::RenderPass filter)

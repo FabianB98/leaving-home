@@ -7,6 +7,7 @@
 #include "../rendering/components/Relationship.hpp"
 #include "../rendering/model/Mesh.hpp"
 #include "../rendering/shading/Shader.hpp"
+#include "../rendering/components/Shadow.hpp"
 #include "../rendering/Skybox.hpp"
 #include "../ui/ToolSelection.hpp"
 #include "../ui/Debug.hpp"
@@ -43,22 +44,31 @@ namespace game
 	rendering::shading::Shader* waterShader;
 	rendering::shading::Shader* terrainShader;
 
+	entt::entity cameraBase;
 	entt::entity defaultCamera;
 	entt::entity freeFlightCamera;
 
+	entt::entity shadowCamera;
+
 	gui::CameraType selectedCamera;
 	gui::Tool selectedTool;
+
+	rendering::model::Mesh* tree;
 
 	double randomDouble()
 	{
 		return (double) rand() / (double) RAND_MAX;
 	}
 
+	std::shared_ptr<rendering::bounding_geometry::BoundingGeometry> a;
+
 	void Game::init(rendering::RenderingEngine* renderingEngine)
 	{
 		simple = new rendering::shading::Shader("simpleInstanced");
 		waterShader = new rendering::shading::LightSupportingShader("waterInstanced", true);
 		terrainShader = new rendering::shading::Shader("deferred/terrain");
+
+		tree = new rendering::model::Mesh("tree");
 
 		skybox = new rendering::Skybox("skybox", "skybox");
 
@@ -82,7 +92,7 @@ namespace game
 		float width = renderingEngine->getFramebufferWidth();
 		float height = renderingEngine->getFramebufferHeight();
 
-		entt::entity cameraBase = registry.create();
+		cameraBase = registry.create();
 		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, 0, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));
 		registry.emplace<components::HeightConstrainedMoveController>(cameraBase, GLFW_MOUSE_BUTTON_RIGHT, 8.0f);
 		registry.emplace<components::FirstPersonRotateController>(cameraBase, GLFW_MOUSE_BUTTON_MIDDLE, 0.2f, glm::radians(-90.0f), glm::radians(-10.0f));
@@ -98,7 +108,6 @@ namespace game
 
 		rendering::systems::relationship(registry, cameraBase, defaultCamera);
 
-
 		freeFlightCamera = registry.create();
 		parameters = std::make_shared<rendering::components::PerspectiveCameraParameters>(
 			glm::radians(45.f), width / height, 1.f, 10000.f);
@@ -111,6 +120,16 @@ namespace game
 		sun = registry.create();
 		registry.emplace<MatrixTransform>(sun, glm::mat4(1.f));
 		registry.emplace<DirectionalLight>(sun, glm::vec3(1), glm::vec3(2, 1, 1));
+
+		shadowCamera = registry.create();
+		auto orthoParams = std::make_shared<rendering::components::OrthographicCameraParameters>(
+			50.f, 1.f, 10.f, 10000.f);
+		std::cout << orthoParams->getHeight() << std::endl;
+		registry.emplace<rendering::components::MatrixTransform>(shadowCamera, glm::mat4(1));
+		registry.emplace<rendering::components::Camera>(shadowCamera, orthoParams);
+		registry.emplace<rendering::components::CastShadow>(shadowCamera, sun);
+
+		renderingEngine->setShadowCamera(shadowCamera);
 	}
 	
 	bool pressed;
@@ -149,7 +168,15 @@ namespace game
 		auto& registry = renderingEngine->getRegistry();
 
 		daynight.update(deltaTime);
-		registry.replace<rendering::components::DirectionalLight>(sun, daynight.getSunColor(), daynight.getSunDirection());
+		auto sunDir = glm::normalize(daynight.getSunDirection());
+		registry.replace<rendering::components::DirectionalLight>(sun, daynight.getSunColor(), sunDir);
+
+		auto& baseTf = registry.get<rendering::components::EulerComponentwiseTransform>(cameraBase);
+		auto up = glm::cross(sunDir, glm::vec3(1,0,0));
+		auto tf = glm::inverse(glm::lookAt(50.f * sunDir + baseTf.getTranslation(), glm::vec3(0) + baseTf.getTranslation(), up));
+		registry.replace<rendering::components::MatrixTransform>(shadowCamera, tf);
+
+
 
 		auto camPointer = selectedCamera == gui::CameraType::DEFAULT ? defaultCamera : freeFlightCamera;
 		renderingEngine->setMainCamera(camPointer);
