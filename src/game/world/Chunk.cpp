@@ -983,11 +983,14 @@ namespace game::world
 		}
 	}
 
-	void Cell::setContent(CellContent* _content)
+	void Cell::_setContent(CellContent* _content, bool splitMultiCellContent)
 	{
-		if (_content != nullptr && !_content->multiCellPlaceable && !_content->cells.empty())
+		bool newContentEqualsOldContent = content == _content;
+		bool singleCellAlreadyPlaced = _content != nullptr && !_content->multiCellPlaceable && !_content->cells.empty();
+		if (newContentEqualsOldContent || singleCellAlreadyPlaced)
 			return;
 
+		CellContent* oldContent = content;
 		if (content != nullptr)
 		{
 			if (content->hasMeshData())
@@ -995,8 +998,11 @@ namespace game::world
 
 			content->removedFromCell(this);
 			content->cells.erase(this);
+
 			if (content->cells.empty())
 				delete content;
+			else if (splitMultiCellContent && content->canBePlacedOnMultipleCells())
+				splitMultiCellContentIntoConnectedContents();
 		}
 
 		content = _content;
@@ -1007,6 +1013,87 @@ namespace game::world
 
 			if (content->hasMeshData())
 				chunk->enqueueUpdate();
+		}
+	}
+
+	void Cell::splitMultiCellContentIntoConnectedContents()
+	{
+		std::unordered_set<Cell*> neighborsToFind;
+		for (Cell* cell : getNeighbors())
+			if (cell->content == content)
+				neighborsToFind.insert(cell);
+
+		if (neighborsToFind.size() <= 1)
+			return;
+		
+		// Determine the pieces into which the CellContent must be split.
+		std::unordered_map<Cell*, std::unordered_set<Cell*>> splitInto;
+		while (!neighborsToFind.empty())
+		{
+			Cell* startCell = *neighborsToFind.begin();
+			neighborsToFind.erase(startCell);
+
+			std::unordered_set<Cell*> enqueuedOrTraversedCells;
+			std::queue<Cell*> cellsToTraverse;
+
+			enqueuedOrTraversedCells.insert(this);
+			enqueuedOrTraversedCells.insert(startCell);
+			cellsToTraverse.push(startCell);
+
+			// Perform a breadth first search to check whether the other neighbors are still connected to the current
+			// neighbor or whether the CellContent was split into multiple CellContents by removing it from this cell.
+			bool abort = false;
+			while (!cellsToTraverse.empty() && !abort)
+			{
+				Cell* currentCell = cellsToTraverse.front();
+				cellsToTraverse.pop();
+				splitInto[startCell].insert(currentCell);
+
+				for (Cell* cell : currentCell->getNeighbors())
+				{
+					// Check whether we have found one of the neighbors.
+					if (neighborsToFind.find(cell) != neighborsToFind.end())
+					{
+						neighborsToFind.erase(cell);
+						if (neighborsToFind.empty() && splitInto.size() <= 1)
+						{
+							// We have found all neighbors and this is the first neighbor which we've traversed. The
+							// CellContent is therefore still connected and doesn't need to be split into multiple
+							// CellContents. We can safely skip checking the other cells.
+							abort = true;
+							break;
+						}
+					}
+
+					// Enqueue all unchecked neighboring cells of the current cell.
+					if (cell->content == content && enqueuedOrTraversedCells.find(cell) == enqueuedOrTraversedCells.end())
+					{
+						enqueuedOrTraversedCells.insert(cell);
+						cellsToTraverse.push(cell);
+					}
+				}
+			}
+		}
+
+		if (splitInto.size() > 1)
+		{
+			// The CellContent is no longer connected. Split it into the determined pieces.
+			Cell* partsToReuse = nullptr;
+			unsigned int maxPieces = 0;
+			for (auto& cellsSplit : splitInto)
+				if (partsToReuse == nullptr || cellsSplit.second.size() > maxPieces)
+				{
+					partsToReuse = cellsSplit.first;
+					maxPieces = cellsSplit.second.size();
+				}
+
+			for (auto& cellsSplit : splitInto)
+				if (cellsSplit.first != partsToReuse)
+				{
+					CellContent* contentSplit = content->createNewCellContentOfSameType(cellsSplit.second);
+					for (Cell* cell : cellsSplit.second)
+						cell->_setContent(contentSplit, false);
+				}
 		}
 	}
 

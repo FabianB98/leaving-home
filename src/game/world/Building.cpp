@@ -125,6 +125,17 @@ namespace game::world
 		) }
 	);
 
+	Building::Building(
+		std::shared_ptr<BuildingPieceSet> _buildingPieceSet,
+		Building* original,
+		std::unordered_set<Cell*> cellsToCopy
+	) : CellContent(true), buildingPieceSet(_buildingPieceSet)
+	{
+		if (original != nullptr)
+			for (Cell* cell : cellsToCopy)
+				heightPerCell.insert(std::make_pair(cell, original->heightPerCell[cell] - 1));
+	}
+
 	void Building::_addedToCell(Cell* cell)
 	{
 		auto& height = heightPerCell.find(cell);
@@ -404,4 +415,9 @@ namespace game::world
 	}
 
 	TestBuilding::TestBuilding() : Building(testBuildingPieceSet) {}
+
+	TestBuilding::TestBuilding(
+		Building* original,
+		std::unordered_set<Cell*> cellsToCopy
+	) : Building(testBuildingPieceSet, original, cellsToCopy) {}
 }
