@@ -7,7 +7,7 @@ namespace game::world
 
 	static std::shared_ptr<rendering::model::MeshData> treeMeshData = std::make_shared<rendering::model::MeshData>("tree");
 
-	void Resource::addedToCell(Cell* cell)
+	void Resource::_addedToCell(Cell* cell)
 	{
 		setMeshDataAndTransform(cell, meshData, rendering::components::EulerComponentwiseTransform(
 			cell->getRelaxedPositionAndHeight(),
@@ -15,17 +15,17 @@ namespace game::world
 			glm::vec3(1.0f)
 		).toTransformationMatrix());
 
-		_addedToCell(cell);
+		__addedToCell(cell);
 	}
 
-	void Resource::removedFromCell(Cell* cell)
+	void Resource::_removedFromCell(Cell* cell)
 	{
-		_removedFromCell(cell);
+		__removedFromCell(cell);
 	}
 
 	Tree::Tree() : Resource(treeMeshData) {}
 
-	void Tree::_addedToCell(Cell* cell)
+	void Tree::__addedToCell(Cell* cell)
 	{
 		setTransform(cell, rendering::components::EulerComponentwiseTransform(
 			cell->getRelaxedPositionAndHeight(),
@@ -34,7 +34,12 @@ namespace game::world
 		).toTransformationMatrix());
 	}
 
-	void Tree::_removedFromCell(Cell* cell)
+	void Tree::__removedFromCell(Cell* cell)
+	{
+		// Nothing to do here...
+	}
+
+	void Tree::update()
 	{
 		// Nothing to do here...
 	}

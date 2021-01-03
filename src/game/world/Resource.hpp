@@ -16,13 +16,15 @@ namespace game::world
 		Resource(std::shared_ptr<rendering::model::MeshData> _meshData) : CellContent(false), meshData(_meshData) {}
 
 	protected:
-		void addedToCell(Cell* cell);
+		void _addedToCell(Cell* cell);
 
-		void removedFromCell(Cell* cell);
+		void _removedFromCell(Cell* cell);
 
-		virtual void _addedToCell(Cell* cell) = 0;
+		virtual void __addedToCell(Cell* cell) = 0;
 
-		virtual void _removedFromCell(Cell* cell) = 0;
+		virtual void __removedFromCell(Cell* cell) = 0;
+
+		virtual void update() = 0;
 
 	private:
 		std::shared_ptr<rendering::model::MeshData> meshData;
@@ -34,8 +36,10 @@ namespace game::world
 		Tree();
 
 	protected:
-		void _addedToCell(Cell* cell);
+		void __addedToCell(Cell* cell);
 
-		void _removedFromCell(Cell* cell);
+		void __removedFromCell(Cell* cell);
+
+		void update();
 	};
 }

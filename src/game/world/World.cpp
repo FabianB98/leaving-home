@@ -237,7 +237,13 @@ namespace game::world
 			}
 		}
 
-		// Update all dirty chunks.
+		// Update all dirty CellContents.
+		registry.view<CellContentUpdate>().each([&](const auto entity, CellContentUpdate& cellContentUpdate) {
+			cellContentUpdate.cellContent->update();
+			registry.remove<CellContentUpdate>(entity);
+		});
+
+		// Update all dirty Chunks.
 		registry.view<ChunkUpdate>().each([&](const auto entity, ChunkUpdate& chunkUpdate) {
 			chunkUpdate.chunk->update();
 			registry.remove<ChunkUpdate>(entity);

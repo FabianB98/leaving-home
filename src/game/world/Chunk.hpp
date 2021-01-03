@@ -406,7 +406,9 @@ namespace game::world
 	public:
 		CellContent(bool _multiCellPlaceable) : multiCellPlaceable(_multiCellPlaceable) {}
 
-		virtual ~CellContent() {}
+		virtual ~CellContent();
+
+		void enqueueUpdate();
 
 		const std::unordered_map<Cell*, CellContentCellData>& getCells()
 		{
@@ -421,9 +423,15 @@ namespace game::world
 		}
 
 	protected:
-		virtual void addedToCell(Cell* cell) = 0;
+		void addedToCell(Cell* cell);
 
-		virtual void removedFromCell(Cell* cell) = 0;
+		virtual void _addedToCell(Cell* cell) = 0;
+
+		void removedFromCell(Cell* cell);
+
+		virtual void _removedFromCell(Cell* cell) = 0;
+
+		virtual void update() = 0;
 
 		void setMeshData(Cell* cell, std::shared_ptr<rendering::model::MeshData> meshData);
 
@@ -439,6 +447,15 @@ namespace game::world
 		std::unordered_map<Cell*, CellContentCellData> cells;
 		const bool multiCellPlaceable;
 
+		entt::registry* registry{ nullptr };
+		entt::entity entity{ entt::null };
+
 		friend Cell;
+		friend class World;
+	};
+
+	struct CellContentUpdate
+	{
+		CellContent* cellContent;
 	};
 }

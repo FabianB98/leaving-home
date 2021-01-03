@@ -1043,6 +1043,39 @@ namespace game::world
 			cellType = CellType::SNOW;
 	}
 
+	CellContent::~CellContent()
+	{
+		if (registry != nullptr)
+			registry->destroy(entity);
+	}
+
+	void CellContent::addedToCell(Cell* cell)
+	{
+		if (registry == nullptr)
+		{
+			registry = &cell->getChunk()->getRegistry();
+			entity = registry->create();
+		}
+
+		_addedToCell(cell);
+	}
+
+	void CellContent::removedFromCell(Cell* cell)
+	{
+		_removedFromCell(cell);
+	}
+
+	void CellContent::enqueueUpdate()
+	{
+		if (entity == entt::null)
+		{
+			// CellContent was not added to the world yet. There's no need to do anything at all.
+			return;
+		}
+
+		registry->emplace_or_replace<CellContentUpdate>(entity, this);
+	}
+
 	bool CellContent::hasMeshData()
 	{
 		for (auto& cell : cells)

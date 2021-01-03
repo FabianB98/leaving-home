@@ -318,9 +318,11 @@ namespace game::world
 		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
 		std::unordered_map<Cell*, unsigned int> heightPerCell;
 
-		void addedToCell(Cell* cell);
+		void _addedToCell(Cell* cell);
 
-		void removedFromCell(Cell* cell);
+		void _removedFromCell(Cell* cell);
+
+		void update();
 
 	private:
 		void rebuildMeshData();

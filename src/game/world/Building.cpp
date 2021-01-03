@@ -125,7 +125,7 @@ namespace game::world
 		) }
 	);
 
-	void Building::addedToCell(Cell* cell)
+	void Building::_addedToCell(Cell* cell)
 	{
 		auto& height = heightPerCell.find(cell);
 		if (height != heightPerCell.end())
@@ -133,15 +133,20 @@ namespace game::world
 		else
 			heightPerCell.insert(std::make_pair(cell, 1));
 
-		rebuildMeshData();
+		enqueueUpdate();
 	}
 
-	void Building::removedFromCell(Cell* cell)
+	void Building::_removedFromCell(Cell* cell)
 	{
 		heightPerCell.erase(cell);
 
 		if (!heightPerCell.empty())
-			rebuildMeshData();
+			enqueueUpdate();
+	}
+
+	void Building::update()
+	{
+		rebuildMeshData();
 	}
 
 	void Building::rebuildMeshData()
