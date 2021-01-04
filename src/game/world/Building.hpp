@@ -310,13 +310,26 @@ namespace game::world
 	public:
 		Building(
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
-		) : CellContent(true), buildingPieceSet(_buildingPieceSet) {}
+		) : Building(_buildingPieceSet, nullptr, std::unordered_set<Cell*>{}) {}
 
 		virtual ~Building() {}
+
+		const std::unordered_map<Cell*, unsigned int>& getHeightPerCell()
+		{
+			return heightPerCell;
+		}
 
 	protected:
 		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
 		std::unordered_map<Cell*, unsigned int> heightPerCell;
+
+		Building(
+			std::shared_ptr<BuildingPieceSet> _buildingPieceSet,
+			Building* original,
+			std::unordered_set<Cell*> cellsToCopy
+		);
+
+		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
 
 		void _addedToCell(Cell* cell);
 
@@ -361,5 +374,13 @@ namespace game::world
 		TestBuilding();
 
 		virtual ~TestBuilding() {}
+
+	protected:
+		TestBuilding(Building* original, std::unordered_set<Cell*> cellsToCopy);
+
+		CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy)
+		{
+			return new TestBuilding(this, cellsToCopy);
+		}
 	};
 }

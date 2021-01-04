@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <queue>
 #include <random>
 #include <stdlib.h>
 #include <unordered_map>
@@ -284,7 +285,10 @@ namespace game::world
 			return content;
 		}
 
-		void setContent(CellContent* _content);
+		void setContent(CellContent* _content)
+		{
+			_setContent(_content, true);
+		}
 
 		template<class T>
 		void placeBuilding()
@@ -300,19 +304,42 @@ namespace game::world
 			}
 			else if (content == nullptr)
 			{
-				bool added = false;
+				std::unordered_set<T*> buildingsToConnectTo;
 				for (auto cell : getNeighbors())
-					if (cell->height == height && dynamic_cast<T*>(cell->content))
+				{
+					T* content = dynamic_cast<T*>(cell->content);
+					if (cell->height == height && content)
+						buildingsToConnectTo.insert(content);
+				}
+
+				if (buildingsToConnectTo.empty())
+				{
+					_setContent(new T(), false);
+				}
+				else
+				{
+					// The new building piece might be neighboring multiple buildings of the same type which need to be
+					// connected in this case.
+					T* buildingToReuse = nullptr;
+					for (T* building : buildingsToConnectTo)
+						if (buildingToReuse == nullptr || building->getCells().size() > buildingToReuse->getCells().size())
+							buildingToReuse = building;
+
+					std::unordered_map<Cell*, unsigned int> cellsToPlaceBuildingOn;
+					cellsToPlaceBuildingOn.insert(std::make_pair(this, 1));
+
+					for (T* building : buildingsToConnectTo)
+						if (building != buildingToReuse)
+							for (auto& cellAndHeight : building->getHeightPerCell())
+								cellsToPlaceBuildingOn.insert(std::make_pair(cellAndHeight.first, cellAndHeight.second));
+
+					for (auto& cellAndHeight : cellsToPlaceBuildingOn)
 					{
-						setContent(cell->content);
-						added = true;
-						break;
+						cellAndHeight.first->_setContent(buildingToReuse, false);
+						for (int i = 1; i < cellAndHeight.second; i++)
+							buildingToReuse->addedToCell(cellAndHeight.first);
 					}
-
-				// TODO: The new building piece might be neighboring multiple buildings of the same type which need to be connected in this case.
-
-				if (!added)
-					setContent(new T());
+				}
 			}
 		}
 
@@ -383,7 +410,11 @@ namespace game::world
 		float height;
 		CellType cellType;
 
+		void _setContent(CellContent* _content, bool splitMultiCellContent);
+
 		void setRelaxedPosition(glm::vec2 _relaxedPosition);
+
+		void splitMultiCellContentIntoConnectedContents();
 
 		friend Chunk;
 		friend class ChunkCluster;
@@ -423,6 +454,8 @@ namespace game::world
 		}
 
 	protected:
+		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
+
 		void addedToCell(Cell* cell);
 
 		virtual void _addedToCell(Cell* cell) = 0;

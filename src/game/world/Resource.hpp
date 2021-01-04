@@ -16,6 +16,8 @@ namespace game::world
 		Resource(std::shared_ptr<rendering::model::MeshData> _meshData) : CellContent(false), meshData(_meshData) {}
 
 	protected:
+		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
+
 		void _addedToCell(Cell* cell);
 
 		void _removedFromCell(Cell* cell);
@@ -36,6 +38,11 @@ namespace game::world
 		Tree();
 
 	protected:
+		CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy)
+		{
+			return new Tree();
+		}
+
 		void __addedToCell(Cell* cell);
 
 		void __removedFromCell(Cell* cell);
