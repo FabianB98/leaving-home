@@ -11,6 +11,9 @@ void main() {
 //
 //	color = vec4(vec3(-z / 500.f), 1);
 	
-	
-	color = texture(image, uv).xxxw;
+	float value = texture(image, uv).r;
+	float zFar = 500.f;
+	float zNear = 10.f;
+	//value = 2.0 * zNear / (zFar + zNear - value * (zFar - zNear));
+	color = vec4(value, value, value, 1);
 }

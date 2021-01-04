@@ -55,6 +55,8 @@ namespace game
 
 	rendering::model::Mesh* tree;
 
+	std::shared_ptr<rendering::components::OrthographicCameraParameters> shadowCamParams;
+
 	double randomDouble()
 	{
 		return (double) rand() / (double) RAND_MAX;
@@ -122,11 +124,10 @@ namespace game
 		registry.emplace<DirectionalLight>(sun, glm::vec3(1), glm::vec3(2, 1, 1));
 
 		shadowCamera = registry.create();
-		auto orthoParams = std::make_shared<rendering::components::OrthographicCameraParameters>(
-			50.f, 1.f, 10.f, 10000.f);
-		std::cout << orthoParams->getHeight() << std::endl;
+		shadowCamParams = std::make_shared<rendering::components::OrthographicCameraParameters>(
+			100.f, 1.f, 400.f, -400.f);
 		registry.emplace<rendering::components::MatrixTransform>(shadowCamera, glm::mat4(1));
-		registry.emplace<rendering::components::Camera>(shadowCamera, orthoParams);
+		registry.emplace<rendering::components::Camera>(shadowCamera, shadowCamParams);
 		registry.emplace<rendering::components::CastShadow>(shadowCamera, sun);
 
 		renderingEngine->setShadowCamera(shadowCamera);
@@ -173,9 +174,12 @@ namespace game
 
 		auto& baseTf = registry.get<rendering::components::EulerComponentwiseTransform>(cameraBase);
 		auto up = glm::cross(sunDir, glm::vec3(1,0,0));
-		auto tf = glm::inverse(glm::lookAt(50.f * sunDir + baseTf.getTranslation(), glm::vec3(0) + baseTf.getTranslation(), up));
+		auto tf = glm::inverse(glm::lookAt(100.f * sunDir + baseTf.getTranslation(), glm::vec3(0) + baseTf.getTranslation(), up));
 		registry.replace<rendering::components::MatrixTransform>(shadowCamera, tf);
 
+		auto& cameraTf = registry.get<rendering::components::EulerComponentwiseTransform>(defaultCamera);
+		float width = 1.f * glm::length(cameraTf.getTranslation());
+		shadowCamParams->setWidth(width);
 
 
 		auto camPointer = selectedCamera == gui::CameraType::DEFAULT ? defaultCamera : freeFlightCamera;

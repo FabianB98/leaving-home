@@ -21,6 +21,7 @@ namespace rendering::systems
 	extern glm::mat4 viewMatrix;
 	extern glm::mat3 viewNormalMatrix;
 	extern glm::mat4 shadowMatrix;
+	extern glm::mat4 shadowWorldMatrix;
 
 	extern std::vector<glm::vec3> directionalIntensities;
 	extern std::vector<glm::vec3> directionalDirsWorld;
@@ -208,10 +209,12 @@ namespace rendering::systems
 		rendering::shading::Shader* defaultShader, bool overrideShaders)
 	{
 		viewMatrix = mainCamera.getViewMatrix();
-		viewNormalMatrix = glm::mat3(glm::transpose(glm::inverse(viewMatrix)));
+		auto viewInv = glm::inverse(viewMatrix);
+		viewNormalMatrix = glm::mat3(glm::transpose(viewInv));
 
 		auto& shadowCamComp = registry.get<components::Camera>(shadowCamera);
-		shadowMatrix = shadowCamComp.getViewProjectionMatrix() * glm::inverse(mainCamera.getViewMatrix());
+		shadowMatrix = shadowCamComp.getViewProjectionMatrix() * viewInv;
+		shadowWorldMatrix = shadowCamComp.getViewProjectionMatrix();
 
 		// Get all entities whose transformation was changed and store that their transformation was changed.
 		for (const auto entity : transformObserver) {

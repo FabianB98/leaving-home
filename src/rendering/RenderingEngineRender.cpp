@@ -9,6 +9,11 @@ namespace rendering
 
         if (shader.getRenderPass() == shading::RenderPass::LIGHTING)
             setLightingTextureUniforms(shader);
+        else if (shader.getRenderPass() == shading::RenderPass::FORWARD) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, shadowMap);
+            shader.setUniformInt("shadowMap", 0);
+        }
     }
 
     void RenderingEngine::setLightingTextureUniforms(shading::Shader& shader)
@@ -173,13 +178,13 @@ namespace rendering
             return castShadow.find(mesh) == castShadow.end(); 
         });
 
-        // SHADOW PASS
+        //// SHADOW PASS
         glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
         glClearColor(1.f, 1.f, 1.f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(0, 0, SHADOW_MAP_RES, SHADOW_MAP_RES);
 
-        systems::renderShadowMap(registry, camera, shadowZShader);
+        systems::renderShadowMap(registry, shadow, shadowZShader);
 
         // recalculate MVPs for main camera
         systems::renderUpdateMVPs(registry, camera, [](const auto* mesh) { return false; }); // exclude nothing
@@ -271,7 +276,8 @@ namespace rendering
             glDisable(GL_BLEND);
         }
         else {
-            renderQuad(ssaoBlur ? ssaoBlurColor : ssaoColor);
+            //renderQuad(ssaoBlur ? ssaoBlurColor : ssaoColor);
+            renderQuad(shadowMap);
 
             glDisable(GL_BLEND);
         }

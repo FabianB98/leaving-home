@@ -98,7 +98,7 @@ namespace game::world
 	void Chunk::addedToWorld()
 	{
 		auto& shading = registry.ctx<rendering::systems::MeshShading>();
-		auto& picking = registry.ctx<rendering::systems::Picking>();
+		auto& shadows = registry.ctx<rendering::systems::ShadowMapping>();
 
 		cullingEntity = registry.create();
 		registry.emplace<rendering::components::CullingGeometry>(cullingEntity, cullingGeometry);
@@ -132,7 +132,7 @@ namespace game::world
 			);
 
 			shading.shaders.insert(std::make_pair(mesh, terrainShader));
-			picking.enabled.insert(mesh);
+			shadows.castShadow.insert(mesh);
 
 			cullingGeometry->extendToFitGeometry(mesh->getBoundingGeometry());
 			rendering::systems::cullingRelationship(registry, cullingEntity, landscapeEntity);
@@ -225,6 +225,9 @@ namespace game::world
 
 			cullingGeometry->extendToFitGeometry(cellContentMesh->getBoundingGeometry());
 			rendering::systems::cullingRelationship(registry, cullingEntity, cellContentEntity);
+
+			auto& shadows = registry.ctx<rendering::systems::ShadowMapping>();
+			shadows.castShadow.insert(cellContentMesh);
 		}
 		else
 		{

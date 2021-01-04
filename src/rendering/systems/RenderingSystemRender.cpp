@@ -13,6 +13,7 @@ namespace rendering::systems
 	extern glm::mat4 viewMatrix;
 	extern glm::mat3 viewNormalMatrix;
 	extern glm::mat4 shadowMatrix;
+	extern glm::mat4 shadowWorldMatrix;
 
 	extern std::vector<glm::vec3> directionalIntensities;
 	extern std::vector<glm::vec3> directionalDirsWorld;
@@ -28,7 +29,11 @@ namespace rendering::systems
 			shader.setUniformMat3("T_V_Normal", viewNormalMatrix);
 		}
 		else {
-			shader.setUniformMat4("T_S", shadowMatrix);
+			if (shader.getRenderPass() == shading::RenderPass::LIGHTING)
+				shader.setUniformMat4("T_S", shadowMatrix);
+			else
+				shader.setUniformMat4("T_SV", shadowWorldMatrix);
+
 			shader.setUniformDirectionalLights("directionalLights", 
 				directionalIntensities, directionalDirsWorld, directionalDirsView);
 		}

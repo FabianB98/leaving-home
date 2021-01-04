@@ -28,7 +28,7 @@ namespace rendering::components
 	{
 	public:
 		OrthographicCameraParameters(float _width, float _aspectRatio, float _nearClippingPlane, float _farClippingPlane) :
-			width(_width), height(_width / _aspectRatio), nearClippingPlane(_nearClippingPlane), farClippingPlane(_farClippingPlane) {};
+			width(_width), height(_width / _aspectRatio), aspectRatio(_aspectRatio), nearClippingPlane(_nearClippingPlane), farClippingPlane(_farClippingPlane) {};
 
 		float getWidth();
 

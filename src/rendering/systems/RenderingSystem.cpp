@@ -30,6 +30,7 @@ namespace rendering::systems
 	glm::mat4 viewMatrix;
 	glm::mat3 viewNormalMatrix;
 	glm::mat4 shadowMatrix;
+	glm::mat4 shadowWorldMatrix;
 
 	components::CullingGeometry cullingRoot = components::CullingGeometry(std::make_shared<bounding_geometry::None>());
 
