@@ -170,9 +170,12 @@ namespace game::world
 		
 		for (auto& cellAndPieces : meshPieces)
 		{
-			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>> instances;
+			std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<rendering::model::MeshDataInstance>>> instances;
 			for (auto piece : cellAndPieces.second)
-				instances.push_back(std::make_pair(piece, std::vector<glm::mat4> { glm::mat4(1.0f) }));
+			{
+				auto instance = rendering::model::MeshDataInstance(glm::mat4(1.0f));
+				instances.push_back(std::make_pair(piece, std::vector<rendering::model::MeshDataInstance> { instance }));
+			}
 
 			setMeshData(cellAndPieces.first, std::make_shared<rendering::model::MeshData>(instances));
 		}

@@ -100,6 +100,11 @@ namespace game::world
 
 		rendering::model::Mesh* getLandscapeMesh();
 
+		rendering::model::Mesh* getCellContentMesh()
+		{
+			return cellContentMesh;
+		}
+
 		HeightGenerator& getHeightGenerator()
 		{
 			return heightGenerator;

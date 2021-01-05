@@ -29,7 +29,7 @@ namespace rendering
         glfwMakeContextCurrent(window);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
-        glfwSwapInterval(0);    // enable vsync
+        glfwSwapInterval(1);    // enable vsync
 
         // Initialize GLEW in core profile.
         glewExperimental = true;
