@@ -7,6 +7,7 @@
 #include "../../rendering/components/Transform.hpp"
 #include "../../rendering/model/Mesh.hpp"
 #include "Chunk.hpp"
+#include "Item.hpp"
 
 namespace game::world
 {

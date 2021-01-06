@@ -125,6 +125,43 @@ namespace game::world
 		) }
 	);
 
+	struct TestBuildingComponent
+	{
+		TestBuildingComponent(TestBuilding* _building) : building(_building), lastConsumed(glfwGetTime()) {}
+
+		TestBuilding* building;
+		double lastConsumed;
+	};
+
+	static class : public game::systems::IResourceProcessor {
+		void processResources(entt::registry& registry, double deltaTime)
+		{
+			double time = glfwGetTime();
+
+			auto view = registry.view<TestBuildingComponent>();
+			for (auto& entity : view)
+			{
+				registry.patch<TestBuildingComponent>(entity, [&registry, entity, time](auto& building) {
+					if (time - building.lastConsumed > 5.0f)
+					{
+						building.lastConsumed = time;
+
+						Wood* wood = registry.try_get<Wood>(entity);
+						bool removeBuilding = true;
+						if (wood != nullptr && wood->amount >= 1.0f)
+						{
+							removeBuilding = false;
+							wood->amount -= 1.0f;
+						}
+
+						if (removeBuilding)
+							building.building->getCells().begin()->first->setContent(nullptr);
+					}
+				});
+			}
+		}
+	} testBuildingResourceProcessor;
+
 	Building::Building(
 		std::shared_ptr<BuildingPieceSet> _buildingPieceSet,
 		Building* original,
@@ -145,6 +182,8 @@ namespace game::world
 			heightPerCell.insert(std::make_pair(cell, 1));
 
 		enqueueUpdate();
+
+		__addedToCell(cell);
 	}
 
 	void Building::_removedFromCell(Cell* cell)
@@ -153,6 +192,8 @@ namespace game::world
 
 		if (!heightPerCell.empty())
 			enqueueUpdate();
+
+		__removedFromCell(cell);
 	}
 
 	void Building::update()
@@ -417,10 +458,27 @@ namespace game::world
 		return found != heightPerCell.end() && found->second > floor;
 	}
 
-	TestBuilding::TestBuilding() : Building(testBuildingPieceSet) {}
+	TestBuilding::TestBuilding() : Building(testBuildingPieceSet) 
+	{
+		game::systems::attachRessourceProcessor(&testBuildingResourceProcessor);
+	}
 
 	TestBuilding::TestBuilding(
 		Building* original,
 		std::unordered_set<Cell*> cellsToCopy
 	) : Building(testBuildingPieceSet, original, cellsToCopy) {}
+
+	void TestBuilding::__addedToCell(Cell* cell)
+	{
+		if (!getRegistry()->has<TestBuildingComponent>(getEntity()))
+		{
+			getRegistry()->emplace<TestBuildingComponent>(getEntity(), this);
+			getRegistry()->emplace<Consumes<Wood>>(getEntity());
+		}
+	}
+
+	void TestBuilding::__removedFromCell(Cell* cell)
+	{
+		// Nothing to do here...
+	}
 }

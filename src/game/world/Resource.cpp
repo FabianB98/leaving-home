@@ -32,6 +32,9 @@ namespace game::world
 			2.0f * M_PI * randomFloat(generator), 0.0f, 0.0f,
 			glm::vec3(1.0f)
 		).toTransformationMatrix());
+
+		getRegistry()->emplace<Wood>(getEntity(), 1.0f);
+		getRegistry()->emplace<Harvestable<Wood>>(getEntity());
 	}
 
 	void Tree::__removedFromCell(Cell* cell)

@@ -481,6 +481,16 @@ namespace game::world
 			const rendering::components::MatrixTransform& transform
 		);
 
+		entt::registry* getRegistry()
+		{
+			return registry;
+		}
+
+		entt::entity& getEntity()
+		{
+			return entity;
+		}
+
 	private:
 		std::unordered_map<Cell*, CellContentCellData> cells;
 		const bool multiCellPlaceable;

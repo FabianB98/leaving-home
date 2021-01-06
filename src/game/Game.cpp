@@ -17,6 +17,7 @@
 #include "components/FreeFlyingMoveController.hpp"
 #include "components/HeightConstrainedMoveController.hpp"
 #include "systems/MovementInputSystem.hpp"
+#include "systems/ResourceProcessingSystem.hpp"
 #include "DayNightCycle.hpp"
 #include "PickingChunkSelection.hpp"
 #include "world/Building.hpp"
@@ -167,6 +168,8 @@ namespace game
 		wrld->update();
 
 		auto& registry = renderingEngine->getRegistry();
+
+		systems::updateResourceProcessingSystem(registry, deltaTime);
 
 		daynight.update(deltaTime);
 		auto sunDir = glm::normalize(daynight.getSunDirection());
