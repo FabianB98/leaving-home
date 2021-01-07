@@ -171,7 +171,7 @@ namespace game::world
 
 	void Chunk::enqueueUpdate()
 	{
-		if (cullingEntity == entt::null)
+		if (cullingEntity == entt::null || !registry.valid(cullingEntity))
 		{
 			// Chunk was not added to the world yet. There's no need to do anything at all.
 			return;
@@ -1146,7 +1146,7 @@ namespace game::world
 
 	CellContent::~CellContent()
 	{
-		if (registry != nullptr)
+		if (registry != nullptr && entity != entt::null && registry->valid(entity))
 			registry->destroy(entity);
 	}
 
@@ -1168,7 +1168,7 @@ namespace game::world
 
 	void CellContent::enqueueUpdate()
 	{
-		if (entity == entt::null)
+		if (entity == entt::null || !registry->valid(entity))
 		{
 			// CellContent was not added to the world yet. There's no need to do anything at all.
 			return;

@@ -458,6 +458,16 @@ namespace game::world
 			return multiCellPlaceable;
 		}
 
+		entt::registry* getRegistry()
+		{
+			return registry;
+		}
+
+		entt::entity& getEntity()
+		{
+			return entity;
+		}
+
 	protected:
 		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
 
@@ -480,16 +490,6 @@ namespace game::world
 			std::shared_ptr<rendering::model::MeshData> meshData,
 			const rendering::components::MatrixTransform& transform
 		);
-
-		entt::registry* getRegistry()
-		{
-			return registry;
-		}
-
-		entt::entity& getEntity()
-		{
-			return entity;
-		}
 
 	private:
 		std::unordered_map<Cell*, CellContentCellData> cells;
