@@ -8,8 +8,10 @@
 
 #include "../../rendering/components/Transform.hpp"
 #include "../../rendering/model/Mesh.hpp"
+#include "../systems/ResourceProcessingSystem.hpp"
 #include "Chunk.hpp"
 #include "Constants.hpp"
+#include "Item.hpp"
 
 namespace game::world
 {
@@ -333,7 +335,11 @@ namespace game::world
 
 		void _addedToCell(Cell* cell);
 
+		virtual void __addedToCell(Cell* cell) = 0;
+
 		void _removedFromCell(Cell* cell);
+
+		virtual void __removedFromCell(Cell* cell) = 0;
 
 		void update();
 
@@ -382,5 +388,9 @@ namespace game::world
 		{
 			return new TestBuilding(this, cellsToCopy);
 		}
+
+		void __addedToCell(Cell* cell);
+
+		void __removedFromCell(Cell* cell);
 	};
 }

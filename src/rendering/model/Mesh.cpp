@@ -152,12 +152,12 @@ namespace rendering
 			}
 		}
 
-		MeshData::MeshData(const std::vector<std::pair<std::shared_ptr<MeshData>, std::vector<glm::mat4>>> instances)
+		MeshData::MeshData(const std::vector<std::pair<std::shared_ptr<MeshData>, std::vector<MeshDataInstance>>> instances)
 		{
 			std::unordered_map<Material, std::shared_ptr<MeshPartData>> materialMeshPartMap;
 
 			// Add all instances of all given MeshData to the resulting MeshData.
-			for (const std::pair<std::shared_ptr<MeshData>, std::vector<glm::mat4>>& meshDataInstances : instances)
+			for (const std::pair<std::shared_ptr<MeshData>, std::vector<MeshDataInstance>>& meshDataInstances : instances)
 			{
 				// The vertices, UVs and normals of the current MeshData to add.
 				const std::vector<glm::vec3>& instanceVertices = meshDataInstances.first->vertices;
@@ -167,8 +167,9 @@ namespace rendering
 				size_t vertexCount = instanceVertices.size();
 
 				// Add all instances of the current MeshData to the resulting MeshData.
-				for (const glm::mat4& modelMatrix : meshDataInstances.second)
+				for (const MeshDataInstance& instance : meshDataInstances.second)
 				{
+					const glm::mat4& modelMatrix = instance.transformation;
 					glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(modelMatrix)));
 					size_t offset = vertices.size();
 
@@ -180,6 +181,13 @@ namespace rendering
 						uvs.push_back(instanceUVs[i]);
 						normals.push_back(normalMatrix * instanceNormals[i]);
 					}
+
+					// Add the additional vertex data (if needed).
+					for (auto& locationAndAttribute : meshDataInstances.first->additionalVertexAttributes)
+						addAdditionalVertexAttributeData(locationAndAttribute.first, locationAndAttribute.second);
+
+					for (auto& locationAndAttribute : instance.additionalVertexAttributes)
+						addAdditionalVertexAttributeData(locationAndAttribute.first, locationAndAttribute.second);
 
 					// Add the indices.
 					for (const std::shared_ptr<MeshPartData> part : instanceParts)
@@ -208,15 +216,24 @@ namespace rendering
 			}
 		}
 
+		void MeshData::addAdditionalVertexAttributeData(GLuint location, std::shared_ptr<IVertexAttribute> attributeData)
+		{
+			if (additionalVertexAttributes.find(location) == additionalVertexAttributes.end())
+				additionalVertexAttributes.insert(std::make_pair(location, attributeData->createNewVertexAttributeOfThisType()));
+
+			additionalVertexAttributes[location]->addData(attributeData);
+		}
+
 		Mesh::Mesh(
 			const std::vector<glm::vec3>& vertices,
 			const std::vector<glm::vec2>& uvs,
 			const std::vector<glm::vec3>& normals,
+			const std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>> additionalVertexAttributes,
 			const std::vector<std::shared_ptr<MeshPart>>& _parts,
 			std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
 		) : parts(_parts), boundingGeometry(_boundingGeometry), maxInstancesDrawn(0)
 		{
-			initOpenGlBuffers(vertices, uvs, normals);
+			initOpenGlBuffers(vertices, uvs, normals, additionalVertexAttributes);
 			boundingGeometry->fitToVertices(vertices);
 		}
 
@@ -233,7 +250,8 @@ namespace rendering
 		void Mesh::initOpenGlBuffers(
 			const std::vector<glm::vec3>& vertices,
 			const std::vector<glm::vec2>& uvs,
-			const std::vector<glm::vec3>& normals
+			const std::vector<glm::vec3>& normals,
+			const std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>> additionalVertexAttributes
 		)
 		{
 			// Create a Vertex Array Object (VAO).
@@ -301,6 +319,10 @@ namespace rendering
 			// for these locations.
 			for (int i = 0; i < 14; i++)
 				usedAttributeLocations.insert(i);
+
+			// Add the additional vertex attributes (if needed).
+			for (auto& locationAndAttribute : additionalVertexAttributes)
+				setAdditionalVertexAttributeData(locationAndAttribute.first, locationAndAttribute.second);
 		}
 
 		Mesh::~Mesh()
@@ -316,9 +338,83 @@ namespace rendering
 			glDeleteBuffers(1, &mvpMatrixVbo);
 
 			for (auto& vbo : additionalVbos)
-				glDeleteBuffers(1, &vbo);
+				glDeleteBuffers(1, &vbo.second);
 		}
 
+		void Mesh::addAdditionalVertexAttribute(
+			GLuint location,
+			void* data,
+			GLint size,
+			std::function<void()> const& setVertexAttribPointer
+		) {
+			// Ensure that the given location is not already used by some other vertex attribute.
+			if (usedAttributeLocations.find(location) != usedAttributeLocations.end())
+				throw std::invalid_argument("Location already in use!");
+			usedAttributeLocations.insert(location);
+
+			// Bind the VAO as we're about to add a new VBO to it.
+			glBindVertexArray(vao);
+
+			// Create a VBO, fill it with the given data and bind it to the given vertex attribute location.
+			GLuint vbo;
+			glGenBuffers(1, &vbo);
+			additionalVbos.insert(std::make_pair(location, vbo));
+
+			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+			glEnableVertexAttribArray(location);
+			setVertexAttribPointer();
+
+			// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
+			glBindVertexArray(0);
+		}
+
+		void Mesh::setAdditionalVertexAttributeData(
+			GLuint location,
+			void* data,
+			GLint size,
+			std::function<void()> const& setVertexAttribPointer
+		) {
+			auto& locationAndVbo = additionalVbos.find(location);
+			if (locationAndVbo == additionalVbos.end())
+			{
+				//Given location is not yet in use. Create a new VBO for it.
+				addAdditionalVertexAttribute(location, data, size, setVertexAttribPointer);
+			}
+			else
+			{
+				// Bind the VAO as we're about to modify a VBO of it.
+				glBindVertexArray(vao);
+
+				// Modify the vertex attribute data.
+				glBindBuffer(GL_ARRAY_BUFFER, locationAndVbo->second);
+				glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+
+				// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
+				glBindVertexArray(0);
+			}
+		}
+
+		void Mesh::setAdditionalVertexAttributeData(GLuint location, std::shared_ptr<IVertexAttribute> data)
+		{
+			setAdditionalVertexAttributeData(location, data->getData(), data->getDataSize(), [location, data]() {
+				switch (data->attributeType)
+				{
+				case VertexAttributeType::SINGLE_PRECISION:
+					glVertexAttribPointer(location, data->size, data->dataType, data->normalized, data->stride, data->pointer);
+					break;
+				case VertexAttributeType::DOUBLE_PRECISION:
+					glVertexAttribLPointer(location, data->size, data->dataType, data->stride, data->pointer);
+					break;
+				case VertexAttributeType::INTEGER:
+					glVertexAttribIPointer(location, data->size, data->dataType, data->stride, data->pointer);
+					break;
+				default:
+					throw std::logic_error("No case implemented for the given vertex attribute type! This must be a bug...");
+					break;
+				}
+			});
+		}
 
 		void Mesh::setData(const MeshData& data)
 		{
@@ -356,6 +452,10 @@ namespace rendering
 
 			// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
 			glBindVertexArray(0);
+
+			// Add the additional vertex attributes (if needed).
+			for (auto& locationAndAttribute : data.additionalVertexAttributes)
+				setAdditionalVertexAttributeData(locationAndAttribute.first, locationAndAttribute.second);
 
 			boundingGeometry->fitToVertices(data.vertices);
 		}

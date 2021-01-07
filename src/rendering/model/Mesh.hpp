@@ -25,11 +25,113 @@ namespace rendering
 {
 	namespace model
 	{
+		enum class VertexAttributeType
+		{
+			SINGLE_PRECISION, DOUBLE_PRECISION, INTEGER
+		};
+
+		struct IVertexAttribute
+		{
+		public:
+			GLint size;
+			VertexAttributeType attributeType;
+			GLenum dataType;
+			GLboolean normalized{ GL_FALSE };
+			GLsizei stride{ 0 };
+			void* pointer{ (void*)0 };
+
+			IVertexAttribute(
+				GLint _size,
+				VertexAttributeType _attributeType,
+				GLenum _dataType,
+				GLboolean _normalized,
+				GLsizei _stride,
+				void* _pointer
+			) : size(_size),
+				attributeType(_attributeType),
+				dataType(_dataType),
+				normalized(_normalized),
+				stride(_stride),
+				pointer(_pointer) {}
+
+			IVertexAttribute(GLint _size, VertexAttributeType _attributeType, GLenum _dataType)
+				: size(_size), attributeType(_attributeType), dataType(_dataType) {}
+
+			virtual void* getData() = 0;
+
+			virtual GLint getDataSize() = 0;
+
+		private:
+			virtual std::shared_ptr<IVertexAttribute> createNewVertexAttributeOfThisType() = 0;
+
+			virtual void addData(const std::shared_ptr<IVertexAttribute>& attribute) = 0;
+
+			friend struct MeshData;
+		};
+
+		template <typename DataType>
+		struct VertexAttribute : public IVertexAttribute
+		{
+		public:
+			std::vector<DataType> attributeData;
+
+			VertexAttribute(
+				GLint _size,
+				VertexAttributeType _attributeType,
+				GLenum _dataType,
+				GLboolean _normalized,
+				GLsizei _stride,
+				void* _pointer
+			) : IVertexAttribute(_size, _attributeType, _dataType, _normalized, _stride, _pointer) {}
+
+			VertexAttribute(GLint _size, VertexAttributeType _attributeType, GLenum _dataType)
+				: IVertexAttribute(_size, _attributeType, _dataType) {}
+
+			void* getData()
+			{
+				return &attributeData[0];
+			}
+
+			GLint getDataSize() 
+			{
+				return attributeData.size() * sizeof(DataType);
+			}
+
+		private:
+			std::shared_ptr<IVertexAttribute> createNewVertexAttributeOfThisType()
+			{
+				return std::make_shared<VertexAttribute<DataType>>(size, attributeType, dataType, normalized, stride, pointer);
+			}
+
+			void addData(const std::shared_ptr<IVertexAttribute>& attribute)
+			{
+				auto attributeCasted = std::dynamic_pointer_cast<VertexAttribute<DataType>>(attribute);
+
+				for (DataType& data : attributeCasted->attributeData)
+					attributeData.push_back(data);
+			}
+		};
+
+		struct MeshDataInstance
+		{
+			glm::mat4 transformation;
+			std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>> additionalVertexAttributes;
+
+			MeshDataInstance(glm::mat4 _transformation) : transformation(_transformation) {}
+
+			MeshDataInstance(
+				glm::mat4 _transformation,
+				const std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>>& _additionalVertexAttributes
+			) : transformation(_transformation), additionalVertexAttributes(_additionalVertexAttributes) {}
+		};
+
 		struct MeshData
 		{
+		public:
 			std::vector<glm::vec3> vertices;
 			std::vector<glm::vec2> uvs;
 			std::vector<glm::vec3> normals;
+			std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>> additionalVertexAttributes;
 			std::vector<std::shared_ptr<MeshPartData>> parts;
 
 			MeshData() {}
@@ -39,11 +141,26 @@ namespace rendering
 				const std::vector<glm::vec2>& _uvs,
 				const std::vector<glm::vec3>& _normals,
 				const std::vector<std::shared_ptr<MeshPartData>>& _parts
-			) : vertices(_vertices), uvs(_uvs), normals(_normals), parts(_parts) {}
+			) : MeshData(_vertices, _uvs, _normals, std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>>(), _parts) {}
 
-			MeshData(const std::vector<std::pair<std::shared_ptr<MeshData>, std::vector<glm::mat4>>> instances);
+			MeshData(
+				const std::vector<glm::vec3>& _vertices,
+				const std::vector<glm::vec2>& _uvs,
+				const std::vector<glm::vec3>& _normals,
+				const std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>> _additionalVertexAttributes,
+				const std::vector<std::shared_ptr<MeshPartData>>& _parts
+			) : vertices(_vertices),
+				uvs(_uvs),
+				normals(_normals),
+				additionalVertexAttributes(_additionalVertexAttributes),
+				parts(_parts) {}
+
+			MeshData(const std::vector<std::pair<std::shared_ptr<MeshData>, std::vector<MeshDataInstance>>> instances);
 
 			MeshData(std::string assetName);
+
+		private:
+			void addAdditionalVertexAttributeData(GLuint location, std::shared_ptr<IVertexAttribute> attributeData);
 		};
 
 		class Mesh
@@ -54,7 +171,21 @@ namespace rendering
 				const std::vector<glm::vec2>& uvs,
 				const std::vector<glm::vec3>& normals,
 				const std::vector<std::shared_ptr<MeshPart>>& _parts
-			) : Mesh(vertices, uvs, normals, _parts, std::make_shared<bounding_geometry::None>()) {}
+			) : Mesh(
+					vertices,
+					uvs,
+					normals,
+					_parts,
+					std::make_shared<bounding_geometry::None>()
+				) {}
+
+			Mesh(
+				const std::vector<glm::vec3>& vertices,
+				const std::vector<glm::vec2>& uvs,
+				const std::vector<glm::vec3>& normals,
+				const std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>> additionalVertexAttributes,
+				const std::vector<std::shared_ptr<MeshPart>>& _parts
+			) : Mesh(vertices, uvs, normals, additionalVertexAttributes, _parts, std::make_shared<bounding_geometry::None>()) {}
 
 			Mesh(
 				const std::vector<glm::vec3>& vertices,
@@ -62,18 +193,41 @@ namespace rendering
 				const std::vector<glm::vec3>& normals,
 				const std::vector<std::shared_ptr<MeshPart>>& _parts,
 				std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
+			) : Mesh(
+					vertices,
+					uvs,
+					normals,
+					std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>>(),
+					_parts,
+					_boundingGeometry
+				) {}
+
+			Mesh(
+				const std::vector<glm::vec3>& vertices,
+				const std::vector<glm::vec2>& uvs,
+				const std::vector<glm::vec3>& normals,
+				const std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>> additionalVertexAttributes,
+				const std::vector<std::shared_ptr<MeshPart>>& _parts,
+				std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
 			);
 
-			Mesh(const MeshData& data) : Mesh(data.vertices, data.uvs, data.normals, createMeshParts(data.parts)) {}
+			Mesh(const MeshData& data) : Mesh(data, std::make_shared<bounding_geometry::None>()) {}
 
 			Mesh(const MeshData& data, std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry)
-				: Mesh(data.vertices, data.uvs, data.normals, createMeshParts(data.parts), _boundingGeometry) {}
+				: Mesh(
+					data.vertices,
+					data.uvs,
+					data.normals,
+					data.additionalVertexAttributes,
+					createMeshParts(data.parts),
+					_boundingGeometry
+				) {}
 
-			Mesh(const std::vector<std::pair<std::shared_ptr<MeshData>, std::vector<glm::mat4>>> instances)
+			Mesh(const std::vector<std::pair<std::shared_ptr<MeshData>, std::vector<MeshDataInstance>>> instances)
 				: Mesh(instances, std::make_shared<bounding_geometry::None>()) {}
 
 			Mesh(
-				const std::vector<std::pair<std::shared_ptr<MeshData>, std::vector<glm::mat4>>> instances,
+				const std::vector<std::pair<std::shared_ptr<MeshData>, std::vector<MeshDataInstance>>> instances,
 				std::shared_ptr<bounding_geometry::BoundingGeometry> _boundingGeometry
 			) : Mesh(MeshData(instances), _boundingGeometry) {}
 
@@ -182,7 +336,7 @@ namespace rendering
 			GLuint normalMatrixVbo;
 			GLuint mvpMatrixVbo;
 
-			std::vector<GLuint> additionalVbos;
+			std::unordered_map<GLuint, GLuint> additionalVbos;
 			std::unordered_set<GLuint> usedAttributeLocations;
 
 			std::vector<std::shared_ptr<MeshPart>> parts;
@@ -196,7 +350,8 @@ namespace rendering
 			void initOpenGlBuffers(
 				const std::vector<glm::vec3>& vertices,
 				const std::vector<glm::vec2>& uvs,
-				const std::vector<glm::vec3>& normals
+				const std::vector<glm::vec3>& normals,
+				const std::unordered_map<GLuint, std::shared_ptr<IVertexAttribute>> additionalVertexAttributes
 			);
 
 			template <typename DataType>
@@ -205,27 +360,24 @@ namespace rendering
 				std::vector<DataType> data,
 				std::function<void()> const& setVertexAttribPointer
 			) {
-				// Ensure that the given location is not already used by some other vertex attribute.
-				if (usedAttributeLocations.find(location) != usedAttributeLocations.end())
-					throw std::invalid_argument("Location already in use!");
-				usedAttributeLocations.insert(location);
-
-				// Bind the VAO as we're about to add a new VBO to it.
-				glBindVertexArray(vao);
-
-				// Create a VBO, fill it with the given data and bind it to the given vertex attribute location.
-				GLuint vbo;
-				glGenBuffers(1, &vbo);
-				additionalVbos.push_back(vbo);
-
-				glBindBuffer(GL_ARRAY_BUFFER, vbo);
-				glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(DataType), &data[0], GL_STATIC_DRAW);
-				glEnableVertexAttribArray(location);
-				setVertexAttribPointer();
-
-				// Unbind the VAO to ensure that it won't be changed by any other piece of code by accident.
-				glBindVertexArray(0);
+				addAdditionalVertexAttribute(location, &data[0], data.size() * sizeof(DataType), setVertexAttribPointer);
 			}
+
+			void addAdditionalVertexAttribute(
+				GLuint location,
+				void* data,
+				GLint size,
+				std::function<void()> const& setVertexAttribPointer
+			);
+
+			void setAdditionalVertexAttributeData(
+				GLuint location,
+				void* data,
+				GLint size,
+				std::function<void()> const& setVertexAttribPointer
+			);
+
+			void setAdditionalVertexAttributeData(GLuint location, std::shared_ptr<IVertexAttribute> data);
 		};
 	}
 }

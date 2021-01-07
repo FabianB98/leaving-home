@@ -193,7 +193,7 @@ namespace game::world
 		if (cellContentEntity == entt::null)
 			cellContentEntity = registry.create();
 
-		std::map<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>> instancesPerMesh;
+		std::map<std::shared_ptr<rendering::model::MeshData>, std::vector<rendering::model::MeshDataInstance>> instancesPerMesh;
 		for (const auto& cell : cells)
 		{
 			CellContent* content = cell.second->content;
@@ -201,11 +201,22 @@ namespace game::world
 			{
 				CellContentCellData cellData = content->getCells().find(cell.second)->second;
 				if (cellData.meshData != nullptr)
-					instancesPerMesh[cellData.meshData].push_back(cellData.transform.getTransform());
+				{
+					glm::mat4 transform = cellData.transform.getTransform();
+
+					auto cellIds = std::make_shared<rendering::model::VertexAttribute<glm::uvec2>>(
+						2, rendering::model::VertexAttributeType::INTEGER, GL_UNSIGNED_INT);
+					for (size_t i = 0; i < cellData.meshData->vertices.size(); i++)
+						cellIds->attributeData.push_back(glm::uvec2(cell.second->completeId));
+
+					std::unordered_map<GLuint, std::shared_ptr<rendering::model::IVertexAttribute>> additionalVertexAttributes;
+					additionalVertexAttributes.insert(std::make_pair(CELL_ID_ATTRIBUTE_LOCATION, cellIds));
+					instancesPerMesh[cellData.meshData].push_back(rendering::model::MeshDataInstance(transform, additionalVertexAttributes));
+				}
 			}
 		}
 
-		std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<glm::mat4>>> instances;
+		std::vector<std::pair<std::shared_ptr<rendering::model::MeshData>, std::vector<rendering::model::MeshDataInstance>>> instances;
 		for (const auto& meshAndInstances : instancesPerMesh)
 			instances.push_back(meshAndInstances);
 

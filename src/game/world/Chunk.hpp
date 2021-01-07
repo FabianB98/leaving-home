@@ -100,6 +100,11 @@ namespace game::world
 
 		rendering::model::Mesh* getLandscapeMesh();
 
+		rendering::model::Mesh* getCellContentMesh()
+		{
+			return cellContentMesh;
+		}
+
 		HeightGenerator& getHeightGenerator()
 		{
 			return heightGenerator;
@@ -475,6 +480,16 @@ namespace game::world
 			std::shared_ptr<rendering::model::MeshData> meshData,
 			const rendering::components::MatrixTransform& transform
 		);
+
+		entt::registry* getRegistry()
+		{
+			return registry;
+		}
+
+		entt::entity& getEntity()
+		{
+			return entity;
+		}
 
 	private:
 		std::unordered_map<Cell*, CellContentCellData> cells;

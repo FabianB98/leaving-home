@@ -37,7 +37,10 @@ namespace game
 			auto radius = 1.1f * 2.f * world::CHUNK_SIZE * world::CELL_SIZE;
 			auto height = (camPos + (glm::length(l) - radius) * viewDir).y;
 			if (dist <= radius && height >= 0)
+			{
 				picking.enabled.insert(chunk->getLandscapeMesh());
+				picking.enabled.insert(chunk->getCellContentMesh());
+			}
 		}
 	}
 }
