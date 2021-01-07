@@ -37,6 +37,7 @@ namespace game
 {
 	world::World* wrld;
 	entt::entity sun;
+	entt::entity starlight;
 
 	DayNightCycle daynight;
 	rendering::Skybox* skybox;
@@ -49,6 +50,7 @@ namespace game
 	entt::entity freeFlightCamera;
 
 	entt::entity shadowCamera;
+	entt::entity shadowCamera1;
 
 	gui::CameraType selectedCamera;
 	gui::Tool selectedTool;
@@ -123,6 +125,10 @@ namespace game
 		registry.emplace<MatrixTransform>(sun, glm::mat4(1.f));
 		registry.emplace<DirectionalLight>(sun, glm::vec3(1), glm::vec3(2, 1, 1));
 
+		starlight = registry.create();
+		registry.emplace<MatrixTransform>(starlight, glm::mat4(1.f));
+		registry.emplace<DirectionalLight>(starlight, glm::vec3(1), glm::vec3(2, 1, 1));
+
 		shadowCamera = registry.create();
 		shadowCamParams = std::make_shared<rendering::components::OrthographicCameraParameters>(
 			100.f, 1.f, 400.f, -400.f);
@@ -130,7 +136,15 @@ namespace game
 		registry.emplace<rendering::components::Camera>(shadowCamera, shadowCamParams);
 		registry.emplace<rendering::components::CastShadow>(shadowCamera, sun);
 
-		renderingEngine->setShadowCamera(shadowCamera);
+		shadowCamera1 = registry.create();
+		auto shadowCamParams1 = std::make_shared<rendering::components::OrthographicCameraParameters>(
+			1800.f, 1.f, 1.f, -1500.f);
+		registry.emplace<rendering::components::MatrixTransform>(shadowCamera1, glm::mat4(1));
+		registry.emplace<rendering::components::Camera>(shadowCamera1, shadowCamParams1);
+		registry.emplace<rendering::components::CastShadow>(shadowCamera1, sun);
+
+
+		renderingEngine->setShadowCameras(std::vector<entt::entity>{ shadowCamera, shadowCamera1 });
 	}
 	
 	bool pressed;
@@ -171,15 +185,29 @@ namespace game
 		daynight.update(deltaTime);
 		auto sunDir = glm::normalize(daynight.getSunDirection());
 		registry.replace<rendering::components::DirectionalLight>(sun, daynight.getSunColor(), sunDir);
+		registry.replace<rendering::components::DirectionalLight>(starlight, daynight.getStarlight(), glm::vec3(0,1,0));
 
 		auto& baseTf = registry.get<rendering::components::EulerComponentwiseTransform>(cameraBase);
 		auto up = glm::cross(sunDir, glm::vec3(1,0,0));
 		auto tf = glm::inverse(glm::lookAt(100.f * sunDir + baseTf.getTranslation(), glm::vec3(0) + baseTf.getTranslation(), up));
+		// big shadow map shouldn't move with camera
+		auto tf1 = glm::inverse(glm::lookAt(700.f * sunDir, glm::vec3(0), up));
 		registry.replace<rendering::components::MatrixTransform>(shadowCamera, tf);
+		registry.replace<rendering::components::MatrixTransform>(shadowCamera1, tf1);
 
 		auto& cameraTf = registry.get<rendering::components::EulerComponentwiseTransform>(defaultCamera);
-		float width = 1.f * glm::length(cameraTf.getTranslation());
+		float width = 1.2f * glm::length(cameraTf.getTranslation());
+		width = std::min(width, 650.f);
 		shadowCamParams->setWidth(width);
+
+
+		float shadowMult = daynight.getShadows();
+		registry.patch<rendering::components::CastShadow>(shadowCamera, [shadowMult](auto& castShadow) {
+			castShadow.shadowMult = shadowMult;
+		});
+		registry.patch<rendering::components::CastShadow>(shadowCamera1, [shadowMult](auto& castShadow) {
+			castShadow.shadowMult = shadowMult;
+		});
 
 
 		auto camPointer = selectedCamera == gui::CameraType::DEFAULT ? defaultCamera : freeFlightCamera;

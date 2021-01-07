@@ -14,8 +14,8 @@ in vec3 world_normal;
 in vec3 world_pos;
 
 // Shadow mapping
-uniform sampler2D shadowMap;
-uniform mat4 T_SV;
+uniform sampler2DShadow shadowMap[2];
+uniform mat4 T_SV[2];
 
 // Camera position in world space
 uniform vec3 cameraPos;
@@ -32,15 +32,26 @@ uniform DirectionalLight[MAX_LIGHT_COUNT] directionalLights;
 // Fragment shader output
 out vec4 color;
 
-float getVisibility(vec4 worldPos) {
-	vec4 shadowPos = T_SV * worldPos;
-	float border = 1.f - smoothstep(0.9, 1.0, max(abs(shadowPos.x), max(abs(shadowPos.y), abs(shadowPos.z))));
+float getVisibility(vec4 viewPos, float cosTheta) {
+	vec4 shadowPos;
+
+	// choose between the big and small shadow map
+	vec4 shadowPos0 = T_SV[0] * viewPos;
+	float maxCoord = max(abs(shadowPos0.x), max(abs(shadowPos0.y), abs(shadowPos0.z)));
+	bool useSmallMap = maxCoord <= 1;
+	if (useSmallMap) {
+		shadowPos = shadowPos0;
+	} else {
+		shadowPos = T_SV[1] * viewPos;
+	}
 
 	shadowPos.xyz = shadowPos.xyz * vec3(.5f) + vec3(.5f);
-	float shadowDepth = texture(shadowMap, shadowPos.xy).x;
-	float shadow = shadowDepth < (shadowPos.z - SHADOW_BIAS) ? 0.f : 1.f;
+	float bias = SHADOW_BIAS * (1.f + min(2f, 0.01f * abs(viewPos.z)));// * tan(acos(cosTheta));
 
-	return border * shadow + (1.f - border);
+	float shadow = 0.f;
+	shadow += texture(shadowMap[0], vec3(shadowPos.xy, shadowPos.z - bias));
+
+	return shadow;
 }
 
 // Calculate the effect of a light on the fragment (direction must be normalized)
@@ -50,7 +61,7 @@ vec3 calcLight(vec3 intensity, float shadow, vec3 direction) {
 	vec3 reflected = reflect(-direction, world_normal);
 	float cosAlpha = max(0, dot(cameraDir, reflected));
 	
-	float visibility = shadow * getVisibility(vec4(world_pos, 1)) + (1.0 - shadow);
+	float visibility = shadow * getVisibility(vec4(world_pos, 1), cosTheta) + (1.0 - shadow);
 
 	vec3 ambient = kA;
 	vec3 diffuse = kD * cosTheta;

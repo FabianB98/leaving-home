@@ -1,6 +1,8 @@
 #include "Chunk.hpp"
 
 #define GRASS_COLOR glm::vec3(0.16863f, 0.54902f, 0.15294f)
+#define TERRAIN_SHADOW_LVL 1
+#define RESSOURCE_SHADOW_LVL 0
 
 static rendering::model::Mesh* waterMesh;
 
@@ -132,7 +134,7 @@ namespace game::world
 			);
 
 			shading.shaders.insert(std::make_pair(mesh, terrainShader));
-			shadows.castShadow.insert(mesh);
+			shadows.castShadow.insert(std::make_pair(mesh, TERRAIN_SHADOW_LVL));
 
 			cullingGeometry->extendToFitGeometry(mesh->getBoundingGeometry());
 			rendering::systems::cullingRelationship(registry, cullingEntity, landscapeEntity);
@@ -227,7 +229,7 @@ namespace game::world
 			rendering::systems::cullingRelationship(registry, cullingEntity, cellContentEntity);
 
 			auto& shadows = registry.ctx<rendering::systems::ShadowMapping>();
-			shadows.castShadow.insert(cellContentMesh);
+			shadows.castShadow.insert(std::make_pair(cellContentMesh, RESSOURCE_SHADOW_LVL));
 		}
 		else
 		{

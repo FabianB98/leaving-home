@@ -20,8 +20,9 @@ namespace rendering::systems
 
 	extern glm::mat4 viewMatrix;
 	extern glm::mat3 viewNormalMatrix;
-	extern glm::mat4 shadowMatrix;
-	extern glm::mat4 shadowWorldMatrix;
+	extern std::vector<float> shadowMultipliers;
+	extern std::vector<glm::mat4> shadowMatrices;
+	extern std::vector<glm::mat4> shadowWorldMatrices;
 
 	extern std::vector<glm::vec3> directionalIntensities;
 	extern std::vector<glm::vec3> directionalDirsWorld;
@@ -205,16 +206,24 @@ namespace rendering::systems
 	}
 
 	void renderUpdateTransforms(entt::registry& registry,
-		rendering::components::Camera& mainCamera, entt::entity shadowCamera,
+		rendering::components::Camera& mainCamera, std::vector<entt::entity> shadowCameras,
 		rendering::shading::Shader* defaultShader, bool overrideShaders)
 	{
 		viewMatrix = mainCamera.getViewMatrix();
 		auto viewInv = glm::inverse(viewMatrix);
 		viewNormalMatrix = glm::mat3(glm::transpose(viewInv));
 
-		auto& shadowCamComp = registry.get<components::Camera>(shadowCamera);
-		shadowMatrix = shadowCamComp.getViewProjectionMatrix() * viewInv;
-		shadowWorldMatrix = shadowCamComp.getViewProjectionMatrix();
+		shadowMultipliers.clear();
+		shadowMatrices.clear();
+		shadowWorldMatrices.clear();
+
+		for (unsigned int i = 0; i < shadowCameras.size(); ++i) {
+			auto& shadowComp = registry.get<components::CastShadow>(shadowCameras[i]);
+			shadowMultipliers.push_back(shadowComp.shadowMult);
+			auto& shadowCamComp = registry.get<components::Camera>(shadowCameras[i]);
+			shadowMatrices.push_back(shadowCamComp.getViewProjectionMatrix() * viewInv);
+			shadowWorldMatrices.push_back(shadowCamComp.getViewProjectionMatrix());
+		}
 
 		// Get all entities whose transformation was changed and store that their transformation was changed.
 		for (const auto entity : transformObserver) {
@@ -227,7 +236,10 @@ namespace rendering::systems
 
 		//if (pointLightObserver.size() != 0)
 		updatePointLights(registry);
-		updateDirectionalLights(registry, shadowCamera);
+
+		// get directional light that casts the shadow
+		auto& shadowComp = registry.get<components::CastShadow>(shadowCameras[0]);
+		updateDirectionalLights(registry, shadowComp.directionalLight);
 
 		transformObserver.clear();
 		transformChanged.clear();

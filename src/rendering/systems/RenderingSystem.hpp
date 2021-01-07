@@ -20,6 +20,7 @@
 #include "../components/Transform.hpp"
 #include "../components/Relationship.hpp"
 #include "../components/Lights.hpp"
+#include "../components/Shadow.hpp"
 #include "../shading/Shader.hpp"
 
 namespace rendering::systems
@@ -35,7 +36,7 @@ namespace rendering::systems
 	void cullingRelationship(entt::registry& registry, entt::entity parent, entt::entity child);
 
 	void renderUpdateTransforms(entt::registry& registry,
-		rendering::components::Camera& mainCamera, entt::entity shadowCamera,
+		rendering::components::Camera& mainCamera, std::vector<entt::entity> shadowCameras,
 		rendering::shading::Shader* defaultShader, bool overrideShaders = false);
 	void renderUpdateMVPs(entt::registry& registry, components::Camera& camera, std::function<bool(model::Mesh*)> exclude);
 
@@ -65,6 +66,6 @@ namespace rendering::systems
 
 	struct ShadowMapping
 	{
-		std::unordered_set<model::Mesh*> castShadow;
+		std::unordered_map<model::Mesh*, int> castShadow;
 	};
 }

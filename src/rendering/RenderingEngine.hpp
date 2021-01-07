@@ -25,7 +25,8 @@
 namespace rendering 
 {	
 	constexpr auto MSAA_SAMPLES = 2;
-	constexpr auto SHADOW_MAP_RES = 2048;
+	constexpr auto SHADOW_MAP_RES = 1024;
+	constexpr auto MAX_SHADOW_MAPS = 2;
 
 	class RenderingEngine;
 
@@ -116,9 +117,10 @@ namespace rendering
 			mainCamera = _mainCamera;
 		}
 
-		void setShadowCamera(entt::entity _shadowCamera)
+		void setShadowCameras(std::vector<entt::entity>& _shadowCameras)
 		{
-			shadowCamera = _shadowCamera;
+			shadowCameras.clear();
+			for (auto& camera : _shadowCameras) shadowCameras.push_back(camera);
 		}
 
 		uint32_t getPickingResult()
@@ -145,7 +147,7 @@ namespace rendering
 		entt::registry registry;
 
 		entt::entity mainCamera;
-		entt::entity shadowCamera;
+		std::vector<entt::entity> shadowCameras;
 
 		shading::LightSupportingShader* mainShader;
 		shading::Shader* pickingShader;
@@ -163,11 +165,11 @@ namespace rendering
 		bool showWireframe = false;
 		double frameTimeMillis = 0.0;
 		int lastFrameCount = 0;
-		bool ssaoBlur = false;
+		bool ssaoBlur = true;
 
 		// shadow mapping values
-		GLuint shadowBuffer;
-		GLuint shadowMap;
+		GLuint shadowBuffers[MAX_SHADOW_MAPS];
+		GLuint shadowMaps[MAX_SHADOW_MAPS];
 
 		// picking values
 		GLuint pickingFramebuffer;
