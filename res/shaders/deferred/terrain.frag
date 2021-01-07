@@ -2,7 +2,7 @@
 
 layout (location = 0) out vec3 gPosition;
 layout (location = 1) out vec3 gNormal;
-layout (location = 2) out vec3 gAmbient;
+layout (location = 2) out vec4 gAmbient;
 layout (location = 3) out vec3 gDiffuse;
 layout (location = 4) out vec4 gSpecular;
 layout (location = 5) out float gZ;
@@ -16,6 +16,7 @@ uniform mat3 T_V_Normal;
 
 // Material parameters: ambient, diffuse, specular, phong exponent
 in vec3 kA;
+in float e;
 in vec3 kD;
 in vec3 kS;
 flat in int n;
@@ -25,7 +26,7 @@ void main() {
 	gPosition = pos;
 	gNormal = T_V_Normal * world_normal;
 	gZ = pos.z;
-	gAmbient = kA;
+	gAmbient = vec4(kA, e);
 	gDiffuse = kD;
 	gSpecular = vec4(kS, float(n));
 }

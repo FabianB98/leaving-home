@@ -10,9 +10,11 @@ namespace rendering
         if (shader.getRenderPass() == shading::RenderPass::LIGHTING)
             setLightingTextureUniforms(shader);
         else if (shader.getRenderPass() == shading::RenderPass::FORWARD) {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, shadowMap);
-            shader.setUniformInt("shadowMap", 0);
+            for (unsigned int i = 0; i < MAX_SHADOW_MAPS; ++i) {
+                glActiveTexture(GL_TEXTURE0 + i);
+                glBindTexture(GL_TEXTURE_2D, shadowMaps[i]);
+                shader.setUniformInt("shadowMap[" + std::to_string(i) + "]", i);
+            }
         }
     }
 
@@ -36,9 +38,11 @@ namespace rendering
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, ssaoBlur ? ssaoBlurColor : ssaoColor);
         shader.setUniformInt("ssao", 5);
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, shadowMap);
-        shader.setUniformInt("shadowMap", 6);
+        for (unsigned int i = 0; i < MAX_SHADOW_MAPS; ++i) {
+            glActiveTexture(GL_TEXTURE6 + i);
+            glBindTexture(GL_TEXTURE_2D, shadowMaps[i]);
+            shader.setUniformInt("shadowMap[" + std::to_string(i) + "]", 6 + i);
+        }
     }
 
     void RenderingEngine::renderScreen(rendering::components::Camera& camera)
@@ -170,21 +174,28 @@ namespace rendering
         auto defaultShader = showWireframe ? wireframeShader : mainShader;
 
         auto camera = updateCamera(mainCamera, (float)width / (float)height);
-        auto shadow = updateCamera(shadowCamera, 1.f);
+        //auto shadow = updateCamera(shadowCamera, 1.f);
+        std::vector<rendering::components::Camera> shadows;
+        for (auto& cam : shadowCameras)
+            shadows.push_back(updateCamera(cam, 1.f));
 
-        systems::renderUpdateTransforms(registry, camera, shadowCamera, defaultShader, showWireframe);
-        systems::renderUpdateMVPs(registry, shadow, [this](auto* mesh) {
-            auto& castShadow = registry.ctx<systems::ShadowMapping>().castShadow;
-            return castShadow.find(mesh) == castShadow.end(); 
-        });
+        systems::renderUpdateTransforms(registry, camera, shadowCameras, defaultShader, showWireframe);
 
-        //// SHADOW PASS
-        glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer);
-        glClearColor(1.f, 1.f, 1.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glViewport(0, 0, SHADOW_MAP_RES, SHADOW_MAP_RES);
+        for (unsigned int i = 0; i < std::min(MAX_SHADOW_MAPS, (int) shadowCameras.size()); ++i) {
+            systems::renderUpdateMVPs(registry, shadows[i], [this, i](auto* mesh) {
+                auto& castShadow = registry.ctx<systems::ShadowMapping>().castShadow;
+                auto entry = castShadow.find(mesh);
+                return entry == castShadow.end() || i > entry->second;
+            });
 
-        systems::renderShadowMap(registry, shadow, shadowZShader);
+            //// SHADOW PASS
+            glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffers[i]);
+            glClearColor(1.f, 1.f, 1.f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glViewport(0, 0, SHADOW_MAP_RES, SHADOW_MAP_RES);
+
+            systems::renderShadowMap(registry, shadows[i], shadowZShader);
+        }
 
         // recalculate MVPs for main camera
         systems::renderUpdateMVPs(registry, camera, [](const auto* mesh) { return false; }); // exclude nothing
@@ -277,7 +288,7 @@ namespace rendering
         }
         else {
             //renderQuad(ssaoBlur ? ssaoBlurColor : ssaoColor);
-            renderQuad(shadowMap);
+            renderQuad(shadowMaps[0]);
 
             glDisable(GL_BLEND);
         }

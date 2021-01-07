@@ -64,6 +64,12 @@ namespace rendering::shading
 		glUniform1f(id, value);
 	}
 
+	void Shader::setUniformFloatList(const std::string name, const std::vector<float>& values)
+	{
+		for (unsigned int i = 0; i < values.size(); ++i)
+			setUniformFloat(name + "[" + std::to_string(i) + "]", values[i]);
+	}
+
 	void Shader::setUniformVec2(const std::string name, const glm::vec2& vector)
 	{
 		GLuint id = getUniformLocation(name);
@@ -98,6 +104,12 @@ namespace rendering::shading
 	{
 		GLuint id = getUniformLocation(name);
 		glUniformMatrix4fv(id, 1, GL_FALSE, &matrix[0][0]);
+	}
+
+	void Shader::setUniformMat4List(const std::string name, const std::vector<glm::mat4>& matrices)
+	{
+		for (unsigned int i = 0; i < matrices.size(); ++i)
+			setUniformMat4(name + "[" + std::to_string(i) + "]", matrices[i]);
 	}
 
 

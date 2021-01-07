@@ -12,8 +12,9 @@ namespace rendering::systems
 
 	extern glm::mat4 viewMatrix;
 	extern glm::mat3 viewNormalMatrix;
-	extern glm::mat4 shadowMatrix;
-	extern glm::mat4 shadowWorldMatrix;
+	extern std::vector<float> shadowMultipliers;
+	extern std::vector<glm::mat4> shadowMatrices;
+	extern std::vector<glm::mat4> shadowWorldMatrices;
 
 	extern std::vector<glm::vec3> directionalIntensities;
 	extern std::vector<glm::vec3> directionalDirsWorld;
@@ -30,15 +31,32 @@ namespace rendering::systems
 		}
 		else {
 			if (shader.getRenderPass() == shading::RenderPass::LIGHTING)
-				shader.setUniformMat4("T_S", shadowMatrix);
+				shader.setUniformMat4List("T_S", shadowMatrices);
 			else
-				shader.setUniformMat4("T_SV", shadowWorldMatrix);
+				shader.setUniformMat4List("T_SV", shadowWorldMatrices);
 
+			shader.setUniformFloatList("shadowMult", shadowMultipliers);
 			shader.setUniformDirectionalLights("directionalLights", 
 				directionalIntensities, directionalDirsWorld, directionalDirsView);
 		}
 
 		shaderManager->setUniforms(shader);
+	}
+
+	void renderInstances(model::Mesh* mesh, shading::Shader* shader)
+	{
+		const auto& meshInstances = meshTransforms[mesh];
+		const auto& meshModels = modelMatricesToRender[mesh];
+		size_t numInstances = meshModels.size();
+
+		if (numInstances > 0)
+		{
+			const auto& meshNormals = normalMatricesToRender[mesh];
+			const auto& meshMVPs = mvpMatricesToRender[mesh];
+
+			// Render all instances of the mesh.
+			mesh->renderInstanced(*shader, meshModels, meshNormals, meshMVPs);
+		}
 	}
 
 	void renderSelection(entt::registry& registry, std::unordered_set<model::Mesh*>& selection, rendering::components::Camera& camera, shading::Shader* shader)
@@ -49,20 +67,19 @@ namespace rendering::systems
 		camera.applyViewProjection(*shader);
 
 		for (const auto& mesh : selection)
-		{
-			const auto& meshInstances = meshTransforms[mesh];
-			const auto& meshModels = modelMatricesToRender[mesh];
-			size_t numInstances = meshModels.size();
+			renderInstances(mesh, shader);
+	}
 
-			if (numInstances > 0)
-			{
-				const auto& meshNormals = normalMatricesToRender[mesh];
-				const auto& meshMVPs = mvpMatricesToRender[mesh];
+	template<class T>
+	void renderSelection(entt::registry& registry, std::unordered_map<model::Mesh*, T>& selection, rendering::components::Camera& camera, shading::Shader* shader)
+	{
+		if (selection.size() == 0) return;
 
-				// Render all instances of the mesh.
-				mesh->renderInstanced(*shader, meshModels, meshNormals, meshMVPs);
-			}
-		}
+		shader->use();
+		camera.applyViewProjection(*shader);
+
+		for (const auto mesh : selection)
+			renderInstances(mesh.first, shader);
 	}
 
 	void renderShadowMap(entt::registry& registry, rendering::components::Camera& camera, shading::Shader* shader)

@@ -41,12 +41,14 @@ namespace rendering::shading
 
 		void setUniformInt(const std::string name, const GLint value);
 		void setUniformFloat(const std::string name, const float value);
+		void setUniformFloatList(const std::string name, const std::vector<float>& values);
 		void setUniformVec2(const std::string name, const glm::vec2& vector);
 		void setUniformVec3(const std::string name, const glm::vec3& vector);
 		void setUniformVec3List(const std::string name, const std::vector<glm::vec3>& vectors);
 		void setUniformVec4(const std::string name, const glm::vec4& vector);
 		void setUniformMat3(const std::string name, const glm::mat3& matrix);
 		void setUniformMat4(const std::string name, const glm::mat4& matrix);
+		void setUniformMat4List(const std::string name, const std::vector<glm::mat4>& matrices);
 
 		virtual void setUniformDirectionalLight(const std::string name, glm::vec3 intensity, glm::vec3 directionWorld, glm::vec3 directionView) {}
 		virtual void setUniformDirectionalLights(const std::string name, std::vector<glm::vec3> intensities, std::vector<glm::vec3> directionsWorld, std::vector<glm::vec3> directionsView) {}
