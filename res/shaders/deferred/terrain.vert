@@ -19,6 +19,7 @@ out vec3 world_normal;
 out vec3 world_pos;
 
 out vec3 kA;
+out float e;
 out vec3 kD;
 out vec3 kS;
 flat out int n;
@@ -73,7 +74,10 @@ void main() {
 	kS = specularCoeffs[cellIdAndType.y] * baseColors[cellIdAndType.y];
 	n = 10;
 
-	if ((pick & 0xffffff) == (cellID & 0xffffff))
-		kA = vec3(1, 0, 0);
+	e = 0;
+	if ((pick & 0xffffff) == (cellID & 0xffffff)) {
+		kA = vec3(0.3);
+		e = 2;
+	}
 }
 

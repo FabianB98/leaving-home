@@ -93,10 +93,13 @@ vec3 calcLight(vec3 intensity, float shadow, vec3 direction) {
 	vec3 view_pos = texelFetch(gPosition, ivec2(gl_FragCoord), gl_SampleID).xyz;
 	vec3 view_normal = texelFetch(gNormal, ivec2(gl_FragCoord), gl_SampleID).xyz;
 
-	vec3 kA = texelFetch(gAmbient, ivec2(gl_FragCoord), gl_SampleID).xyz;
+	vec4 ambientTex = texelFetch(gAmbient, ivec2(gl_FragCoord), gl_SampleID);
+	vec3 kA = ambientTex.xyz;
+	float e = ambientTex.w;
 	vec3 kD = texelFetch(gDiffuse, ivec2(gl_FragCoord), gl_SampleID).xyz;
-	vec3 kS = texelFetch(gSpecular, ivec2(gl_FragCoord), gl_SampleID).xyz;
-	float n = texelFetch(gSpecular, ivec2(gl_FragCoord), gl_SampleID).w;
+	vec4 specTex = texelFetch(gSpecular, ivec2(gl_FragCoord), gl_SampleID);
+	vec3 kS = specTex.xyz;
+	float n = specTex.w;
 
 	float cosTheta = max(0, dot(view_normal, direction));
 	vec3 cameraDir = normalize(-view_pos);
@@ -106,11 +109,12 @@ vec3 calcLight(vec3 intensity, float shadow, vec3 direction) {
 	float visibility = shadow * getVisibility(vec4(view_pos, 1), cosTheta) + (1.0 - shadow);
 	float ao = texture(ssao, uv).r;
 
+	vec3 emmisive = kA * e;
 	vec3 ambient = kA * ao;
 	vec3 diffuse = kD * cosTheta;
 	vec3 specular = kS * pow(cosAlpha, n);
 
-	return intensity * (ambient + visibility * (diffuse + specular));
+	return emmisive + intensity * (ambient + visibility * (diffuse + specular));
 }
 
 void main() {
