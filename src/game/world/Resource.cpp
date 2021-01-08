@@ -15,6 +15,9 @@ namespace game::world
 			glm::vec3(1.0f)
 		).toTransformationMatrix());
 
+		if (!getRegistry()->has<Inventory>(getEntity()))
+			getRegistry()->emplace<Inventory>(getEntity());
+
 		__addedToCell(cell);
 	}
 
@@ -33,8 +36,11 @@ namespace game::world
 			glm::vec3(1.0f)
 		).toTransformationMatrix());
 
-		getRegistry()->emplace<Wood>(getEntity(), 1.0f);
-		getRegistry()->emplace<Harvestable<Wood>>(getEntity());
+		entt::registry* registry = getRegistry();
+		entt::entity& entity = getEntity();
+
+		registry->get<Inventory>(entity).addItemTyped<Wood>(1.0f);
+		registry->emplace<Harvestable<Wood>>(entity);
 	}
 
 	void Tree::__removedFromCell(Cell* cell)

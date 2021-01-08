@@ -65,8 +65,6 @@ namespace game
 		return (double) rand() / (double) RAND_MAX;
 	}
 
-	std::shared_ptr<rendering::bounding_geometry::BoundingGeometry> a;
-
 	void Game::init(rendering::RenderingEngine* renderingEngine)
 	{
 		simple = new rendering::shading::Shader("simpleInstanced");

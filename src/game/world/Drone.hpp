@@ -17,7 +17,7 @@ namespace game::world
 	struct Drone
 	{
 		DroneGoal* goal;
-		std::vector<IItem*> carrying;
+		Inventory inventory;
 
 		static void spawnNewDrone(entt::registry& registry, const glm::vec3& position);
 	};
@@ -52,8 +52,11 @@ namespace game::world
 				return nullptr;
 
 			entt::entity contentEntity = content->getEntity();
+			IItem* item = ItemType().getFromEntity(registry, contentEntity);
+			if (item == nullptr)
+				return nullptr;
 
-			// TODO: Pickup items.
+			drone->inventory.addItem(item->split(amount));
 			
 			return new DeliveryGoal(deliveryDestination->cells.begin()->first);
 		}

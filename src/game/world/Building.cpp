@@ -146,7 +146,7 @@ namespace game::world
 					{
 						building.lastConsumed = time;
 
-						Wood* wood = registry.try_get<Wood>(entity);
+						std::shared_ptr<Wood> wood = registry.get<Inventory>(entity).getItem<Wood>();
 						bool removeBuilding = true;
 						if (wood != nullptr && wood->amount >= 1.0f)
 						{
@@ -182,6 +182,9 @@ namespace game::world
 			heightPerCell.insert(std::make_pair(cell, 1));
 
 		enqueueUpdate();
+
+		if (!getRegistry()->has<Inventory>(getEntity()))
+			getRegistry()->emplace<Inventory>(getEntity());
 
 		__addedToCell(cell);
 	}
