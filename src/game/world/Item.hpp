@@ -87,9 +87,18 @@ namespace game::world
 		{
 			auto& found = items.find(std::make_shared<T>(0.0f));
 			if (found == items.end())
+			{
 				return nullptr;
+			}
 			else
-				return std::dynamic_pointer_cast<T>((*found)->split(maxAmount));
+			{
+				std::shared_ptr<T> result = std::dynamic_pointer_cast<T>((*found)->split(maxAmount));
+
+				if ((*found)->amount == 0.0f)
+					items.erase(found);
+
+				return result;
+			}
 		}
 	};
 
@@ -99,7 +108,9 @@ namespace game::world
 
 		virtual IHarvestable* getFromEntity(entt::registry& registry, entt::entity& entity) = 0;
 
-		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IHarvestable*)> func) = 0;
+		virtual entt::entity getAny(entt::registry& registry) = 0;
+
+		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IHarvestable*)>& func) = 0;
 
 		virtual void addToEntity(entt::registry& registry, entt::entity& entity) = 0;
 
@@ -112,7 +123,9 @@ namespace game::world
 
 		virtual IStores* getFromEntity(entt::registry& registry, entt::entity& entity) = 0;
 
-		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IStores*)> func) = 0;
+		virtual entt::entity getAny(entt::registry& registry) = 0;
+
+		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IStores*)>& func) = 0;
 
 		virtual void addToEntity(entt::registry& registry, entt::entity& entity) = 0;
 
@@ -125,7 +138,9 @@ namespace game::world
 
 		virtual IProduces* getFromEntity(entt::registry& registry, entt::entity& entity) = 0;
 
-		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IProduces*)> func) = 0;
+		virtual entt::entity getAny(entt::registry& registry) = 0;
+
+		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IProduces*)>& func) = 0;
 
 		virtual void addToEntity(entt::registry& registry, entt::entity& entity) = 0;
 
@@ -138,7 +153,9 @@ namespace game::world
 
 		virtual IConsumes* getFromEntity(entt::registry& registry, entt::entity& entity) = 0;
 
-		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IConsumes*)> func) = 0;
+		virtual entt::entity getAny(entt::registry& registry) = 0;
+
+		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IConsumes*)>& func) = 0;
 
 		virtual void addToEntity(entt::registry& registry, entt::entity& entity) = 0;
 
@@ -158,7 +175,7 @@ namespace game::world
 	struct Consumes;
 
 	template<typename Base, typename Derived>
-	void _iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, Base*)> func)
+	void _iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, Base*)>& func)
 	{
 		auto view = registry.view<Derived>();
 		for (auto entity : view)
@@ -167,6 +184,16 @@ namespace game::world
 			func(entity, &item);
 		}
 	};
+
+	template<typename T>
+	entt::entity _getAny(entt::registry& registry)
+	{
+		auto view = registry.view<T>();
+		for (auto entity : view)
+			return entity;
+
+		return entt::null;
+	}
 
 	template <class T>
 	struct Item : public IItem
@@ -239,7 +266,12 @@ namespace game::world
 			return registry.try_get<Harvestable<T>>(entity);
 		}
 
-		void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IHarvestable*)> func)
+		entt::entity getAny(entt::registry& registry)
+		{
+			return _getAny<Harvestable<T>>(registry);
+		}
+
+		void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IHarvestable*)>& func)
 		{
 			_iterateAllEntities<IHarvestable, Harvestable<T>>(registry, func);
 		}
@@ -268,7 +300,12 @@ namespace game::world
 			return registry.try_get<Stores<T>>(entity);
 		}
 
-		void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IStores*)> func)
+		entt::entity getAny(entt::registry& registry)
+		{
+			return _getAny<Stores<T>>(registry);
+		}
+
+		void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IStores*)>& func)
 		{
 			_iterateAllEntities<IStores, Stores<T>>(registry, func);
 		}
@@ -297,7 +334,12 @@ namespace game::world
 			return registry.try_get<Produces<T>>(entity);
 		}
 
-		void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IProduces*)> func)
+		entt::entity getAny(entt::registry& registry)
+		{
+			return _getAny<Produces<T>>(registry);
+		}
+
+		void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IProduces*)>& func)
 		{
 			_iterateAllEntities<IProduces, Produces<T>>(registry, func);
 		}
@@ -326,7 +368,12 @@ namespace game::world
 			return registry.try_get<Consumes<T>>(entity);
 		}
 
-		void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IConsumes*)> func)
+		entt::entity getAny(entt::registry& registry)
+		{
+			return _getAny<Consumes<T>>(registry);
+		}
+
+		void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IConsumes*)>& func)
 		{
 			_iterateAllEntities<IConsumes, Consumes<T>>(registry, func);
 		}

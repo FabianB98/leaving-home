@@ -15,9 +15,6 @@ namespace game::world
 			glm::vec3(1.0f)
 		).toTransformationMatrix());
 
-		if (!getRegistry()->has<Inventory>(getEntity()))
-			getRegistry()->emplace<Inventory>(getEntity());
-
 		__addedToCell(cell);
 	}
 

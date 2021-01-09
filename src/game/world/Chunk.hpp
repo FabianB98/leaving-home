@@ -503,6 +503,11 @@ namespace game::world
 		friend class World;
 	};
 
+	struct CellContentComponent
+	{
+		CellContent* cellContent;
+	};
+
 	struct CellContentUpdate
 	{
 		CellContent* cellContent;

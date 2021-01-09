@@ -183,9 +183,6 @@ namespace game::world
 
 		enqueueUpdate();
 
-		if (!getRegistry()->has<Inventory>(getEntity()))
-			getRegistry()->emplace<Inventory>(getEntity());
-
 		__addedToCell(cell);
 	}
 

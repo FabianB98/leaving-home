@@ -1158,6 +1158,9 @@ namespace game::world
 		{
 			registry = &cell->getChunk()->getRegistry();
 			entity = registry->create();
+
+			registry->emplace<CellContentComponent>(entity, this);
+			registry->emplace<Inventory>(entity);
 		}
 
 		_addedToCell(cell);

@@ -16,7 +16,7 @@ namespace game::world
 
 	struct Drone
 	{
-		DroneGoal* goal;
+		DroneGoal* goal{ nullptr };
 		Inventory inventory;
 
 		static void spawnNewDrone(entt::registry& registry, const glm::vec3& position);
@@ -26,17 +26,23 @@ namespace game::world
 	{
 		Cell* destination;
 
-		virtual DroneGoal* destinationReached(entt::registry& registry, Drone* drone) = 0;
+		DroneGoal(Cell* _destination) : destination(_destination) {}
+
+		virtual DroneGoal* destinationReached(entt::registry& registry, Drone& drone) = 0;
 	};
 
 	struct MoveToGoal : public DroneGoal
 	{
-		DroneGoal* destinationReached(entt::registry& registry, Drone* drone);
+		MoveToGoal(Cell* _destination) : DroneGoal(_destination) {}
+
+		DroneGoal* destinationReached(entt::registry& registry, Drone& drone);
 	};
 
 	struct HarvestGoal : public DroneGoal
 	{
-		DroneGoal* destinationReached(entt::registry& registry, Drone* drone);
+		HarvestGoal(Cell* _destination) : DroneGoal(_destination) {}
+
+		DroneGoal* destinationReached(entt::registry& registry, Drone& drone);
 	};
 
 	template <class ItemType>
@@ -45,7 +51,10 @@ namespace game::world
 		CellContent* deliveryDestination;
 		unsigned int amount;
 
-		DroneGoal* destinationReached(entt::registry& registry, Drone* drone)
+		PickupAndDeliveryGoal(Cell* _destination, Cell* _deliveryDestination, unsigned int _amount) 
+			: DroneGoal(_destination), deliveryDestination(_deliveryDestination), amount(_amount) {}
+
+		DroneGoal* destinationReached(entt::registry& registry, Drone& drone)
 		{
 			CellContent* content = destination->getContent();
 			if (content == nullptr || deliveryDestination->cells.empty())
@@ -56,7 +65,7 @@ namespace game::world
 			if (item == nullptr)
 				return nullptr;
 
-			drone->inventory.addItem(item->split(amount));
+			drone.inventory.addItem(item->split(amount));
 			
 			return new DeliveryGoal(deliveryDestination->cells.begin()->first);
 		}
@@ -64,6 +73,8 @@ namespace game::world
 
 	struct DeliveryGoal : public DroneGoal
 	{
-		DroneGoal* destinationReached(entt::registry& registry, Drone* drone);
+		DeliveryGoal(Cell* _destination) : DroneGoal(_destination) {}
+
+		DroneGoal* destinationReached(entt::registry& registry, Drone& drone);
 	};
 }
