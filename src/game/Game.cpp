@@ -65,8 +65,6 @@ namespace game
 		return (double) rand() / (double) RAND_MAX;
 	}
 
-	std::shared_ptr<rendering::bounding_geometry::BoundingGeometry> a;
-
 	void Game::init(rendering::RenderingEngine* renderingEngine)
 	{
 		simple = new rendering::shading::Shader("simpleInstanced");
@@ -93,6 +91,11 @@ namespace game
 		for (int column = 1; column <= worldSize; column++)
 			for (int row = -worldSize; row <= worldSize - column; row++)
 				wrld->generateChunk(row, column);
+
+		world::Drone::spawnNewDrone(registry, glm::vec3(0.0f, 0.0f, 0.0f));
+		registry.view<world::Drone>().each([](auto entity, auto& drone) {
+			drone.inventory.addItemTyped<world::Wood>(10.0f);
+		});
 
 		float width = renderingEngine->getFramebufferWidth();
 		float height = renderingEngine->getFramebufferHeight();
@@ -183,7 +186,7 @@ namespace game
 
 		auto& registry = renderingEngine->getRegistry();
 
-		systems::updateResourceProcessingSystem(registry, deltaTime);
+		systems::updateResourceProcessingSystem(registry, deltaTime, wrld->getHeightGenerator());
 
 		daynight.update(deltaTime);
 		auto sunDir = glm::normalize(daynight.getSunDirection());

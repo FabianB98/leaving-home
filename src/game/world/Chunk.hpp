@@ -23,6 +23,7 @@
 #include "Constants.hpp"
 #include "PlanarGraph.hpp"
 #include "HeightGenerator.hpp"
+#include "Item.hpp"
 
 namespace game::world 
 {
@@ -458,6 +459,16 @@ namespace game::world
 			return multiCellPlaceable;
 		}
 
+		entt::registry* getRegistry()
+		{
+			return registry;
+		}
+
+		entt::entity& getEntity()
+		{
+			return entity;
+		}
+
 	protected:
 		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
 
@@ -481,16 +492,6 @@ namespace game::world
 			const rendering::components::MatrixTransform& transform
 		);
 
-		entt::registry* getRegistry()
-		{
-			return registry;
-		}
-
-		entt::entity& getEntity()
-		{
-			return entity;
-		}
-
 	private:
 		std::unordered_map<Cell*, CellContentCellData> cells;
 		const bool multiCellPlaceable;
@@ -500,6 +501,11 @@ namespace game::world
 
 		friend Cell;
 		friend class World;
+	};
+
+	struct CellContentComponent
+	{
+		CellContent* cellContent;
 	};
 
 	struct CellContentUpdate
