@@ -14,7 +14,11 @@ namespace game::world
 	public:
 		ResourceGenerator(Chunk* _chunk) : chunk(_chunk) {}
 
-		void generateResources();
+		void generateResources(
+			unsigned int density,
+			std::function<bool(Cell*)> eligible,
+			std::function<world::Resource*()> create
+		);
 
 	private:
 		Chunk* chunk;

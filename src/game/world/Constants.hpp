@@ -29,6 +29,7 @@ namespace game::world
 	// Constants related to the generation of resources.
 	constexpr bool GENERATE_RESOURCES = true;
 	constexpr int TREE_DENSITY = 1;
+	constexpr int ROCK_DENSITY = 4;
 
 	// Constants related to the generation of buildings.
 	constexpr float BUILDING_FLOOR_HEIGHT = 4.0f;

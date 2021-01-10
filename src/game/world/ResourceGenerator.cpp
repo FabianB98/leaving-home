@@ -2,8 +2,11 @@
 
 namespace game::world
 {
-	void ResourceGenerator::generateResources()
-	{
+	void ResourceGenerator::generateResources(
+		unsigned int density, 
+		std::function<bool(Cell*)> eligible, 
+		std::function<world::Resource*()> create
+	) {
 		// Determine all cells for which we need to generate the resources for. A cell of the current chunk is eligible
 		// for being populated by some resource if it and all of its neighboring cells are relaxed and if it is not yet
 		// populated with something.
@@ -19,8 +22,7 @@ namespace game::world
 				}
 
 			bool eligibleForResources = cell->isRelaxed() && allNeighborsRelaxed && cell->getContent() == nullptr;
-			bool eligibleForTree = cell->getHeight() > WATER_HEIGHT && cell->getCellType() == CellType::GRASS;
-			if (eligibleForResources && eligibleForTree)
+			if (eligibleForResources && eligible(cell))
 				cellsToGenerateResourcesFor.insert(cell);
 		}
 
@@ -28,7 +30,7 @@ namespace game::world
 		// TREE_DENSITY moves.
 		std::unordered_set<Cell*> cellsToCalculateNoiseFor;
 		for (Cell* cell : cellsToGenerateResourcesFor)
-			getCellsWithinDistance(cell, TREE_DENSITY, cellsToCalculateNoiseFor);
+			getCellsWithinDistance(cell, density, cellsToCalculateNoiseFor);
 
 		std::unordered_map<Cell*, float> noiseMap;
 		for (Cell* cell : cellsToCalculateNoiseFor)
@@ -38,7 +40,7 @@ namespace game::world
 		for (Cell* cell : cellsToGenerateResourcesFor)
 		{
 			std::unordered_set<Cell*> cellsWithinDistance;
-			getCellsWithinDistance(cell, TREE_DENSITY, cellsWithinDistance);
+			getCellsWithinDistance(cell, density, cellsWithinDistance);
 
 			float max = 0;
 			for (Cell* cell : cellsWithinDistance)
@@ -49,7 +51,7 @@ namespace game::world
 			}
 
 			if (noiseMap[cell] == max && cell->getContent() == nullptr)
-				cell->setContent(new world::Tree());
+				cell->setContent(create());
 		}
 	}
 

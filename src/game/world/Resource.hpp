@@ -50,4 +50,22 @@ namespace game::world
 
 		void update();
 	};
+
+	class Rock : public Resource
+	{
+	public:
+		Rock();
+
+	protected:
+		CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy)
+		{
+			return new Rock();
+		}
+
+		void __addedToCell(Cell* cell);
+
+		void __removedFromCell(Cell* cell);
+
+		void update();
+	};
 }

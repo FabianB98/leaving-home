@@ -288,7 +288,7 @@ namespace rendering
         }
         else {
             //renderQuad(ssaoBlur ? ssaoBlurColor : ssaoColor);
-            renderQuad(shadowMaps[0]);
+            renderQuad(pickingColorbuffer);
 
             glDisable(GL_BLEND);
         }
