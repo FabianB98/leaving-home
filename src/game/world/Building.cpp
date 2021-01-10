@@ -133,13 +133,20 @@ namespace game::world
 		double lastConsumed;
 	};
 
+	struct OtherTestBuildingComponent
+	{
+		OtherTestBuildingComponent(OtherTestBuilding* _building) : building(_building), lastProduced(glfwGetTime()) {}
+
+		OtherTestBuilding* building;
+		double lastProduced;
+	};
+
 	static class : public game::systems::IResourceProcessor {
 		void processResources(entt::registry& registry, double deltaTime)
 		{
 			double time = glfwGetTime();
 
-			auto view = registry.view<TestBuildingComponent>();
-			for (auto& entity : view)
+			for (auto& entity : registry.view<TestBuildingComponent>())
 			{
 				registry.patch<TestBuildingComponent>(entity, [&registry, entity, time](auto& building) {
 					if (time - building.lastConsumed > 5.0f)
@@ -156,6 +163,18 @@ namespace game::world
 
 						if (removeBuilding)
 							building.building->getCells().begin()->first->setContent(nullptr);
+					}
+				});
+			}
+
+			for (auto& entity : registry.view<OtherTestBuildingComponent>())
+			{
+				registry.patch<OtherTestBuildingComponent>(entity, [&registry, entity, time](auto& building) {
+					if (time - building.lastProduced > 5.0f)
+					{
+						building.lastProduced = time;
+
+						registry.get<Inventory>(entity).addItemTyped<Wood>(1.0f);
 					}
 				});
 			}
@@ -478,6 +497,30 @@ namespace game::world
 	}
 
 	void TestBuilding::__removedFromCell(Cell* cell)
+	{
+		// Nothing to do here...
+	}
+
+	OtherTestBuilding::OtherTestBuilding() : Building(testBuildingPieceSet)
+	{
+		game::systems::attachRessourceProcessor(&testBuildingResourceProcessor);
+	}
+
+	OtherTestBuilding::OtherTestBuilding(
+		Building* original,
+		std::unordered_set<Cell*> cellsToCopy
+	) : Building(testBuildingPieceSet, original, cellsToCopy) {}
+
+	void OtherTestBuilding::__addedToCell(Cell* cell)
+	{
+		if (!getRegistry()->has<OtherTestBuildingComponent>(getEntity()))
+		{
+			getRegistry()->emplace<OtherTestBuildingComponent>(getEntity(), this);
+			getRegistry()->emplace<Produces<Wood>>(getEntity());
+		}
+	}
+
+	void OtherTestBuilding::__removedFromCell(Cell* cell)
 	{
 		// Nothing to do here...
 	}

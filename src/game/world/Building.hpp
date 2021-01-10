@@ -393,4 +393,24 @@ namespace game::world
 
 		void __removedFromCell(Cell* cell);
 	};
+
+	class OtherTestBuilding : public Building
+	{
+	public:
+		OtherTestBuilding();
+
+		virtual ~OtherTestBuilding() {}
+
+	protected:
+		OtherTestBuilding(Building* original, std::unordered_set<Cell*> cellsToCopy);
+
+		CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy)
+		{
+			return new OtherTestBuilding(this, cellsToCopy);
+		}
+
+		void __addedToCell(Cell* cell);
+
+		void __removedFromCell(Cell* cell);
+	};
 }
