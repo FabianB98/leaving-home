@@ -62,6 +62,8 @@ float getVisibility(vec4 viewPos, float cosTheta) {
 	ivec2 screenPos = ivec2(gl_FragCoord);
 	float random = (3 * screenPos.x ^ screenPos.y + screenPos.x * screenPos.y) * 10;
 	float screenRadius = max(-0.4f / viewPos.z, 0.0025f);
+	if (!useSmallMap)
+		screenRadius = max(-0.001f / viewPos.z, 0.0001f);
 
 	shadowPos.xyz = shadowPos.xyz * vec3(.5f) + vec3(.5f);
 	float bias = BIAS[useSmallMap ? 0 : 1] * (1.f + min(2f, 0.01f * abs(viewPos.z)));// * tan(acos(cosTheta));

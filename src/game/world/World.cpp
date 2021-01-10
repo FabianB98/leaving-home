@@ -233,7 +233,18 @@ namespace game::world
 			if (GENERATE_RESOURCES)
 			{
 				ResourceGenerator resourceGenerator = ResourceGenerator(nextChunkToAdd);
-				resourceGenerator.generateResources();
+				// generate trees
+				resourceGenerator.generateResources(TREE_DENSITY, 
+					[](auto* cell) {
+						return cell->getHeight() > WATER_HEIGHT && cell->getCellType() == CellType::GRASS;
+					}, 
+					[]() { return new Tree(); });
+				// generate rocks
+				resourceGenerator.generateResources(ROCK_DENSITY,
+					[](auto* cell) {
+						return cell->getHeight() > WATER_HEIGHT && cell->getCellType() == CellType::STONE;
+					},
+					[]() { return new Rock(); });
 			}
 		}
 

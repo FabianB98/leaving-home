@@ -76,7 +76,7 @@ void main() {
 
 	e = 0;
 	if ((pick & 0xffffff) == (cellID & 0xffffff)) {
-		kA = vec3(0.3);
+		kA = vec3(0.1,0.1,0.3);
 		e = 2;
 	}
 }

@@ -69,6 +69,17 @@ namespace gui
 		ImGui::PopStyleColor(3);
 
 		ImGui::End();
+
+
+		// building selection
+		if (*selected == Tool::BUILD) {
+			ImGui::Begin("Building", &open, flags);
+			ImGui::SetWindowPos("Building", ImVec2(2.f * tsMargin + width, frameHeight - tsMargin - height));
+			width = 3 * tsIconSize + 4 * tsSpacing;
+			ImGui::SetWindowSize("Building", ImVec2(width, height));
+
+			ImGui::End();
+		}
 	}
 
 	void cleanUpToolSelection()
