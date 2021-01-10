@@ -6,6 +6,7 @@ namespace game::world
 	std::uniform_real_distribution<float> randomFloat(0.0f, 1.0f);
 
 	static std::shared_ptr<rendering::model::MeshData> treeMeshData = std::make_shared<rendering::model::MeshData>("tree");
+	static std::shared_ptr<rendering::model::MeshData> treeMeshData2 = std::make_shared<rendering::model::MeshData>("tree2");
 	static std::shared_ptr<rendering::model::MeshData> stoneMeshData = std::make_shared<rendering::model::MeshData>("stone");
 
 	void Resource::_addedToCell(Cell* cell)
@@ -24,14 +25,14 @@ namespace game::world
 		__removedFromCell(cell);
 	}
 
-	Tree::Tree() : Resource(treeMeshData) {}
+	Tree::Tree() : Resource(randomFloat(generator) > 0.5f ? treeMeshData : treeMeshData2) {}
 
 	void Tree::__addedToCell(Cell* cell)
 	{
 		setTransform(cell, rendering::components::EulerComponentwiseTransform(
 			cell->getRelaxedPositionAndHeight(),
 			2.0f * M_PI * randomFloat(generator), 0.0f, 0.0f,
-			glm::vec3(1.0f)
+			glm::vec3(0.8f + 0.3f * randomFloat(generator))
 		).toTransformationMatrix());
 
 		entt::registry* registry = getRegistry();
