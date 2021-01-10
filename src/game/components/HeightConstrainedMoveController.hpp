@@ -13,7 +13,7 @@ namespace game::components
 			: HeightConstrainedMoveController(GLFW_MOUSE_BUTTON_RIGHT, _mouseSensitivity) {}
 
 		HeightConstrainedMoveController(int _mouseButtonCode)
-			: HeightConstrainedMoveController(_mouseButtonCode, 1.0f) {}
+			: HeightConstrainedMoveController(_mouseButtonCode, 0.2f) {}
 
 		HeightConstrainedMoveController(int _mouseButtonCode, float _mouseSensitivity) 
 			: mouseButtonCode(_mouseButtonCode), mouseSensitivity(_mouseSensitivity) {}

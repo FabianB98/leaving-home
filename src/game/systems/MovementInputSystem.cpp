@@ -65,10 +65,10 @@ namespace game::systems
 	}
 
 	void updateHeightConstrainedMoveControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry, 
-		double deltaTime, world::HeightGenerator& heightGenerator)
+		world::HeightGenerator& heightGenerator)
 	{
 		auto movementView = registry.view<EulerComponentwiseTransform, HeightConstrainedMoveController>();
-		movementView.each([renderingEngine, &registry, deltaTime, &heightGenerator](auto entity, auto& transform, auto& controller) {
+		movementView.each([renderingEngine, &registry, &heightGenerator](auto entity, auto& transform, auto& controller) {
 			int mouseButtonCode = controller.getMouseButtonCode();
 			bool shouldMove = mouseButtonCode < 0 || renderingEngine->isMouseButtonPressed(mouseButtonCode);
 			bool mouseLocked = renderingEngine->isMouseCursorLockedToCenter();
@@ -86,7 +86,7 @@ namespace game::systems
 					glm::vec3 right = glm::vec3(cosYaw, 0, -sinYaw);
 
 					glm::vec2 mouseDelta = renderingEngine->getMouseDelta();
-					glm::vec2 movementDelta = mouseDelta * glm::vec2(deltaTime * controller.getMouseSensitivity());
+					glm::vec2 movementDelta = mouseDelta * glm::vec2(controller.getMouseSensitivity());
 
 					registry.patch<EulerComponentwiseTransform>(entity, [movementDelta, forward, right, &heightGenerator](auto& transform)
 					{
@@ -128,11 +128,11 @@ namespace game::systems
 		});
 	}
 
-	void updateAxisConstrainedMoveControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry, double deltaTime)
+	void updateAxisConstrainedMoveControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry)
 	{
 		auto movementView = registry.view<EulerComponentwiseTransform, AxisConstrainedMoveController>();
-		movementView.each([renderingEngine, &registry, deltaTime](auto entity, auto& transform, auto& controller) {
-			float movementAlongAxis = deltaTime * controller.getMouseWheelSensitivity() * renderingEngine->getScrollDelta().y;
+		movementView.each([renderingEngine, &registry](auto entity, auto& transform, auto& controller) {
+			float movementAlongAxis = controller.getMouseWheelSensitivity() * renderingEngine->getScrollDelta().y;
 
 			if (movementAlongAxis != 0.0f)
 			{
@@ -162,11 +162,10 @@ namespace game::systems
 		});
 	}
 
-	void updateFirstPersonRotateControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry,
-		double deltaTime)
+	void updateFirstPersonRotateControllers(rendering::RenderingEngine* renderingEngine, entt::registry& registry)
 	{
 		auto rotateView = registry.view<EulerComponentwiseTransform, FirstPersonRotateController>();
-		rotateView.each([renderingEngine, &registry, deltaTime](auto entity, auto& transform, auto& controller) {
+		rotateView.each([renderingEngine, &registry](auto entity, auto& transform, auto& controller) {
 			int mouseButtonCode = controller.getMouseButtonCode();
 			bool shouldRotate = mouseButtonCode < 0 || renderingEngine->isMouseButtonPressed(mouseButtonCode);
 			bool mouseLocked = renderingEngine->isMouseCursorLockedToCenter();
@@ -180,7 +179,7 @@ namespace game::systems
 					float maxPitch = controller.getMaxPitch();
 
 					glm::vec2 mouseDelta = renderingEngine->getMouseDelta();
-					glm::vec2 movementDelta = mouseDelta * glm::vec2(deltaTime * controller.getMouseSensitivity());
+					glm::vec2 movementDelta = mouseDelta * glm::vec2(controller.getMouseSensitivity());
 
 					registry.patch<EulerComponentwiseTransform>(entity, [movementDelta, minPitch, maxPitch](auto& transform)
 					{
@@ -206,9 +205,9 @@ namespace game::systems
 		unlockMouse = true;
 
 		updateFreeFlyingMoveControllers(renderingEngine, registry, deltaTime);
-		updateHeightConstrainedMoveControllers(renderingEngine, registry, deltaTime, heightGenerator);
-		updateAxisConstrainedMoveControllers(renderingEngine, registry, deltaTime);
-		updateFirstPersonRotateControllers(renderingEngine, registry, deltaTime);
+		updateHeightConstrainedMoveControllers(renderingEngine, registry, heightGenerator);
+		updateAxisConstrainedMoveControllers(renderingEngine, registry);
+		updateFirstPersonRotateControllers(renderingEngine, registry);
 
 		if (lockMouse)
 		{

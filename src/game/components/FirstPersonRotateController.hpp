@@ -7,9 +7,9 @@ namespace game::components
 	class FirstPersonRotateController
 	{
 	public:
-		FirstPersonRotateController() : FirstPersonRotateController(0.2f) {}
+		FirstPersonRotateController() : FirstPersonRotateController(0.005f) {}
 
-		FirstPersonRotateController(int _mouseButtonCode) : FirstPersonRotateController(_mouseButtonCode, 0.2f) {}
+		FirstPersonRotateController(int _mouseButtonCode) : FirstPersonRotateController(_mouseButtonCode, 0.005f) {}
 
 		FirstPersonRotateController(float _mouseSensitivity) 
 			: FirstPersonRotateController(-1, _mouseSensitivity) {}
