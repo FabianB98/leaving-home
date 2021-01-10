@@ -19,9 +19,15 @@ namespace gui
 		REMOVE
 	};
 
+	enum class Building
+	{
+		TEST_BUILDING,
+		OTHER_TEST_BUILDING
+	};
+
 	void initToolSelection();
 
-	void renderToolSelection(Tool* selected, float frameHeight);
+	void renderToolSelection(Tool* selected, Building* selectedBuilding, float frameHeight);
 
 	void cleanUpToolSelection();
 }

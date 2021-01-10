@@ -55,6 +55,7 @@ namespace game
 
 	gui::CameraType selectedCamera;
 	gui::Tool selectedTool;
+	gui::Building selectedBuilding;
 
 	rendering::model::Mesh* tree;
 
@@ -76,6 +77,7 @@ namespace game
 		skybox = new rendering::Skybox("skybox", "skybox");
 
 		selectedTool = gui::Tool::BUILD;
+		selectedBuilding = gui::Building::TEST_BUILDING;
 
 		renderingEngine->setClearColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.0f));
 
@@ -150,6 +152,14 @@ namespace game
 
 		renderingEngine->setShadowCameras(std::vector<entt::entity>{ shadowCamera, shadowCamera1 });
 	}
+
+	void placeBuilding(world::Cell* cell, gui::Building toPlace)
+	{
+		if (toPlace == gui::Building::TEST_BUILDING)
+			cell->placeBuilding<world::TestBuilding>();
+		else if (toPlace == gui::Building::OTHER_TEST_BUILDING)
+			cell->placeBuilding<world::OtherTestBuilding>();
+	}
 	
 	bool pressed;
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)
@@ -170,7 +180,7 @@ namespace game
 				if (selectedTool == gui::Tool::VIEW)
 					gui::openCellInfo(renderingEngine->getMousePosition(), renderingEngine->getFramebufferSize(), selected);
 				else if (selectedTool == gui::Tool::BUILD && selected != nullptr)
-					selected->placeBuilding<world::TestBuilding>();
+					placeBuilding(selected, selectedBuilding);
 				else if (selectedTool == gui::Tool::REMOVE && selected != nullptr)
 					selected->setContent(nullptr);
 			}
@@ -262,7 +272,7 @@ namespace game
 
 		gui::renderCellInfo();
 		gui::renderDebugWindow(daynight, &selectedCamera);
-		gui::renderToolSelection(&selectedTool, renderingEngine->getFramebufferHeight());
+		gui::renderToolSelection(&selectedTool, &selectedBuilding, renderingEngine->getFramebufferHeight());
 
 	}
 
