@@ -1,167 +1,12 @@
 #pragma once
 
-#include <functional>
-#include <typeindex>
 #include <unordered_set>
 
-#include <entt/entt.hpp>
+#include "../systems/ResourceProcessingSystem.hpp"
+#include "Inventory.hpp"
 
 namespace game::world
 {
-	struct IHarvestable;
-	struct IStores;
-	struct IProduces;
-	struct IConsumes;
-
-	struct IItem
-	{
-		float amount;
-
-		IItem(float _amount) : amount(_amount) {}
-
-		virtual std::shared_ptr<IItem> split(float amountToSplit) = 0;
-
-		virtual std::shared_ptr<IHarvestable> getHarvestable() = 0;
-
-		virtual std::shared_ptr<IStores> getStores() = 0;
-
-		virtual std::shared_ptr<IProduces> getProduces() = 0;
-
-		virtual std::shared_ptr<IConsumes> getConsumes() = 0;
-
-		virtual size_t getTypeHashCode() const = 0;
-
-		virtual std::type_index getTypeIndex() const = 0;
-	};
-
-	struct IItemHash
-	{
-		size_t operator() (const std::shared_ptr<IItem> item) const
-		{
-			return item->getTypeHashCode();
-		}
-	};
-
-	struct IItemComparator
-	{
-		bool operator() (const std::shared_ptr<IItem> a, const std::shared_ptr<IItem> b) const
-		{
-			return a->getTypeIndex() == b->getTypeIndex();
-		}
-	};
-
-	struct Inventory
-	{
-		std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator> items;
-
-		void addItem(std::shared_ptr<IItem> item)
-		{
-			if (item == nullptr)
-				return;
-
-			auto& found = items.find(item);
-			if (found == items.end())
-				items.insert(item);
-			else
-				(*found)->amount += item->amount;
-		}
-
-		template <class T>
-		void addItemTyped(float amount)
-		{
-			addItem(std::make_shared<T>(amount));
-		}
-
-		template <class T>
-		std::shared_ptr<T> getItem()
-		{
-			auto& found = items.find(std::make_shared<T>(0.0f));
-			if (found == items.end())
-				return nullptr;
-			else
-				return std::dynamic_pointer_cast<T>(*found);
-		}
-
-		template <class T>
-		std::shared_ptr<T> removeItem(float maxAmount)
-		{
-			auto& found = items.find(std::make_shared<T>(0.0f));
-			if (found == items.end())
-			{
-				return nullptr;
-			}
-			else
-			{
-				std::shared_ptr<T> result = std::dynamic_pointer_cast<T>((*found)->split(maxAmount));
-
-				if ((*found)->amount == 0.0f)
-					items.erase(found);
-
-				return result;
-			}
-		}
-	};
-
-	struct IHarvestable 
-	{
-		virtual std::shared_ptr<IItem> getItem() = 0;
-
-		virtual IHarvestable* getFromEntity(entt::registry& registry, entt::entity& entity) = 0;
-
-		virtual entt::entity getAny(entt::registry& registry) = 0;
-
-		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IHarvestable*)>& func) = 0;
-
-		virtual void addToEntity(entt::registry& registry, entt::entity& entity) = 0;
-
-		virtual void removeFromEntity(entt::registry& registry, entt::entity& entity) = 0;
-	};
-
-	struct IStores
-	{
-		virtual std::shared_ptr<IItem> getItem() = 0;
-
-		virtual IStores* getFromEntity(entt::registry& registry, entt::entity& entity) = 0;
-
-		virtual entt::entity getAny(entt::registry& registry) = 0;
-
-		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IStores*)>& func) = 0;
-
-		virtual void addToEntity(entt::registry& registry, entt::entity& entity) = 0;
-
-		virtual void removeFromEntity(entt::registry& registry, entt::entity& entity) = 0;
-	};
-
-	struct IProduces
-	{
-		virtual std::shared_ptr<IItem> getItem() = 0;
-
-		virtual IProduces* getFromEntity(entt::registry& registry, entt::entity& entity) = 0;
-
-		virtual entt::entity getAny(entt::registry& registry) = 0;
-
-		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IProduces*)>& func) = 0;
-
-		virtual void addToEntity(entt::registry& registry, entt::entity& entity) = 0;
-
-		virtual void removeFromEntity(entt::registry& registry, entt::entity& entity) = 0;
-	};
-
-	struct IConsumes
-	{
-		virtual std::shared_ptr<IItem> getItem() = 0;
-
-		virtual IConsumes* getFromEntity(entt::registry& registry, entt::entity& entity) = 0;
-
-		virtual entt::entity getAny(entt::registry& registry) = 0;
-
-		virtual void iterateAllEntities(entt::registry& registry, std::function<void(entt::entity&, IConsumes*)>& func) = 0;
-
-		virtual void addToEntity(entt::registry& registry, entt::entity& entity) = 0;
-
-		virtual void removeFromEntity(entt::registry& registry, entt::entity& entity) = 0;
-	};
-
 	template <class T>
 	struct Harvestable;
 
@@ -198,7 +43,13 @@ namespace game::world
 	template <class T>
 	struct Item : public IItem
 	{
-		Item(float _amount) : IItem(_amount) {}
+	public:
+		Item() : IItem(0.0f) {}
+
+		Item(float _amount) : IItem(_amount) 
+		{
+			systems::registerItemType(typeRepresentative);
+		}
 
 		std::shared_ptr<IItem> split(float amountToSplit)
 		{
@@ -217,29 +68,24 @@ namespace game::world
 			return std::make_shared<T>(resultAmount);
 		}
 
-		std::shared_ptr<IHarvestable> getHarvestable()
+		IHarvestable* getHarvestable()
 		{
-			return std::make_shared<Harvestable<T>>();
+			return &harvestable;
 		}
 
-		std::shared_ptr<IStores> getStores()
+		IStores* getStores()
 		{
-			return std::make_shared<Stores<T>>();
+			return &stores;
 		}
 
-		std::shared_ptr<IProduces> getProduces()
+		IProduces* getProduces()
 		{
-			return std::make_shared<Produces<T>>();
+			return &produces;
 		}
 
-		std::shared_ptr<IConsumes> getConsumes()
+		IConsumes* getConsumes()
 		{
-			return std::make_shared<Consumes<T>>();
-		}
-
-		std::type_info getTypeid() const
-		{
-			return typeid(T);
+			return &consumes;
 		}
 
 		size_t getTypeHashCode() const
@@ -251,7 +97,29 @@ namespace game::world
 		{
 			return std::type_index(typeid(T));
 		}
+
+	private:
+		static std::shared_ptr<T> typeRepresentative;
+		static Harvestable<T> harvestable;
+		static Stores<T> stores;
+		static Produces<T> produces;
+		static Consumes<T> consumes;
 	};
+
+	template <class T>
+	std::shared_ptr<T> Item<T>::typeRepresentative = std::make_shared<T>();
+
+	template <class T>
+	Harvestable<T> Item<T>::harvestable = Harvestable<T>();
+
+	template <class T>
+	Stores<T> Item<T>::stores = Stores<T>();
+
+	template <class T>
+	Produces<T> Item<T>::produces = Produces<T>();
+
+	template <class T>
+	Consumes<T> Item<T>::consumes = Consumes<T>();
 
 	template <class T>
 	struct Harvestable : public IHarvestable
@@ -391,6 +259,8 @@ namespace game::world
 
 	struct Wood : public Item<Wood> 
 	{
+		Wood() : Item() {}
+
 		Wood(float _amount) : Item(_amount) {}
 	};
 }

@@ -146,7 +146,7 @@ namespace game::world
 					{
 						building.lastConsumed = time;
 
-						std::shared_ptr<Wood> wood = registry.get<Inventory>(entity).getItem<Wood>();
+						std::shared_ptr<Wood> wood = registry.get<Inventory>(entity).getItemTyped<Wood>();
 						bool removeBuilding = true;
 						if (wood != nullptr && wood->amount >= 1.0f)
 						{

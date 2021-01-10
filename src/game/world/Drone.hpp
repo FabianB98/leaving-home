@@ -8,7 +8,7 @@
 #include "../../rendering/bounding_geometry/Sphere.hpp"
 #include "../../rendering/model/Mesh.hpp"
 #include "Chunk.hpp"
-#include "Item.hpp"
+#include "Inventory.hpp"
 
 namespace game::world
 {
@@ -45,30 +45,20 @@ namespace game::world
 		DroneGoal* destinationReached(entt::registry& registry, Drone& drone);
 	};
 
-	template <class ItemType>
 	struct PickupAndDeliveryGoal : public DroneGoal
 	{
-		CellContent* deliveryDestination;
-		unsigned int amount;
+		Cell* deliveryDestination;
+		std::shared_ptr<world::IItem> itemType;
+		float amount;
 
-		PickupAndDeliveryGoal(Cell* _destination, Cell* _deliveryDestination, unsigned int _amount) 
-			: DroneGoal(_destination), deliveryDestination(_deliveryDestination), amount(_amount) {}
+		PickupAndDeliveryGoal(
+			Cell* _destination,
+			Cell* _deliveryDestination,
+			std::shared_ptr<world::IItem> _itemType,
+			float _amount
+		) : DroneGoal(_destination), deliveryDestination(_deliveryDestination), itemType(_itemType), amount(_amount) {}
 
-		DroneGoal* destinationReached(entt::registry& registry, Drone& drone)
-		{
-			CellContent* content = destination->getContent();
-			if (content == nullptr || deliveryDestination->cells.empty())
-				return nullptr;
-
-			entt::entity contentEntity = content->getEntity();
-			IItem* item = ItemType().getFromEntity(registry, contentEntity);
-			if (item == nullptr)
-				return nullptr;
-
-			drone.inventory.addItem(item->split(amount));
-			
-			return new DeliveryGoal(deliveryDestination->cells.begin()->first);
-		}
+		DroneGoal* destinationReached(entt::registry& registry, Drone& drone);
 	};
 
 	struct DeliveryGoal : public DroneGoal

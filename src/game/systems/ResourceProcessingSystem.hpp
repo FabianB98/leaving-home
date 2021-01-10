@@ -1,13 +1,15 @@
 #pragma once
 
 #include <math.h>
+#include <queue>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <entt/entt.hpp>
 
 #include "../world/Drone.hpp"
 #include "../world/HeightGenerator.hpp"
-#include "../world/Item.hpp"
+#include "../world/Inventory.hpp"
 
 namespace game::systems
 {
@@ -19,4 +21,6 @@ namespace game::systems
 	void updateResourceProcessingSystem(entt::registry& registry, double deltaTime, world::HeightGenerator& heightGenerator);
 
 	void attachRessourceProcessor(IResourceProcessor* resourceProcessor);
+
+	void registerItemType(std::shared_ptr<world::IItem> item);
 }

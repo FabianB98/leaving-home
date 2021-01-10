@@ -51,6 +51,31 @@ namespace game::world
 		return nullptr;
 	}
 
+	DroneGoal* PickupAndDeliveryGoal::destinationReached(entt::registry& registry, Drone& drone)
+	{
+		CellContent* content = destination->getContent();
+		if (content == nullptr)
+			return nullptr;
+
+		entt::entity contentEntity = content->getEntity();
+		Inventory* inventory = registry.try_get<Inventory>(contentEntity);
+		if (inventory == nullptr)
+			return nullptr;
+
+		std::shared_ptr<IItem> item = inventory->getItem(itemType);
+		if (item == nullptr)
+			return nullptr;
+
+		drone.inventory.addItem(item->split(amount));
+		if (item->amount == 0.0f)
+			inventory->items.erase(item);
+
+		if (deliveryDestination == nullptr)
+			return nullptr;
+		else
+			return new DeliveryGoal(deliveryDestination);
+	}
+
 	DroneGoal* DeliveryGoal::destinationReached(entt::registry& registry, Drone& drone)
 	{
 		CellContent* content = destination->getContent();

@@ -23,7 +23,7 @@
 #include "Constants.hpp"
 #include "PlanarGraph.hpp"
 #include "HeightGenerator.hpp"
-#include "Item.hpp"
+#include "Inventory.hpp"
 
 namespace game::world 
 {
