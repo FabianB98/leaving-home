@@ -14,7 +14,11 @@ namespace game::world
 	class Resource : public CellContent
 	{
 	public:
-		Resource(std::shared_ptr<rendering::model::MeshData> _meshData) : CellContent(false), meshData(_meshData) {}
+		Resource(
+			const std::string& _typeName,
+			const std::string& _description,
+			std::shared_ptr<rendering::model::MeshData> _meshData
+		) : CellContent(false, _typeName, _description), meshData(_meshData) {}
 
 	protected:
 		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;

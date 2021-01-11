@@ -1227,4 +1227,9 @@ namespace game::world
 			cell->getChunk()->enqueueUpdate();
 		}
 	}
+
+	std::string CellContent::getInventoryContentsString()
+	{
+		registry->get<Inventory>(entity).getStoredItemsString();
+	}
 }

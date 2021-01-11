@@ -5,8 +5,13 @@ namespace game::world
 	std::default_random_engine generator;
 	std::uniform_real_distribution<float> randomFloat(0.0f, 1.0f);
 
+	static const std::string treeTypeName = "Tree";
+	static const std::string treeDescription = "A tree is a reliable source of wood. What else did you expect?";
 	static std::shared_ptr<rendering::model::MeshData> treeMeshData = std::make_shared<rendering::model::MeshData>("tree");
 	static std::shared_ptr<rendering::model::MeshData> treeMeshData2 = std::make_shared<rendering::model::MeshData>("tree2");
+
+	static const std::string rockTypeName = "Rock";
+	static const std::string rockDescription = "A glowing rock. May contain precious gems.";
 	static std::shared_ptr<rendering::model::MeshData> stoneMeshData = std::make_shared<rendering::model::MeshData>("stone");
 
 	void Resource::_addedToCell(Cell* cell)
@@ -25,7 +30,7 @@ namespace game::world
 		__removedFromCell(cell);
 	}
 
-	Tree::Tree() : Resource(randomFloat(generator) > 0.5f ? treeMeshData : treeMeshData2) {}
+	Tree::Tree() : Resource(treeTypeName, treeDescription, randomFloat(generator) > 0.5f ? treeMeshData : treeMeshData2) {}
 
 	void Tree::__addedToCell(Cell* cell)
 	{
@@ -53,7 +58,7 @@ namespace game::world
 	}
 
 
-	Rock::Rock() : Resource(stoneMeshData) {}
+	Rock::Rock() : Resource(rockTypeName, rockDescription, stoneMeshData) {}
 
 	void Rock::__addedToCell(Cell* cell)
 	{

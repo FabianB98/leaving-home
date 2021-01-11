@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <sstream>
+#include <string>
 #include <typeindex>
 
 #include <entt/entt.hpp>
@@ -15,8 +17,9 @@ namespace game::world
 	struct IItem
 	{
 		float amount;
+		const std::string& typeName;
 
-		IItem(float _amount) : amount(_amount) {}
+		IItem(float _amount, const std::string& _typeName) : amount(_amount), typeName(_typeName) {}
 
 		virtual std::shared_ptr<IItem> split(float amountToSplit) = 0;
 
@@ -117,6 +120,22 @@ namespace game::world
 
 				return result;
 			}
+		}
+
+		std::string getStoredItemsString()
+		{
+			std::stringstream storedItemsString;
+
+			auto iterator = items.begin();
+			while (iterator != items.end()) {
+				const std::shared_ptr<IItem>& item = *iterator;
+
+				storedItemsString << item->typeName << ": " << item->amount;
+				if ((++iterator) != items.end())
+					storedItemsString << std::endl;
+			}
+
+			return storedItemsString.str();
 		}
 	};
 

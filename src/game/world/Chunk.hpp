@@ -441,7 +441,8 @@ namespace game::world
 	class CellContent
 	{
 	public:
-		CellContent(bool _multiCellPlaceable) : multiCellPlaceable(_multiCellPlaceable) {}
+		CellContent(bool _multiCellPlaceable, const std::string& _typeName, const std::string& _description)
+			: multiCellPlaceable(_multiCellPlaceable), typeName(_typeName), description(_description) {}
 
 		virtual ~CellContent();
 
@@ -469,6 +470,18 @@ namespace game::world
 			return entity;
 		}
 
+		const std::string& getTypeName()
+		{
+			return typeName;
+		}
+
+		const std::string& getDescription()
+		{
+			return description;
+		}
+
+		std::string getInventoryContentsString();
+
 	protected:
 		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
 
@@ -495,6 +508,8 @@ namespace game::world
 	private:
 		std::unordered_map<Cell*, CellContentCellData> cells;
 		const bool multiCellPlaceable;
+		const std::string& typeName;
+		const std::string& description;
 
 		entt::registry* registry{ nullptr };
 		entt::entity entity{ entt::null };

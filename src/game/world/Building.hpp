@@ -19,8 +19,11 @@ namespace game::world
 	class IBuilding : public CellContent
 	{
 	public:
-		IBuilding(std::shared_ptr<BuildingPieceSet> _buildingPieceSet)
-			: IBuilding(_buildingPieceSet, nullptr, std::unordered_set<Cell*>()) {}
+		IBuilding(
+			std::string& _typeName,
+			std::string& _description,
+			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
+		) : IBuilding(_typeName, _description, _buildingPieceSet, nullptr, std::unordered_set<Cell*>()) {}
 
 		virtual ~IBuilding() {}
 
@@ -36,10 +39,12 @@ namespace game::world
 		std::unordered_map<Cell*, unsigned int> heightPerCell;
 
 		IBuilding(
+			const std::string& _typeName,
+			const std::string& _description,
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet,
 			IBuilding* original,
 			std::unordered_set<Cell*> cellsToCopy
-		) : CellContent(true), buildingPieceSet(_buildingPieceSet)
+		) : CellContent(true, _typeName, _description), buildingPieceSet(_buildingPieceSet)
 		{
 			if (original != nullptr)
 				for (Cell* cell : cellsToCopy)
@@ -70,10 +75,12 @@ namespace game::world
 
 	protected:
 		Building(
+			const std::string& _typeName,
+			const std::string& _description,
 			std::shared_ptr<BuildingPieceSet> _buildingPieceSet,
 			IBuilding* original,
 			std::unordered_set<Cell*> cellsToCopy
-		) : IBuilding(_buildingPieceSet, original, cellsToCopy) {}
+		) : IBuilding(_typeName, _description, _buildingPieceSet, original, cellsToCopy) {}
 
 		CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy)
 		{

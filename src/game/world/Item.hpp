@@ -44,9 +44,9 @@ namespace game::world
 	struct Item : public IItem
 	{
 	public:
-		Item() : IItem(0.0f) {}
+		Item(const std::string& _typeName) : IItem(0.0f, _typeName) {}
 
-		Item(float _amount) : IItem(_amount) 
+		Item(float _amount, const std::string& _typeName) : IItem(_amount, _typeName) 
 		{
 			systems::registerItemType(typeRepresentative);
 		}
@@ -259,8 +259,10 @@ namespace game::world
 
 	struct Wood : public Item<Wood> 
 	{
-		Wood() : Item() {}
+		static const std::string TYPE_NAME;
 
-		Wood(float _amount) : Item(_amount) {}
+		Wood() : Item(TYPE_NAME) {}
+
+		Wood(float _amount) : Item(_amount, TYPE_NAME) {}
 	};
 }

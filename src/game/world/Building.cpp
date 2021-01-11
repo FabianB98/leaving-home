@@ -2,6 +2,12 @@
 
 namespace game::world
 {
+	static const std::string testBuildingTypeName = "TestBuilding";
+	static const std::string testBuildingDescription = "A building which consumes one unit of wood each 5 seconds. If it doesn't have any wood to consume, it will get destroyed over time.";
+
+	static const std::string otherTestBuildingTypeName = "OtherTestBuilding";
+	static const std::string otherTestBuildingDescription = "A building which produces one unit of wood each 5 seconds.";
+
 	static std::shared_ptr<BuildingPieceSet> testBuildingPieceSet = std::make_shared<BuildingPieceSet>(
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
@@ -184,7 +190,7 @@ namespace game::world
 	TestBuilding::TestBuilding(
 		IBuilding* original,
 		std::unordered_set<Cell*> cellsToCopy
-	) : Building(testBuildingPieceSet, original, cellsToCopy) {}
+	) : Building(testBuildingTypeName, testBuildingDescription, testBuildingPieceSet, original, cellsToCopy) {}
 
 	void TestBuilding::__addedToCell(Cell* cell)
 	{
@@ -205,7 +211,7 @@ namespace game::world
 	OtherTestBuilding::OtherTestBuilding(
 		IBuilding* original,
 		std::unordered_set<Cell*> cellsToCopy
-	) : Building(testBuildingPieceSet, original, cellsToCopy) {}
+	) : Building(otherTestBuildingTypeName, otherTestBuildingDescription, testBuildingPieceSet, original, cellsToCopy) {}
 
 	void OtherTestBuilding::__addedToCell(Cell* cell)
 	{

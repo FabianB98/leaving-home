@@ -1,14 +1,12 @@
 #include "Info.hpp"
 
-// TODO: This is just a temporary include for displaying the cell's content. Remove this later on.
-#include "../game/world/Building.hpp"
 #include <sstream>
 
 namespace gui
 {
 	constexpr auto cellInfoMargin = 12.f;
-	constexpr auto cellInfoWidth = 300.f; // TODO: Change this value back to 250.f when removing the temporary code for displaying the cell's content.
-	constexpr auto cellInfoHeight = 85.f; // TODO: Change this value back to 80.f when removing the temporary code for displaying the cell's content.
+	constexpr auto cellInfoWidth = 350.f;
+	constexpr auto cellInfoHeight = 150.f;
 
 	bool cellInfoOpen = false;
 	ImVec2 cellInfoPos;
@@ -46,8 +44,6 @@ namespace gui
 		ImGui::Begin("Info", &cellInfoOpen, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 		ImGui::SetWindowSize(ImVec2(cellInfoWidth, cellInfoHeight));
 
-		//selection->getCellType()
-
 		std::string cellType;
 		switch (selection->getCellType()) {
 			case game::world::CellType::GRASS: cellType = "Grass"; break;
@@ -59,16 +55,18 @@ namespace gui
 		ImGui::Text("Type: %s", cellType);
 		ImGui::Text("Height: %i", (int) selection->getHeight());
 
-		// TODO: This is just temporary code for showing the cell's content. Remove this (and the temporary include at the top of this file) later on.
 		game::world::CellContent* cellContent = selection->getContent();
-		std::string cellContentText = "Unknown";
 		if (cellContent == nullptr)
-			cellContentText = "Empty";
-		else if (dynamic_cast<game::world::Tree*>(cellContent))
-			cellContentText = "Tree";
-		else if (dynamic_cast<game::world::TestBuilding*>(cellContent))
-			cellContentText = "TestBuilding";
-		ImGui::Text("Content: %s %p", cellContentText, cellContent);
+		{
+			ImGui::Text("Content: Empty");
+		}
+		else
+		{
+			ImGui::Text("Content: %p", cellContent);
+			ImGui::TextWrapped("%s", cellContent->getTypeName().c_str());
+			ImGui::TextWrapped("%s", cellContent->getDescription().c_str());
+			ImGui::TextWrapped("%s", cellContent->getInventoryContentsString());
+		}
 
 		ImGui::End();
 	}
