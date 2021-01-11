@@ -299,7 +299,7 @@ namespace game::world
 		template<class T>
 		void placeBuilding()
 		{
-			static_assert(std::is_base_of<Building, T>::value, "Template parameter T must be a subclass of Building!");
+			static_assert(std::is_base_of<IBuilding, T>::value, "Template parameter T must be a subclass of IBuilding!");
 
 			if (height < WATER_HEIGHT)
 				return;
@@ -320,7 +320,7 @@ namespace game::world
 
 				if (buildingsToConnectTo.empty())
 				{
-					_setContent(new T(), false);
+					_setContent(new T(nullptr, std::unordered_set<Cell*>{}), false);
 				}
 				else
 				{

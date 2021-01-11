@@ -55,7 +55,7 @@ namespace game
 
 	gui::CameraType selectedCamera;
 	gui::Tool selectedTool;
-	gui::Building selectedBuilding;
+	world::IBuilding* selectedBuilding;
 
 	rendering::model::Mesh* tree;
 
@@ -77,7 +77,7 @@ namespace game
 		skybox = new rendering::Skybox("skybox", "skybox");
 
 		selectedTool = gui::Tool::BUILD;
-		selectedBuilding = gui::Building::TEST_BUILDING;
+		selectedBuilding = &world::TestBuilding::typeRepresentative;
 
 		renderingEngine->setClearColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.0f));
 
@@ -152,14 +152,6 @@ namespace game
 
 		renderingEngine->setShadowCameras(std::vector<entt::entity>{ shadowCamera, shadowCamera1 });
 	}
-
-	void placeBuilding(world::Cell* cell, gui::Building toPlace)
-	{
-		if (toPlace == gui::Building::TEST_BUILDING)
-			cell->placeBuilding<world::TestBuilding>();
-		else if (toPlace == gui::Building::OTHER_TEST_BUILDING)
-			cell->placeBuilding<world::OtherTestBuilding>();
-	}
 	
 	bool pressed;
 	void Game::input(rendering::RenderingEngine* renderingEngine, double deltaTime)
@@ -180,7 +172,7 @@ namespace game
 				if (selectedTool == gui::Tool::VIEW)
 					gui::openCellInfo(renderingEngine->getMousePosition(), renderingEngine->getFramebufferSize(), selected);
 				else if (selectedTool == gui::Tool::BUILD && selected != nullptr)
-					placeBuilding(selected, selectedBuilding);
+					selectedBuilding->placeBuildingOfThisTypeOnCell(selected);
 				else if (selectedTool == gui::Tool::REMOVE && selected != nullptr)
 					selected->setContent(nullptr);
 			}
@@ -230,35 +222,6 @@ namespace game
 		renderingEngine->setMainCamera(camPointer);
 
 		selectChunks(registry, renderingEngine, wrld);
-
-		//int a = 0;
-		//if (glfwGetTime() >= time + 5.f && !added) {
-		//	added = true;
-		//	std::cout << "ADDING LIGHTS" << std::endl;
-		//	for (auto c : wrld->getChunks()) {
-		//		for (auto cell : c.second->getCells()) {
-		//			auto* content = cell.second->getContent();
-		//			if (content == nullptr) continue;
-
-		//			a++;
-		//			if (a % 10 != 0) continue;
-
-		//			//glm::vec3 pos = glm::vec3(content->getTransform().getTransform()[3]);
-		//			auto& registry = renderingEngine->getRegistry();
-		//			auto light = registry.create();
-		//			registry.emplace<rendering::components::MatrixTransform>(light, content->getTransform().getTransform());
-		//			registry.emplace<rendering::components::PointLight>(light, glm::vec3(30), glm::vec3(0,5,0), glm::vec3(0,0,2));
-		//		}
-		//	}
-		//}
-
-		/*if (added) {
-			for (auto entity : registry.view<rendering::components::PointLight, rendering::components::MatrixTransform>()) {
-				auto& mt = registry.get<rendering::components::MatrixTransform>(entity);
-				registry.replace<rendering::components::MatrixTransform>(entity, 
-					mt.getTransform() * glm::rotate((float) deltaTime * 2.5f, glm::vec3(0, 1, 0)));
-			}
-		}*/
 	}
 	
 	void Game::render(rendering::RenderingEngine* renderingEngine)

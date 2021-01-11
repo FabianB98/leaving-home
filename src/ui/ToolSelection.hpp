@@ -8,6 +8,7 @@
 #include <glfw/glfw3.h>
 
 #include "Util.hpp"
+#include "../game/world/Building.hpp"
 #include "../rendering/textures/Texture.hpp"
 
 namespace gui
@@ -19,15 +20,9 @@ namespace gui
 		REMOVE
 	};
 
-	enum class Building
-	{
-		TEST_BUILDING,
-		OTHER_TEST_BUILDING
-	};
-
 	void initToolSelection();
 
-	void renderToolSelection(Tool* selected, Building* selectedBuilding, float frameHeight);
+	void renderToolSelection(Tool* selected, game::world::IBuilding** selectedBuilding, float frameHeight);
 
 	void cleanUpToolSelection();
 }
