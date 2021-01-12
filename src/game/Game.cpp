@@ -94,10 +94,11 @@ namespace game
 			for (int row = -worldSize; row <= worldSize - column; row++)
 				wrld->generateChunk(row, column);
 
-		world::Drone::spawnNewDrone(registry, glm::vec3(0.0f, 0.0f, 0.0f));
+		world::Drone::spawnNewDrone(registry, glm::vec3(0.0f, wrld->getHeightGenerator().getHeight(0.0f, 0.0f) + 25.0f, 0.0f));
 		registry.view<world::Drone>().each([](auto entity, auto& drone) {
 			drone.inventory.addItemTyped<world::Wood>(10.0f);
 		});
+		world::Drone::spawnNewDrone(registry, glm::vec3(10.0f, wrld->getHeightGenerator().getHeight(10.0f, 10.0f) + 25.0f, 10.0f));
 
 		float width = renderingEngine->getFramebufferWidth();
 		float height = renderingEngine->getFramebufferHeight();

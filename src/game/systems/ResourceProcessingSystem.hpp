@@ -1,11 +1,14 @@
 #pragma once
 
+#include <limits>
 #include <math.h>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
 
 #include <entt/entt.hpp>
+
+#include <glm/glm.hpp>
 
 #include "../world/Drone.hpp"
 #include "../world/HeightGenerator.hpp"

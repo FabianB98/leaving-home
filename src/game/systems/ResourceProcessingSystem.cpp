@@ -37,6 +37,30 @@ namespace game::systems
 	std::priority_queue<EntityAmount, std::vector<EntityAmount>, MaxPriorityQueue> filledProducers;
 	std::priority_queue<EntityAmount, std::vector<EntityAmount>, MinPriorityQueue> starvingConsumers;
 
+	world::Cell* findNearestCell(
+		entt::registry& registry,
+		entt::entity& entity,
+		world::CellContent* cellContent
+	) {
+		world::Cell* result = nullptr;
+		float currentSquaredDistance = std::numeric_limits<float>::max();
+
+		auto& transform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
+		glm::vec2 dronePosition = glm::vec2(transform.getTranslation().x, transform.getTranslation().z);
+
+		for (auto cell : cellContent->getCells())
+		{
+			float squaredDistanceToCell = glm::distance2(dronePosition, cell.first->getRelaxedPosition());
+			if (squaredDistanceToCell < currentSquaredDistance)
+			{
+				result = cell.first;
+				currentSquaredDistance = squaredDistanceToCell;
+			}
+		}
+
+		return result;
+	}
+
 	bool findSourceForStarvingConsumer(
 		entt::registry& registry,
 		entt::entity& entity,
@@ -52,8 +76,8 @@ namespace game::systems
 			world::CellContent* sourceCellContent = registry.get<world::CellContentComponent>(source.entity).cellContent;
 			world::CellContent* consumerCellContent = registry.get<world::CellContentComponent>(consumer.entity).cellContent;
 			drone.goal = new world::PickupAndDeliveryGoal(
-				sourceCellContent->getCells().begin()->first,
-				consumerCellContent->getCells().begin()->first,
+				findNearestCell(registry, entity, sourceCellContent),
+				findNearestCell(registry, entity, consumerCellContent),
 				consumer.itemType,
 				10.0f);
 
@@ -91,8 +115,8 @@ namespace game::systems
 				world::CellContent* producerCellContent = registry.get<world::CellContentComponent>(producer.entity).cellContent;
 				world::CellContent* destinationCellContent = registry.get<world::CellContentComponent>(destination.entity).cellContent;
 				drone.goal = new world::PickupAndDeliveryGoal(
-					producerCellContent->getCells().begin()->first,
-					destinationCellContent->getCells().begin()->first,
+					findNearestCell(registry, entity, producerCellContent),
+					findNearestCell(registry, entity, destinationCellContent),
 					producer.itemType,
 					10.0f);
 
@@ -156,7 +180,7 @@ namespace game::systems
 				deliveryGoalsItemwise[item].pop();
 
 				auto cellContentComponent = registry.get<world::CellContentComponent>(entityToDeliverItemTo);
-				drone.goal = new world::DeliveryGoal(cellContentComponent.cellContent->getCells().begin()->first);
+				drone.goal = new world::DeliveryGoal(findNearestCell(registry, entity, cellContentComponent.cellContent));
 			}
 		}
 		else
