@@ -7,6 +7,7 @@
 
 #include "../../rendering/bounding_geometry/Sphere.hpp"
 #include "../../rendering/model/Mesh.hpp"
+#include "../../rendering/systems/TransformHierarchySystem.hpp"
 #include "Chunk.hpp"
 #include "Inventory.hpp"
 
@@ -16,6 +17,11 @@ namespace game::world
 
 	struct Drone
 	{
+		entt::entity rotor1Entity{ entt::null };
+		entt::entity rotor2Entity{ entt::null };
+		entt::entity rotor3Entity{ entt::null };
+		entt::entity crateEntity{ entt::null };
+
 		DroneGoal* goal{ nullptr };
 		Inventory inventory;
 

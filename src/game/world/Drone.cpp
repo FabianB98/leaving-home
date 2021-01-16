@@ -2,22 +2,72 @@
 
 namespace game::world
 {
-	static auto* space = new rendering::bounding_geometry::Sphere::ObjectSpace();
-	static auto boundingGeometry = std::make_shared<rendering::bounding_geometry::Sphere>(space);
-	static rendering::model::MeshData droneMeshData = rendering::model::MeshData("test");
+	static auto* droneBoundingSpace = new rendering::bounding_geometry::Sphere::ObjectSpace();
+	static auto droneBoundingGeometry = std::make_shared<rendering::bounding_geometry::Sphere>(droneBoundingSpace);
+	static rendering::model::MeshData droneMeshData = rendering::model::MeshData("drone");
 	static rendering::model::Mesh* droneMesh = nullptr;
+
+	static auto* rotorBoundingSpace = new rendering::bounding_geometry::Sphere::ObjectSpace();
+	static auto rotorBoundingGeometry = std::make_shared<rendering::bounding_geometry::Sphere>(rotorBoundingSpace);
+	static rendering::model::MeshData rotorMeshData = rendering::model::MeshData("rotor");
+	static rendering::model::Mesh* rotorMesh = nullptr;
+
+	static auto* crateBoundingSpace = new rendering::bounding_geometry::Sphere::ObjectSpace();
+	static auto crateBoundingGeometry = std::make_shared<rendering::bounding_geometry::Sphere>(crateBoundingSpace);
+	static rendering::model::MeshData crateMeshData = rendering::model::MeshData("crate");
+	static rendering::model::Mesh* crateMesh = nullptr;
 
 	void Drone::spawnNewDrone(entt::registry& registry, const glm::vec3& position)
 	{
 		entt::entity droneEntity = registry.create();
+		entt::entity rotor1Entity = registry.create();
+		entt::entity rotor2Entity = registry.create();
+		entt::entity rotor3Entity = registry.create();
+		entt::entity crateEntity = registry.create();
 
 		if (droneMesh == nullptr)
-			droneMesh = new rendering::model::Mesh(droneMeshData, boundingGeometry);
+		{
+			droneMesh = new rendering::model::Mesh(droneMeshData, droneBoundingGeometry);
+			rotorMesh = new rendering::model::Mesh(rotorMeshData, rotorBoundingGeometry);
+			crateMesh = new rendering::model::Mesh(crateMeshData, crateBoundingGeometry);
+		}
 
-		registry.emplace<Drone>(droneEntity);
+		registry.emplace<Drone>(droneEntity, rotor1Entity, rotor2Entity, rotor3Entity, crateEntity);
 		registry.emplace<rendering::components::MeshRenderer>(droneEntity, droneMesh);
-		registry.emplace<rendering::components::CullingGeometry>(droneEntity, boundingGeometry);
+		registry.emplace<rendering::components::CullingGeometry>(droneEntity, droneBoundingGeometry);
 		registry.emplace<rendering::components::EulerComponentwiseTransform>(droneEntity, position, 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<rendering::components::Relationship>(droneEntity);
+
+		registry.emplace<rendering::components::MeshRenderer>(rotor1Entity, rotorMesh);
+		registry.emplace<rendering::components::CullingGeometry>(rotor1Entity, rotorBoundingGeometry);
+		registry.emplace<rendering::components::EulerComponentwiseTransform>(rotor1Entity, glm::vec3(0.0f, 0.72f, -1.8f), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<rendering::components::Relationship>(rotor1Entity);
+
+		registry.emplace<rendering::components::MeshRenderer>(rotor2Entity, rotorMesh);
+		registry.emplace<rendering::components::CullingGeometry>(rotor2Entity, rotorBoundingGeometry);
+		registry.emplace<rendering::components::EulerComponentwiseTransform>(rotor2Entity, glm::vec3(-1.5f, 0.72f, 1.2f), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<rendering::components::Relationship>(rotor2Entity);
+
+		registry.emplace<rendering::components::MeshRenderer>(rotor3Entity, rotorMesh);
+		registry.emplace<rendering::components::CullingGeometry>(rotor3Entity, rotorBoundingGeometry);
+		registry.emplace<rendering::components::EulerComponentwiseTransform>(rotor3Entity, glm::vec3(1.5f, 0.72f, 1.2f), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<rendering::components::Relationship>(rotor3Entity);
+
+		registry.emplace<rendering::components::MeshRenderer>(crateEntity, crateMesh);
+		registry.emplace<rendering::components::CullingGeometry>(crateEntity, crateBoundingGeometry);
+		registry.emplace<rendering::components::EulerComponentwiseTransform>(crateEntity, glm::vec3(0.0f), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<rendering::components::Relationship>(crateEntity);
+
+		rendering::systems::relationship(registry, droneEntity, rotor1Entity);
+		rendering::systems::relationship(registry, droneEntity, rotor2Entity);
+		rendering::systems::relationship(registry, droneEntity, rotor3Entity);
+		rendering::systems::relationship(registry, droneEntity, crateEntity);
+
+		rendering::systems::cullingRelationship(registry, droneEntity, rotor1Entity);
+		rendering::systems::cullingRelationship(registry, droneEntity, rotor2Entity);
+		rendering::systems::cullingRelationship(registry, droneEntity, rotor3Entity);
+		// Crate is not guaranteed to be fully included in the culling geometry of the drone. Therefore, it can't be a culling
+		// child of the drone.
 	}
 
 	DroneGoal* MoveToGoal::destinationReached(entt::registry& registry, Drone& drone)

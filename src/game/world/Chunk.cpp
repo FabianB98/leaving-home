@@ -1230,6 +1230,6 @@ namespace game::world
 
 	std::string CellContent::getInventoryContentsString()
 	{
-		registry->get<Inventory>(entity).getStoredItemsString();
+		return registry->get<Inventory>(entity).getStoredItemsString();
 	}
 }
