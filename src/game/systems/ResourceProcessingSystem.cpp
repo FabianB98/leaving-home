@@ -2,9 +2,6 @@
 
 namespace game::systems
 {
-	constexpr const float DRONE_MOVEMENT_SPEED = 10.0f;
-	constexpr const float DRONE_FLIGHT_HEIGHT = 25.0f;
-
 	std::unordered_set<IResourceProcessor*> resourceProcessors;
 	std::unordered_set<std::shared_ptr<world::IItem>, world::IItemHash, world::IItemComparator> itemTypes;
 
@@ -132,6 +129,8 @@ namespace game::systems
 		double deltaTime,
 		world::HeightGenerator& heightGenerator
 	) {
+		auto& transform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
+
 		if (drone.goal != nullptr && drone.goal->destination->getContent() == nullptr)
 		{
 			// Drone has a goal, but its destination cell doesn't have a CellContent (most likely because it was removed
@@ -143,7 +142,6 @@ namespace game::systems
 		if (drone.goal != nullptr)
 		{
 			// Drone has a goal which needs to be pursued.
-			auto& transform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
 			glm::vec2 destination = drone.goal->destination->getRelaxedPosition();
 			glm::vec2 currentPosition = glm::vec2(transform.getTranslation().x, transform.getTranslation().z);
 			if (currentPosition == destination)
@@ -160,13 +158,14 @@ namespace game::systems
 				glm::vec2 direction = glm::normalize(deltaToDestination);
 				float distanceToDestination = glm::length(deltaToDestination);
 
-				float movementLength = DRONE_MOVEMENT_SPEED * (float)deltaTime;
+				float movementLength = world::DRONE_MOVEMENT_SPEED * (float)deltaTime;
 				if (movementLength > distanceToDestination)
 					movementLength = distanceToDestination;
 
 				glm::vec2 deltaPos = direction * movementLength;
-				glm::vec2 newPos = glm::vec2(transform.getTranslation().x, transform.getTranslation().z) + deltaPos;
-				transform.setTranslation(glm::vec3(newPos.x, heightGenerator.getHeight(newPos) + DRONE_FLIGHT_HEIGHT, newPos.y));
+				glm::vec3 translation = transform.getTranslation();
+				glm::vec2 newPos = glm::vec2(translation.x, translation.z) + deltaPos;
+				transform.setTranslation(glm::vec3(newPos.x, 0.0f, newPos.y));
 				transform.setYaw(atan2(direction.x, direction.y));
 			}
 		}
@@ -188,6 +187,20 @@ namespace game::systems
 			// Drone has no goal and doesn't store items. Search for a new goal.
 			findGoal(registry, entity, drone);
 		}
+
+		// Let the drone wobble slightly up and down to make its flight look more realistic.
+		double time = glfwGetTime();
+		glm::vec3 translation = transform.getTranslation();
+		float height = heightGenerator.getHeight(translation.x, translation.z)
+			+ drone.heightAboveGround
+			+ world::DRONE_WOBBLE_HEIGHT * sin(time * world::DRONE_WOBBLE_SPEED * drone.relativeWobbleSpeed);
+		transform.setTranslation(glm::vec3(translation.x, height, translation.z));
+
+		// Update the rotation of the drone's rotors.
+		float rotation = fmodf(time * world::DRONE_ROTOR_ROTATION_SPEED, 2.0f * M_PI);
+		registry.get<rendering::components::EulerComponentwiseTransform>(drone.rotor1Entity).setYaw(rotation);
+		registry.get<rendering::components::EulerComponentwiseTransform>(drone.rotor2Entity).setYaw(rotation);
+		registry.get<rendering::components::EulerComponentwiseTransform>(drone.rotor3Entity).setYaw(rotation);
 	}
 
 	void updateResourceProcessingSystem(entt::registry& registry, double deltaTime, world::HeightGenerator& heightGenerator)

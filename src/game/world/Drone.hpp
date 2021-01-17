@@ -22,6 +22,9 @@ namespace game::world
 		entt::entity rotor3Entity{ entt::null };
 		entt::entity crateEntity{ entt::null };
 
+		float relativeWobbleSpeed{ 1.0f };
+		float heightAboveGround{ DRONE_FLIGHT_HEIGHT };
+
 		DroneGoal* goal{ nullptr };
 		Inventory inventory;
 

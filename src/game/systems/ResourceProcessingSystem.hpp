@@ -10,6 +10,7 @@
 
 #include <glm/glm.hpp>
 
+#include "../world/Constants.hpp"
 #include "../world/Drone.hpp"
 #include "../world/HeightGenerator.hpp"
 #include "../world/Inventory.hpp"

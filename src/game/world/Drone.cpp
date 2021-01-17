@@ -17,6 +17,9 @@ namespace game::world
 	static rendering::model::MeshData crateMeshData = rendering::model::MeshData("crate");
 	static rendering::model::Mesh* crateMesh = nullptr;
 
+	std::default_random_engine randomEngine;
+	std::uniform_real_distribution<float> wobbleDistribution(0.5f, 1.0f);
+
 	void Drone::spawnNewDrone(entt::registry& registry, const glm::vec3& position)
 	{
 		entt::entity droneEntity = registry.create();
@@ -30,9 +33,12 @@ namespace game::world
 			droneMesh = new rendering::model::Mesh(droneMeshData, droneBoundingGeometry);
 			rotorMesh = new rendering::model::Mesh(rotorMeshData, rotorBoundingGeometry);
 			crateMesh = new rendering::model::Mesh(crateMeshData, crateBoundingGeometry);
+
+			auto& shadows = registry.ctx<rendering::systems::ShadowMapping>();
+			shadows.castShadow.insert(std::make_pair(droneMesh, 0));
 		}
 
-		registry.emplace<Drone>(droneEntity, rotor1Entity, rotor2Entity, rotor3Entity, crateEntity);
+		registry.emplace<Drone>(droneEntity, rotor1Entity, rotor2Entity, rotor3Entity, crateEntity, wobbleDistribution(randomEngine));
 		registry.emplace<rendering::components::MeshRenderer>(droneEntity, droneMesh);
 		registry.emplace<rendering::components::CullingGeometry>(droneEntity, droneBoundingGeometry);
 		registry.emplace<rendering::components::EulerComponentwiseTransform>(droneEntity, position, 0, 0, 0, glm::vec3(1.0f));
@@ -53,7 +59,7 @@ namespace game::world
 		registry.emplace<rendering::components::EulerComponentwiseTransform>(rotor3Entity, glm::vec3(1.5f, 0.72f, 1.2f), 0, 0, 0, glm::vec3(1.0f));
 		registry.emplace<rendering::components::Relationship>(rotor3Entity);
 
-		registry.emplace<rendering::components::MeshRenderer>(crateEntity, crateMesh);
+		// MeshRenderer for the crate mesh is not yet added as the drone starts of with an empty inventory.
 		registry.emplace<rendering::components::CullingGeometry>(crateEntity, crateBoundingGeometry);
 		registry.emplace<rendering::components::EulerComponentwiseTransform>(crateEntity, glm::vec3(0.0f), 0, 0, 0, glm::vec3(1.0f));
 		registry.emplace<rendering::components::Relationship>(crateEntity);
@@ -98,6 +104,9 @@ namespace game::world
 		for (std::shared_ptr<IItem> item : itemsToRemoveFromInventory)
 			inventory->items.erase(item);
 
+		if (!drone.inventory.items.empty())
+			registry.emplace_or_replace<rendering::components::MeshRenderer>(drone.crateEntity, crateMesh);
+
 		return nullptr;
 	}
 
@@ -119,6 +128,9 @@ namespace game::world
 		drone.inventory.addItem(item->split(amount));
 		if (item->amount == 0.0f)
 			inventory->items.erase(item);
+
+		if (!drone.inventory.items.empty())
+			registry.emplace_or_replace<rendering::components::MeshRenderer>(drone.crateEntity, crateMesh);
 
 		if (deliveryDestination == nullptr)
 			return nullptr;
@@ -152,6 +164,9 @@ namespace game::world
 
 		for (std::shared_ptr<IItem> item : itemsToRemoveFromInventory)
 			drone.inventory.items.erase(item);
+
+		if (drone.inventory.items.empty())
+			registry.remove_if_exists<rendering::components::MeshRenderer>(drone.crateEntity);
 
 		return nullptr;
 	}

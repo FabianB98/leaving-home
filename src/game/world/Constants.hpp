@@ -34,6 +34,13 @@ namespace game::world
 	// Constants related to the generation of buildings.
 	constexpr float BUILDING_FLOOR_HEIGHT = 4.0f;
 
+	// Constants related to drones.
+	constexpr const float DRONE_MOVEMENT_SPEED = 10.0f;
+	constexpr const float DRONE_FLIGHT_HEIGHT = 25.0f;
+	constexpr const float DRONE_WOBBLE_HEIGHT = 0.5f;
+	constexpr const float DRONE_WOBBLE_SPEED = 2.0f;
+	constexpr const float DRONE_ROTOR_ROTATION_SPEED = 25.0f;
+
 	// Constants related to the mesh generation of chunks.
 	constexpr bool ADD_TOPOLOGY_MESH = false;
 	constexpr bool ADD_LANDSCAPE_MESH = true;
