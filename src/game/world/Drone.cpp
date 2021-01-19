@@ -20,6 +20,14 @@ namespace game::world
 	std::default_random_engine randomEngine;
 	std::uniform_real_distribution<float> wobbleDistribution(0.5f, 1.0f);
 
+	void Drone::inventoryUpdated(entt::registry& registry, entt::entity& entity, Inventory& inventory)
+	{
+		if (inventory.items.empty())
+			registry.remove_if_exists<rendering::components::MeshRenderer>(crateEntity);
+		else
+			registry.emplace_or_replace<rendering::components::MeshRenderer>(crateEntity, crateMesh);
+	}
+
 	void Drone::spawnNewDrone(entt::registry& registry, const glm::vec3& position)
 	{
 		entt::entity droneEntity = registry.create();
@@ -39,6 +47,7 @@ namespace game::world
 		}
 
 		registry.emplace<Drone>(droneEntity, rotor1Entity, rotor2Entity, rotor3Entity, crateEntity, wobbleDistribution(randomEngine));
+		registry.emplace<Inventory>(droneEntity);
 		registry.emplace<rendering::components::MeshRenderer>(droneEntity, droneMesh);
 		registry.emplace<rendering::components::CullingGeometry>(droneEntity, droneBoundingGeometry);
 		registry.emplace<rendering::components::EulerComponentwiseTransform>(droneEntity, position, 0, 0, 0, glm::vec3(1.0f));
@@ -74,100 +83,5 @@ namespace game::world
 		rendering::systems::cullingRelationship(registry, droneEntity, rotor3Entity);
 		// Crate is not guaranteed to be fully included in the culling geometry of the drone. Therefore, it can't be a culling
 		// child of the drone.
-	}
-
-	DroneGoal* MoveToGoal::destinationReached(entt::registry& registry, Drone& drone)
-	{
-		//Nothing to do here...
-		return nullptr;
-	}
-
-	DroneGoal* HarvestGoal::destinationReached(entt::registry& registry, Drone& drone)
-	{
-		CellContent* content = destination->getContent();
-		if (content == nullptr)
-			return nullptr;
-
-		entt::entity contentEntity = content->getEntity();
-		Inventory* inventory = registry.try_get<Inventory>(contentEntity);
-		if (inventory == nullptr)
-			return nullptr;
-
-		std::vector<std::shared_ptr<IItem>> itemsToRemoveFromInventory;
-		for (std::shared_ptr<IItem> item : inventory->items)
-			if (item->getHarvestable()->getFromEntity(registry, contentEntity) != nullptr)
-			{
-				drone.inventory.addItem(item);
-				itemsToRemoveFromInventory.push_back(item);
-			}
-
-		for (std::shared_ptr<IItem> item : itemsToRemoveFromInventory)
-			inventory->items.erase(item);
-
-		if (!drone.inventory.items.empty())
-			registry.emplace_or_replace<rendering::components::MeshRenderer>(drone.crateEntity, crateMesh);
-
-		return nullptr;
-	}
-
-	DroneGoal* PickupAndDeliveryGoal::destinationReached(entt::registry& registry, Drone& drone)
-	{
-		CellContent* content = destination->getContent();
-		if (content == nullptr)
-			return nullptr;
-
-		entt::entity contentEntity = content->getEntity();
-		Inventory* inventory = registry.try_get<Inventory>(contentEntity);
-		if (inventory == nullptr)
-			return nullptr;
-
-		std::shared_ptr<IItem> item = inventory->getItem(itemType);
-		if (item == nullptr)
-			return nullptr;
-
-		drone.inventory.addItem(item->split(amount));
-		if (item->amount == 0.0f)
-			inventory->items.erase(item);
-
-		if (!drone.inventory.items.empty())
-			registry.emplace_or_replace<rendering::components::MeshRenderer>(drone.crateEntity, crateMesh);
-
-		if (deliveryDestination == nullptr)
-			return nullptr;
-		else
-			return new DeliveryGoal(deliveryDestination);
-	}
-
-	DroneGoal* DeliveryGoal::destinationReached(entt::registry& registry, Drone& drone)
-	{
-		CellContent* content = destination->getContent();
-		if (content == nullptr)
-			return nullptr;
-
-		entt::entity contentEntity = content->getEntity();
-		Inventory* inventory = registry.try_get<Inventory>(contentEntity);
-		if (inventory == nullptr)
-			return nullptr;
-
-		std::vector<std::shared_ptr<IItem>> itemsToRemoveFromInventory;
-		for (std::shared_ptr<IItem> item : drone.inventory.items)
-		{
-			bool consumesItem = item->getConsumes()->getFromEntity(registry, contentEntity) != nullptr;
-			bool storesItem = item->getStores()->getFromEntity(registry, contentEntity) != nullptr;
-
-			if (consumesItem || storesItem)
-			{
-				inventory->addItem(item);
-				itemsToRemoveFromInventory.push_back(item);
-			}
-		}
-
-		for (std::shared_ptr<IItem> item : itemsToRemoveFromInventory)
-			drone.inventory.items.erase(item);
-
-		if (drone.inventory.items.empty())
-			registry.remove_if_exists<rendering::components::MeshRenderer>(drone.crateEntity);
-
-		return nullptr;
 	}
 }

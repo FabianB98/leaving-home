@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <queue>
 
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
@@ -8,12 +9,13 @@
 #include "../../rendering/bounding_geometry/Sphere.hpp"
 #include "../../rendering/model/Mesh.hpp"
 #include "../../rendering/systems/TransformHierarchySystem.hpp"
+#include "Building.hpp"
 #include "Chunk.hpp"
 #include "Inventory.hpp"
 
 namespace game::world
 {
-	struct DroneGoal;
+	struct DroneTask;
 
 	struct Drone
 	{
@@ -25,55 +27,31 @@ namespace game::world
 		float relativeWobbleSpeed{ 1.0f };
 		float heightAboveGround{ DRONE_FLIGHT_HEIGHT };
 
-		DroneGoal* goal{ nullptr };
-		Inventory inventory;
+		std::queue<DroneTask*> tasks;
+
+		void inventoryUpdated(entt::registry& registry, entt::entity& entity, Inventory& inventory);
 
 		static void spawnNewDrone(entt::registry& registry, const glm::vec3& position);
 	};
 
-	struct DroneGoal
+	struct DroneTask
 	{
-		Cell* destination;
+		world::Cell* destination;
 
-		DroneGoal(Cell* _destination) : destination(_destination) {}
+		DroneTask(world::Cell* _destination) : destination(_destination) {}
 
-		virtual DroneGoal* destinationReached(entt::registry& registry, Drone& drone) = 0;
-	};
+		virtual bool checkAndUpdateDestination(
+			entt::registry& registry,
+			entt::entity& entity,
+			Drone& drone,
+			Inventory& inventory
+		) = 0;
 
-	struct MoveToGoal : public DroneGoal
-	{
-		MoveToGoal(Cell* _destination) : DroneGoal(_destination) {}
-
-		DroneGoal* destinationReached(entt::registry& registry, Drone& drone);
-	};
-
-	struct HarvestGoal : public DroneGoal
-	{
-		HarvestGoal(Cell* _destination) : DroneGoal(_destination) {}
-
-		DroneGoal* destinationReached(entt::registry& registry, Drone& drone);
-	};
-
-	struct PickupAndDeliveryGoal : public DroneGoal
-	{
-		Cell* deliveryDestination;
-		std::shared_ptr<world::IItem> itemType;
-		float amount;
-
-		PickupAndDeliveryGoal(
-			Cell* _destination,
-			Cell* _deliveryDestination,
-			std::shared_ptr<world::IItem> _itemType,
-			float _amount
-		) : DroneGoal(_destination), deliveryDestination(_deliveryDestination), itemType(_itemType), amount(_amount) {}
-
-		DroneGoal* destinationReached(entt::registry& registry, Drone& drone);
-	};
-
-	struct DeliveryGoal : public DroneGoal
-	{
-		DeliveryGoal(Cell* _destination) : DroneGoal(_destination) {}
-
-		DroneGoal* destinationReached(entt::registry& registry, Drone& drone);
+		virtual bool destinationReached(
+			entt::registry& registry,
+			entt::entity& entity,
+			Drone& drone,
+			Inventory& inventory
+		) = 0;
 	};
 }
