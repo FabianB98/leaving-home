@@ -170,9 +170,9 @@ namespace game
 				if (selectedTool == gui::Tool::VIEW)
 					gui::openCellInfo(renderingEngine->getMousePosition(), renderingEngine->getFramebufferSize(), selected);
 				else if (selectedTool == gui::Tool::BUILD && selected != nullptr)
-					selectedBuilding->placeBuildingOfThisTypeOnCell(selected);
+					systems::enqueueConstruction(selected, selectedBuilding);
 				else if (selectedTool == gui::Tool::REMOVE && selected != nullptr)
-					selected->setContent(nullptr);
+					systems::enqueueDestruction(selected);
 			}
 		}
 		pressed = pressedNew;

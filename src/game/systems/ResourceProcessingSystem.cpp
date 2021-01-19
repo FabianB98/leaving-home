@@ -5,6 +5,9 @@ namespace game::systems
 	std::unordered_set<IResourceProcessor*> resourceProcessors;
 	std::unordered_set<std::shared_ptr<world::IItem>, world::IItemHash, world::IItemComparator> itemTypes;
 
+	std::queue<std::pair<world::Cell*, world::IBuilding*>> buildingsToPlace;
+	std::queue<world::Cell*> buildingsToRemove;
+
 	struct EntityAmount
 	{
 		entt::entity entity;
@@ -249,7 +252,7 @@ namespace game::systems
 
 			buildingType->placeBuildingOfThisTypeOnCell(destination);
 
-			return false;
+			return true;
 		}
 	};
 
@@ -285,7 +288,26 @@ namespace game::systems
 	};
 
 	void findGoal(entt::registry& registry, entt::entity& entity, world::Drone& drone) {
-		// TODO: Add build and harvest goals.
+		while (!buildingsToPlace.empty())
+		{
+			// TODO: Check whether all resources required to place the building can be taken from somewhere to ensure
+			// that the drone won't get stuck trying to get a resource.
+
+			std::pair<world::Cell*, world::IBuilding*>& cellAndBuilding = buildingsToPlace.front();
+			// TODO: Add tasks for getting all required resources.
+			drone.tasks.push(new ConstructionTask(cellAndBuilding.first, cellAndBuilding.second));
+			buildingsToPlace.pop();
+
+			return;
+		}
+
+		while (!buildingsToRemove.empty())
+		{
+			drone.tasks.push(new DestructionTask(buildingsToRemove.front()));
+			buildingsToRemove.pop();
+
+			return;
+		}
 
 		while (!starvingConsumers.empty())
 		{
@@ -465,6 +487,16 @@ namespace game::systems
 		registry.view<world::Drone>().each([&registry, deltaTime, &heightGenerator](auto entity, auto& drone) {
 			updateDrone(registry, entity, drone, deltaTime, heightGenerator);
 		});
+	}
+
+	void enqueueConstruction(world::Cell* cell, world::IBuilding* buildingType)
+	{
+		buildingsToPlace.push(std::make_pair(cell, buildingType));
+	}
+
+	void enqueueDestruction(world::Cell* cell)
+	{
+		buildingsToRemove.push(cell);
 	}
 
 	void attachRessourceProcessor(IResourceProcessor* resourceProcessor)

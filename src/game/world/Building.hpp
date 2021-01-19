@@ -16,50 +16,6 @@
 
 namespace game::world
 {
-	class IBuilding : public CellContent
-	{
-	public:
-		IBuilding(
-			std::string& _typeName,
-			std::string& _description,
-			std::shared_ptr<BuildingPieceSet> _buildingPieceSet
-		) : IBuilding(_typeName, _description, _buildingPieceSet, nullptr, std::unordered_set<Cell*>()) {}
-
-		virtual ~IBuilding() {}
-
-		virtual void placeBuildingOfThisTypeOnCell(Cell* cell) = 0;
-
-		const std::unordered_map<Cell*, unsigned int>& getHeightPerCell()
-		{
-			return heightPerCell;
-		}
-
-	protected:
-		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
-		std::unordered_map<Cell*, unsigned int> heightPerCell;
-
-		IBuilding(
-			const std::string& _typeName,
-			const std::string& _description,
-			std::shared_ptr<BuildingPieceSet> _buildingPieceSet,
-			IBuilding* original,
-			std::unordered_set<Cell*> cellsToCopy
-		) : CellContent(true, _typeName, _description), buildingPieceSet(_buildingPieceSet)
-		{
-			if (original != nullptr)
-				for (Cell* cell : cellsToCopy)
-					heightPerCell.insert(std::make_pair(cell, original->heightPerCell[cell] - 1));
-		}
-
-		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
-
-		virtual void _addedToCell(Cell* cell) = 0;
-
-		virtual void _removedFromCell(Cell* cell) = 0;
-
-		virtual void update() = 0;
-	};
-
 	template <class BuildingType>
 	class Building : public IBuilding
 	{

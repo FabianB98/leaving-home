@@ -10,6 +10,8 @@
 
 #include <glm/glm.hpp>
 
+#include "../world/BuildingPieceSet.hpp"
+#include "../world/Chunk.hpp"
 #include "../world/Constants.hpp"
 #include "../world/Drone.hpp"
 #include "../world/HeightGenerator.hpp"
@@ -23,6 +25,10 @@ namespace game::systems
 	};
 
 	void updateResourceProcessingSystem(entt::registry& registry, double deltaTime, world::HeightGenerator& heightGenerator);
+
+	void enqueueConstruction(world::Cell* cell, world::IBuilding* buildingType);
+
+	void enqueueDestruction(world::Cell* cell);
 
 	void attachRessourceProcessor(IResourceProcessor* resourceProcessor);
 
