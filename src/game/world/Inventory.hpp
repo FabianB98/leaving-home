@@ -21,6 +21,8 @@ namespace game::world
 
 		IItem(float _amount, const std::string& _typeName) : amount(_amount), typeName(_typeName) {}
 
+		virtual std::shared_ptr<IItem> clone() = 0;
+
 		virtual std::shared_ptr<IItem> split(float amountToSplit) = 0;
 
 		virtual IHarvestable* getHarvestable() = 0;
@@ -66,6 +68,16 @@ namespace game::world
 	{
 		std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator> items;
 
+		Inventory() {}
+
+		Inventory(const std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>& _items) : items(_items) {}
+
+		void addItems(const Inventory& source)
+		{
+			for (std::shared_ptr<IItem> item : source.items)
+				addItem(item);
+		}
+
 		void addItem(std::shared_ptr<IItem> item)
 		{
 			if (item == nullptr)
@@ -96,30 +108,31 @@ namespace game::world
 		template <class T>
 		std::shared_ptr<T> getItemTyped()
 		{
-			auto& found = items.find(std::make_shared<T>(0.0f));
-			if (found == items.end())
-				return nullptr;
-			else
-				return std::dynamic_pointer_cast<T>(*found);
+			return std::dynamic_pointer_cast<T>(getItem(std::make_shared<T>(0.0f)));
 		}
 
-		template <class T>
-		std::shared_ptr<T> removeItem(float maxAmount)
+		std::shared_ptr<IItem> removeItem(std::shared_ptr<IItem> itemType, float maxAmount)
 		{
-			auto& found = items.find(std::make_shared<T>(0.0f));
+			auto& found = items.find(itemType);
 			if (found == items.end())
 			{
 				return nullptr;
 			}
 			else
 			{
-				std::shared_ptr<T> result = std::dynamic_pointer_cast<T>((*found)->split(maxAmount));
+				std::shared_ptr<IItem> result = (*found)->split(maxAmount);
 
 				if ((*found)->amount == 0.0f)
 					items.erase(found);
 
 				return result;
 			}
+		}
+
+		template <class T>
+		std::shared_ptr<T> removeItemTyped(float maxAmount)
+		{
+			return std::dynamic_pointer_cast<T>(removeItem(std::make_shared<T>(0.0f), maxAmount));
 		}
 
 		std::string getStoredItemsString()

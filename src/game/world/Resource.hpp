@@ -20,6 +20,10 @@ namespace game::world
 			std::shared_ptr<rendering::model::MeshData> _meshData
 		) : CellContent(false, _typeName, _description), meshData(_meshData) {}
 
+		void inventoryUpdated();
+
+		const Inventory getResourcesObtainedByRemoval(Cell* cell);
+
 	protected:
 		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
 
