@@ -35,11 +35,18 @@ namespace game::world
 	constexpr float BUILDING_FLOOR_HEIGHT = 4.0f;
 
 	// Constants related to drones.
-	constexpr const float DRONE_MOVEMENT_SPEED = 10.0f;
-	constexpr const float DRONE_FLIGHT_HEIGHT = 25.0f;
-	constexpr const float DRONE_WOBBLE_HEIGHT = 0.5f;
-	constexpr const float DRONE_WOBBLE_SPEED = 2.0f;
-	constexpr const float DRONE_ROTOR_ROTATION_SPEED = 25.0f;
+	constexpr float DRONE_MOVEMENT_SPEED = 10.0f;
+	constexpr float DRONE_FLIGHT_HEIGHT = 25.0f;
+	constexpr float DRONE_WOBBLE_HEIGHT = 0.5f;
+	constexpr float DRONE_WOBBLE_SPEED = 2.0f;
+	constexpr float DRONE_ROTOR_ROTATION_SPEED = 25.0f;
+
+	// Constants related to the resource processing system.
+	constexpr float RESOURCE_MANAGEMENT_RESUPPLY_CONSUMER_UNDER = 10.0f;
+	constexpr float RESOURCE_MANAGEMENT_EMPTY_PRODUCER_ABOVE = 5.0f;
+	constexpr float RESOURCE_MANAGEMENT_DEFAULT_TRANSPORT_CAPACITY = 5.0f;
+	constexpr float RESOURCE_MANAGEMENT_CANDIDATE_PLANNING_DISTANCE_WEIGHT = 0.01f;
+	constexpr float RESOURCE_MANAGEMENT_CANDIDATE_PLANNING_ITEMS_WEIGHT = 1.0f;
 
 	// Constants related to the mesh generation of chunks.
 	constexpr bool ADD_TOPOLOGY_MESH = false;

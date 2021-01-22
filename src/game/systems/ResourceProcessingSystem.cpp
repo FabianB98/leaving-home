@@ -31,12 +31,133 @@ namespace game::systems
 		}
 	};
 
-	std::unordered_map<std::shared_ptr<world::IItem>, std::priority_queue<EntityAmount, std::vector<EntityAmount>, MinPriorityQueue>, world::IItemHash, world::IItemComparator> deliveryGoalsItemwise;
-	std::unordered_map<std::shared_ptr<world::IItem>, std::priority_queue<EntityAmount, std::vector<EntityAmount>, MaxPriorityQueue>, world::IItemHash, world::IItemComparator> filledStoragesItemwise;
-	std::unordered_map<std::shared_ptr<world::IItem>, std::priority_queue<EntityAmount, std::vector<EntityAmount>, MaxPriorityQueue>, world::IItemHash, world::IItemComparator> filledProducersItemwise;
-	std::unordered_map<std::shared_ptr<world::IItem>, std::priority_queue<EntityAmount, std::vector<EntityAmount>, MaxPriorityQueue>, world::IItemHash, world::IItemComparator> harvestablesItemwise;
 	std::priority_queue<EntityAmount, std::vector<EntityAmount>, MaxPriorityQueue> filledProducers;
 	std::priority_queue<EntityAmount, std::vector<EntityAmount>, MinPriorityQueue> starvingConsumers;
+
+	struct PlannedInventoryChanges
+	{
+		world::Inventory plannedPickups;
+		world::Inventory plannedDeliveries;
+	};
+
+	std::unordered_map<entt::entity, PlannedInventoryChanges> plannedInventoryChanges;
+
+	struct PlannedInventoryChange
+	{
+		entt::entity contentEntity;
+		std::shared_ptr<world::IItem> itemAndAmount;
+		bool finished;
+
+		PlannedInventoryChange(entt::entity _contentEntity, std::shared_ptr<world::IItem> _itemAndAmount)
+			: contentEntity(_contentEntity), itemAndAmount(_itemAndAmount), finished(false) {}
+
+		float execute(entt::registry& registry, entt::entity droneEntity, entt::entity destinationEntity)
+		{
+			if (finished)
+				return 0.0f;
+
+			entt::entity entityToInteractWith = contentEntity;
+			if (!registry.valid(contentEntity) || contentEntity != destinationEntity)
+				entityToInteractWith = destinationEntity;
+
+			world::Inventory& contentInventory = registry.get<world::Inventory>(entityToInteractWith);
+			world::Inventory& droneInventory = registry.get<world::Inventory>(droneEntity);
+
+			world::Inventory& sourceInventory = getSourceInventory(contentInventory, droneInventory);
+			world::Inventory& destinationInventory = getDestinationInventory(contentInventory, droneInventory);
+
+			std::shared_ptr<world::IItem> item = sourceInventory.removeItem(itemAndAmount, itemAndAmount->amount);
+			if (item == nullptr)
+			{
+				cancel(registry);
+				return 0.0f;
+			}
+			destinationInventory.addItem(item);
+
+			registry.get<world::CellContentComponent>(entityToInteractWith).cellContent->inventoryUpdated();
+			registry.get<world::Drone>(droneEntity).inventoryUpdated(registry, droneEntity, droneInventory);
+
+			cancel(registry);
+
+			return item->amount;
+		}
+
+		void cancel(entt::registry& registry)
+		{
+			if (finished)
+				return;
+
+			getPlanningInventory().removeItem(itemAndAmount, itemAndAmount->amount);
+			if (!registry.valid(contentEntity))
+				plannedInventoryChanges.erase(contentEntity);
+
+			finished = true;
+		}
+
+		virtual world::Inventory& getPlanningInventory() = 0;
+
+		virtual world::Inventory& getSourceInventory(
+			world::Inventory& contentInventory,
+			world::Inventory& droneInventory
+		) = 0;
+
+		virtual world::Inventory& getDestinationInventory(
+			world::Inventory& contentInventory,
+			world::Inventory& droneInventory
+		) = 0;
+	};
+
+	struct PlannedPickup : public PlannedInventoryChange
+	{
+		PlannedPickup(entt::entity _contentEntity, std::shared_ptr<world::IItem> _itemAndAmount)
+			: PlannedInventoryChange(_contentEntity, _itemAndAmount)
+		{
+			getPlanningInventory().addItem(itemAndAmount->clone());
+		}
+
+		PlannedPickup(const PlannedPickup& other) : PlannedInventoryChange(other.contentEntity, other.itemAndAmount) {}
+
+		world::Inventory& getPlanningInventory()
+		{
+			return plannedInventoryChanges[contentEntity].plannedPickups;
+		}
+
+		world::Inventory& getSourceInventory(world::Inventory& contentInventory, world::Inventory& droneInventory)
+		{
+			return contentInventory;
+		}
+
+		world::Inventory& getDestinationInventory(world::Inventory& contentInventory, world::Inventory& droneInventory)
+		{
+			return droneInventory;
+		}
+	};
+
+	struct PlannedDelivery : public PlannedInventoryChange
+	{
+		PlannedDelivery(entt::entity _contentEntity, std::shared_ptr<world::IItem> _itemAndAmount)
+			: PlannedInventoryChange(_contentEntity, _itemAndAmount)
+		{
+			getPlanningInventory().addItem(itemAndAmount->clone());
+		}
+
+		PlannedDelivery(const PlannedPickup& other) : PlannedInventoryChange(other.contentEntity, other.itemAndAmount) {}
+
+		world::Inventory& getPlanningInventory()
+		{
+			return plannedInventoryChanges[contentEntity].plannedPickups;
+		}
+
+		world::Inventory& getSourceInventory(world::Inventory& contentInventory, world::Inventory& droneInventory)
+		{
+			return droneInventory;
+		}
+
+		world::Inventory& getDestinationInventory(world::Inventory& contentInventory, world::Inventory& droneInventory)
+		{
+			return contentInventory;
+		}
+	};
 
 	world::Cell* findNearestCell(
 		entt::registry& registry,
@@ -62,49 +183,77 @@ namespace game::systems
 		return result;
 	}
 
-	template <typename Comparator>
-	world::CellContent* findCellForItemType(
+	template <class ItemInteraction>
+	void findBestCandidate(
+		float& currentBestScore,
+		world::CellContent*& bestMatch,
 		entt::registry& registry,
 		entt::entity& entity,
-		world::Drone& drone,
-		std::shared_ptr<world::IItem> itemType,
-		std::priority_queue<EntityAmount, std::vector<EntityAmount>, Comparator>& sources
+		std::shared_ptr<world::IItem> item,
+		std::function<float(world::Inventory&, PlannedInventoryChanges*)>& getItemScore,
+		ItemInteraction* candidates
 	) {
-		while (!sources.empty())
-		{
-			EntityAmount source = sources.top();
-			sources.pop();
+		auto& droneTransform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
+		glm::vec2 dronePos = glm::vec2(droneTransform.getTranslation().x, droneTransform.getTranslation().z);
 
-			if (registry.valid(source.entity))
-				return registry.get<world::CellContentComponent>(source.entity).cellContent;
-		}
+		candidates->iterateAllEntities(registry, std::function([&currentBestScore, &bestMatch, &registry, &entity, item, &getItemScore, dronePos](entt::entity& candidate, ItemInteraction* interaction) {
+			// Calculate the distance from the drone to the candidate.
+			world::CellContent* candidateCellContent = registry.get<world::CellContentComponent>(candidate).cellContent;
+			world::Cell* nearestCell = findNearestCell(registry, entity, candidateCellContent);
+			float distanceScore = -glm::distance(dronePos, nearestCell->getRelaxedPosition());
 
-		return nullptr;
+			// Calculate the candidate's item score (i.e. how preferred the candidate would be selected based on the amount
+			// of stored items and planned changes to the candidate's inventory).
+			world::Inventory& candidateInventory = registry.get<world::Inventory>(candidate);
+			PlannedInventoryChanges* plannedChanges = nullptr;
+			auto& found = plannedInventoryChanges.find(candidate);
+			if (found != plannedInventoryChanges.end())
+				plannedChanges = &found->second;
+			float itemScore = getItemScore(candidateInventory, plannedChanges);
+			if (itemScore == std::numeric_limits<float>::lowest())
+				return;
+
+			// Check if the current candidate is better than the current best, and update the current best accordingly.
+			float totalScore = distanceScore * world::RESOURCE_MANAGEMENT_CANDIDATE_PLANNING_DISTANCE_WEIGHT 
+				+ itemScore * world::RESOURCE_MANAGEMENT_CANDIDATE_PLANNING_ITEMS_WEIGHT;
+			if (totalScore > currentBestScore)
+			{
+				currentBestScore = totalScore;
+				bestMatch = candidateCellContent;
+			}
+		}));
 	}
 
 	world::CellContent* findPickupCellContent(
 		entt::registry& registry,
 		entt::entity& entity,
 		world::Drone& drone,
-		std::shared_ptr<world::IItem> itemType,
+		std::shared_ptr<world::IItem> item,
 		bool checkHarvestables
 	) {
-		world::CellContent* result = findCellForItemType(registry, entity, drone, itemType, filledProducersItemwise[itemType]);
-		if (result != nullptr)
-			return result;
+		auto getItemScore = std::function([item](world::Inventory& inventory, PlannedInventoryChanges* plannedChanges) -> float {
+			float stored = inventory.getStoredAmount(item);
 
-		result = findCellForItemType(registry, entity, drone, itemType, filledStoragesItemwise[itemType]);
-		if (result != nullptr)
-			return result;
+			float plannedForPickup = 0.0f;
+			if (plannedChanges != nullptr)
+				plannedForPickup = plannedChanges->plannedPickups.getStoredAmount(item);
 
-		if (checkHarvestables)
-		{
-			result = findCellForItemType(registry, entity, drone, itemType, harvestablesItemwise[itemType]);
-			if (result != nullptr)
-				return result;
-		}
+			float remainingAmount = stored - plannedForPickup;
+			if (remainingAmount <= 0.0f)
+				return std::numeric_limits<float>::lowest();
+			else
+				return remainingAmount;
+		});
 
-		return nullptr;
+		float currentBestScore = std::numeric_limits<float>::lowest();
+		world::CellContent* bestMatch = nullptr;
+		findBestCandidate(currentBestScore, bestMatch, registry, entity, item, getItemScore, item->getProduces());
+		findBestCandidate(currentBestScore, bestMatch, registry, entity, item, getItemScore, item->getStores());
+
+		if (checkHarvestables && bestMatch == nullptr)
+			findBestCandidate(currentBestScore, bestMatch, registry, entity, item, getItemScore, item->getHarvestable());
+
+		return bestMatch;
 	}
 
 	world::CellContent* findDeliveryCellContent(
@@ -113,7 +262,24 @@ namespace game::systems
 		world::Drone& drone,
 		std::shared_ptr<world::IItem> itemType
 	) {
-		return findCellForItemType(registry, entity, drone, itemType, deliveryGoalsItemwise[itemType]);
+		auto getItemScore = std::function([itemType](world::Inventory& inventory, PlannedInventoryChanges* plannedChanges) -> float {
+			float stored = inventory.getStoredAmount(itemType);
+
+			float plannedForDelivery = 0.0f;
+			if (plannedChanges != nullptr)
+				plannedForDelivery = plannedChanges->plannedDeliveries.getStoredAmount(itemType);
+
+			// Consumers with less stored items should be preferred over consumers with more stored items, hence we're inverting
+			// the planned amount before returning it so that consumers with less stored items will get a greater score.
+			float plannedAmount = stored + plannedForDelivery;
+			return -plannedAmount;
+		});
+
+		float currentBestScore = std::numeric_limits<float>::lowest();
+		world::CellContent* bestMatch = nullptr;
+		findBestCandidate(currentBestScore, bestMatch, registry, entity, itemType, getItemScore, itemType->getConsumes());
+
+		return bestMatch;
 	}
 
 	void setDestination(
@@ -130,13 +296,17 @@ namespace game::systems
 
 	struct PickupTask : public world::DroneTask
 	{
-		std::shared_ptr<world::IItem> itemType;
-		float amount;
+		std::shared_ptr<world::IItem> item;
 		bool exact;
 		bool checkHarvestables;
+		PlannedPickup plannedPickup;
 
-		PickupTask(world::Cell* _destination, std::shared_ptr<world::IItem> _itemType, float _amount, bool _exact, bool _checkHarvestables)
-			: world::DroneTask(_destination), itemType(_itemType), amount(_amount), exact(_exact), checkHarvestables(_checkHarvestables) {}
+		PickupTask(world::Cell* _destination, std::shared_ptr<world::IItem> _item, bool _exact, bool _checkHarvestables)
+			: world::DroneTask(_destination),
+			item(_item),
+			exact(_exact),
+			checkHarvestables(_checkHarvestables),
+			plannedPickup(PlannedPickup(destination->getContent()->getEntity(), item)) {}
 
 		bool checkAndUpdateDestination(
 			entt::registry& registry,
@@ -147,7 +317,9 @@ namespace game::systems
 			if (destination == nullptr || destination->getContent() == nullptr)
 			{
 				// Destination is no longer valid. Find a new destination from which the items can be picked up.
-				setDestination(this, findPickupCellContent(registry, entity, drone, itemType, checkHarvestables), registry, entity);
+				plannedPickup.cancel(registry);
+				setDestination(this, findPickupCellContent(registry, entity, drone, item, checkHarvestables), registry, entity);
+				plannedPickup = PlannedPickup(destination->getContent()->getEntity(), item);
 			}
 
 			return true;
@@ -159,39 +331,12 @@ namespace game::systems
 			world::Drone& drone,
 			world::Inventory& inventory
 		) {
-			world::CellContent* destinationContent = destination->getContent();
-			entt::entity contentEntity = destinationContent->getEntity();
-			world::Inventory& contentInventory = registry.get<world::Inventory>(contentEntity);
-			
-			bool harvestableItem = itemType->getHarvestable()->getFromEntity(registry, contentEntity) != nullptr;
-			bool storesItem = itemType->getStores()->getFromEntity(registry, contentEntity) != nullptr;
-			bool producesItem = itemType->getProduces()->getFromEntity(registry, contentEntity) != nullptr;
-
-			if (harvestableItem || storesItem || producesItem)
+			float amountPickedUp = plannedPickup.execute(registry, entity, destination->getContent()->getEntity());
+			if (exact && amountPickedUp != item->amount)
 			{
-				std::shared_ptr<world::IItem> item = contentInventory.removeItem(itemType, amount);
-				if (item != nullptr)
-				{
-					destinationContent->inventoryUpdated();
-
-					inventory.addItem(item);
-					drone.inventoryUpdated(registry, entity, inventory);
-
-					if (exact && item->amount != amount)
-					{
-						amount -= item->amount;
-						destination = nullptr;
-						return false;
-					}
-				}
-				else
-				{
-					destination = nullptr;
-				}
-			}
-			else
-			{
+				item->amount -= amountPickedUp;
 				destination = nullptr;
+				return false;
 			}
 
 			return true;
@@ -200,7 +345,11 @@ namespace game::systems
 
 	struct DeliveryTask : public world::DroneTask
 	{
-		DeliveryTask(world::Cell* _destination) : world::DroneTask(_destination) {}
+		std::shared_ptr<world::IItem> item;
+		PlannedDelivery plannedDelivery;
+
+		DeliveryTask(world::Cell* _destination, std::shared_ptr<world::IItem> _item)
+			: world::DroneTask(_destination), item(_item), plannedDelivery(PlannedDelivery(destination->getContent()->getEntity(), item)) {}
 
 		bool checkAndUpdateDestination(
 			entt::registry& registry,
@@ -214,8 +363,9 @@ namespace game::systems
 			if (destination == nullptr || destination->getContent() == nullptr)
 			{
 				// Destination is no longer valid. Find a new destination where the items can be delivered at.
-				auto itemType = *inventory.items.begin();
-				setDestination(this, findDeliveryCellContent(registry, entity, drone, itemType), registry, entity);
+				plannedDelivery.cancel(registry);
+				setDestination(this, findDeliveryCellContent(registry, entity, drone, item), registry, entity);
+				plannedDelivery = PlannedDelivery(destination->getContent()->getEntity(), item);
 			}
 
 			return true;
@@ -227,31 +377,7 @@ namespace game::systems
 			world::Drone& drone,
 			world::Inventory& inventory
 		) {
-			world::CellContent* destinationContent = destination->getContent();
-			entt::entity contentEntity = destinationContent->getEntity();
-			world::Inventory& contentInventory = registry.get<world::Inventory>(contentEntity);
-
-			std::vector<std::shared_ptr<world::IItem>> itemsToRemoveFromInventory;
-			for (std::shared_ptr<world::IItem> item : inventory.items)
-			{
-				bool consumesItem = item->getConsumes()->getFromEntity(registry, contentEntity) != nullptr;
-				bool storesItem = item->getStores()->getFromEntity(registry, contentEntity) != nullptr;
-
-				if (consumesItem || storesItem)
-				{
-					contentInventory.addItem(item);
-					itemsToRemoveFromInventory.push_back(item);
-				}
-			}
-
-			for (std::shared_ptr<world::IItem> item : itemsToRemoveFromInventory)
-				inventory.items.erase(item);
-
-			if (!itemsToRemoveFromInventory.empty())
-				destinationContent->inventoryUpdated();
-
-			drone.inventoryUpdated(registry, entity, inventory);
-
+			plannedDelivery.execute(registry, entity, destination->getContent()->getEntity());
 			return true;
 		}
 	};
@@ -263,7 +389,7 @@ namespace game::systems
 		ConstructionTask(world::Cell* _destination, world::IBuilding* _buildingType) : world::DroneTask(_destination), buildingType(_buildingType)
 		{
 			if (destination == nullptr)
-				throw std::logic_error("ConstructionTask created with no destination! This must be a bug...");
+				throw std::logic_error("ConstructionTask created with no destination! This must be a bug in the task planning algorithm...");
 		}
 
 		bool checkAndUpdateDestination(
@@ -296,7 +422,7 @@ namespace game::systems
 		DestructionTask(world::Cell* _destination) : world::DroneTask(_destination)
 		{
 			if (destination == nullptr)
-				throw std::logic_error("DestructionTask created with no destination! This must be a bug...");
+				throw std::logic_error("DestructionTask created with no destination! This must be a bug in the task planning algorithm...");
 		}
 
 		bool checkAndUpdateDestination(
@@ -329,7 +455,54 @@ namespace game::systems
 		}
 	};
 
-	void findGoal(entt::registry& registry, entt::entity& entity, world::Drone& drone) {
+	void schedulePickupAndDeliveryTask(
+		entt::registry& registry,
+		entt::entity& entity,
+		world::Drone& drone,
+		std::shared_ptr<world::IItem> itemType,
+		world::CellContent* sourceCellContent,
+		world::CellContent* destinationCellContent
+	) {
+		float stored = registry.get<world::Inventory>(sourceCellContent->getEntity()).getStoredAmount(itemType);
+		float plannedForPickup = 0.0f;
+		auto& found = plannedInventoryChanges.find(sourceCellContent->getEntity());
+		if (found != plannedInventoryChanges.end())
+			plannedForPickup = found->second.plannedPickups.getStoredAmount(itemType);
+
+		float maxAmountToPickup = stored - plannedForPickup;
+		float amountToPickup = std::min(maxAmountToPickup, world::RESOURCE_MANAGEMENT_DEFAULT_TRANSPORT_CAPACITY);
+
+		std::shared_ptr<world::IItem> itemAndAmount = itemType->clone(amountToPickup);
+		drone.tasks.push(new PickupTask(findNearestCell(registry, entity, sourceCellContent), itemAndAmount, false, false));
+		drone.tasks.push(new DeliveryTask(findNearestCell(registry, entity, destinationCellContent), itemAndAmount));
+	}
+
+	bool tryScheduleConstructionTask(
+		entt::registry& registry,
+		entt::entity& entity,
+		world::Drone& drone,
+		std::pair<world::Cell*, world::IBuilding*>& cellAndBuilding
+	) {
+		std::vector<std::pair<std::shared_ptr<world::IItem>, world::Cell*>> pickupCells;
+		for (std::shared_ptr<world::IItem> item : cellAndBuilding.second->getResourcesRequiredToBuild().items)
+		{
+			world::CellContent* sourceCellContent = findPickupCellContent(registry, entity, drone, item, true);
+			if (sourceCellContent == nullptr)
+				return false;
+
+			// TODO: Check whether the found cell content stores enough items to fulfill the required resource demands.
+
+			pickupCells.push_back(std::make_pair(item->clone(), findNearestCell(registry, entity, sourceCellContent)));
+		}
+
+		for (std::pair<std::shared_ptr<world::IItem>, world::Cell*> itemAndCell : pickupCells)
+				drone.tasks.push(new PickupTask(itemAndCell.second, itemAndCell.first, true, true));
+		drone.tasks.push(new ConstructionTask(cellAndBuilding.first, cellAndBuilding.second));
+
+		return true;
+	}
+
+	void findTask(entt::registry& registry, entt::entity& entity, world::Drone& drone) {
 		while (!starvingConsumers.empty())
 		{
 			EntityAmount consumer = starvingConsumers.top();
@@ -338,28 +511,29 @@ namespace game::systems
 			world::CellContent* sourceCellContent = findPickupCellContent(registry, entity, drone, consumer.itemType, false);
 			if (sourceCellContent != nullptr)
 			{
-				drone.tasks.push(new PickupTask(findNearestCell(registry, entity, sourceCellContent), consumer.itemType, 10.0f, false, false));
-
-				world::CellContent* consumerCellContent = registry.get<world::CellContentComponent>(consumer.entity).cellContent;
-				drone.tasks.push(new DeliveryTask(findNearestCell(registry, entity, consumerCellContent)));
-
+				world::CellContent* destinationCellContent = registry.get<world::CellContentComponent>(consumer.entity).cellContent;
+				schedulePickupAndDeliveryTask(registry, entity, drone, consumer.itemType, sourceCellContent, destinationCellContent);
 				return;
 			}
 		}
 
+		bool constructionTaskScheduled = false;
+		std::vector<std::pair<world::Cell*, world::IBuilding*>> buildingsToReenqueue;
 		while (!buildingsToPlace.empty())
 		{
-			// TODO: Check whether all resources required to place the building can be taken from somewhere to ensure
-			// that the drone won't get stuck trying to get a resource.
-
-			std::pair<world::Cell*, world::IBuilding*>& cellAndBuilding = buildingsToPlace.front();
-			for (std::shared_ptr<world::IItem> item : cellAndBuilding.second->getResourcesRequiredToBuild().items)
-				drone.tasks.push(new PickupTask(nullptr, item, item->amount, true, true));
-			drone.tasks.push(new ConstructionTask(cellAndBuilding.first, cellAndBuilding.second));
+			std::pair<world::Cell*, world::IBuilding*> cellAndBuilding = buildingsToPlace.front();
 			buildingsToPlace.pop();
 
-			return;
+			constructionTaskScheduled = tryScheduleConstructionTask(registry, entity, drone, cellAndBuilding);
+			if (constructionTaskScheduled)
+				break;
+			else
+				buildingsToReenqueue.push_back(cellAndBuilding);
 		}
+		for (std::pair<world::Cell*, world::IBuilding*>& cellAndBuilding : buildingsToReenqueue)
+			buildingsToPlace.push(cellAndBuilding);
+		if (constructionTaskScheduled)
+			return;
 
 		while (!buildingsToRemove.empty())
 		{
@@ -374,16 +548,11 @@ namespace game::systems
 			EntityAmount producer = filledProducers.top();
 			filledProducers.pop();
 
-			if (!deliveryGoalsItemwise[producer.itemType].empty())
+			world::CellContent* destinationCellContent = findDeliveryCellContent(registry, entity, drone, producer.itemType);
+			if (destinationCellContent != nullptr)
 			{
-				EntityAmount destination = deliveryGoalsItemwise[producer.itemType].top();
-				deliveryGoalsItemwise[producer.itemType].pop();
-
-				world::CellContent* producerCellContent = registry.get<world::CellContentComponent>(producer.entity).cellContent;
-				drone.tasks.push(new PickupTask(findNearestCell(registry, entity, producerCellContent), producer.itemType, 10.0f, false, false));
-
-				world::CellContent* destinationCellContent = registry.get<world::CellContentComponent>(destination.entity).cellContent;
-				drone.tasks.push(new DeliveryTask(findNearestCell(registry, entity, destinationCellContent)));
+				world::CellContent* sourceCellContent = registry.get<world::CellContentComponent>(producer.entity).cellContent;
+				schedulePickupAndDeliveryTask(registry, entity, drone, producer.itemType, sourceCellContent, destinationCellContent);
 
 				return;
 			}
@@ -452,20 +621,20 @@ namespace game::systems
 		else if (!inventory.items.empty())
 		{
 			// Drone has no goal, but stores items. Try to find a place where these items can be dropped of.
-			auto item = *inventory.items.begin();
-			if (!deliveryGoalsItemwise[item].empty())
+			for (std::shared_ptr<world::IItem> item : inventory.items)
 			{
-				entt::entity entityToDeliverItemTo = deliveryGoalsItemwise[item].top().entity;
-				deliveryGoalsItemwise[item].pop();
-
-				auto cellContentComponent = registry.get<world::CellContentComponent>(entityToDeliverItemTo);
-				drone.tasks.push(new DeliveryTask(findNearestCell(registry, entity, cellContentComponent.cellContent)));
+				world::CellContent* destinationCellContent = findDeliveryCellContent(registry, entity, drone, item);
+				if (destinationCellContent != nullptr)
+				{
+					drone.tasks.push(new DeliveryTask(findNearestCell(registry, entity, destinationCellContent), item));
+					break;
+				}
 			}
 		}
 		else
 		{
 			// Drone has no goal and doesn't store items. Search for a new goal.
-			findGoal(registry, entity, drone);
+			findTask(registry, entity, drone);
 		}
 
 		// Let the drone wobble slightly up and down to make its flight look more realistic.
@@ -488,52 +657,29 @@ namespace game::systems
 		for (IResourceProcessor* resourceProcessor : resourceProcessors)
 			resourceProcessor->processResources(registry, deltaTime);
 
-		deliveryGoalsItemwise.clear();
-		filledStoragesItemwise.clear();
-		filledProducersItemwise.clear();
-		harvestablesItemwise.clear();
 		filledProducers = std::priority_queue<EntityAmount, std::vector<EntityAmount>, MaxPriorityQueue>();
 		starvingConsumers = std::priority_queue<EntityAmount, std::vector<EntityAmount>, MinPriorityQueue>();
 
 		for (std::shared_ptr<world::IItem> itemType : itemTypes)
 		{
 			itemType->getConsumes()->iterateAllEntities(registry, std::function([&registry, itemType](entt::entity& entity, world::IConsumes* consumes) {
-				std::shared_ptr<world::IItem> storedItem = registry.get<world::Inventory>(entity).getItem(itemType);
-				float storedAmount = storedItem != nullptr ? storedItem->amount : 0.0f;
-
-				EntityAmount entityAmount{ entity, itemType, storedAmount };
-				deliveryGoalsItemwise[itemType].push(entityAmount);
-				if (storedAmount <= 10.0f)
-					starvingConsumers.push(entityAmount);
-			}));
-
-			itemType->getStores()->iterateAllEntities(registry, std::function([&registry, itemType](entt::entity& entity, world::IStores* stores) {
-				std::shared_ptr<world::IItem> storedItem = registry.get<world::Inventory>(entity).getItem(itemType);
-				float storedAmount = storedItem != nullptr ? storedItem->amount : 0.0f;
-
-				EntityAmount entityAmount{ entity, itemType, storedAmount };
-				deliveryGoalsItemwise[itemType].push(entityAmount);
-				if (storedAmount != 0.0f)
-					filledStoragesItemwise[itemType].push(entityAmount);
+				float plannedAmount = registry.get<world::Inventory>(entity).getStoredAmount(itemType);
+				auto& found = plannedInventoryChanges.find(entity);
+				if (found != plannedInventoryChanges.end())
+					plannedAmount += found->second.plannedDeliveries.getStoredAmount(itemType);
+				
+				if (plannedAmount <= world::RESOURCE_MANAGEMENT_RESUPPLY_CONSUMER_UNDER)
+					starvingConsumers.push(EntityAmount{ entity, itemType, plannedAmount });
 			}));
 
 			itemType->getProduces()->iterateAllEntities(registry, std::function([&registry, itemType](entt::entity& entity, world::IProduces* produces) {
-				std::shared_ptr<world::IItem> storedItem = registry.get<world::Inventory>(entity).getItem(itemType);
-				if (storedItem == nullptr || storedItem->amount == 0.0f)
-					return;
+				float plannedAmount = registry.get<world::Inventory>(entity).getStoredAmount(itemType);
+				auto& found = plannedInventoryChanges.find(entity);
+				if (found != plannedInventoryChanges.end())
+					plannedAmount -= found->second.plannedPickups.getStoredAmount(itemType);
 
-				EntityAmount entityAmount{ entity, itemType, storedItem->amount };
-				filledProducersItemwise[itemType].push(entityAmount);
-				filledProducers.push(entityAmount);
-			}));
-
-			itemType->getHarvestable()->iterateAllEntities(registry, std::function([&registry, itemType](entt::entity& entity, world::IHarvestable* harvestable) {
-				std::shared_ptr<world::IItem> storedItem = registry.get<world::Inventory>(entity).getItem(itemType);
-				if (storedItem == nullptr || storedItem->amount == 0.0f)
-					return;
-
-				EntityAmount entityAmount{ entity, itemType, storedItem->amount };
-				harvestablesItemwise[itemType].push(entityAmount);
+				if (plannedAmount >= world::RESOURCE_MANAGEMENT_EMPTY_PRODUCER_ABOVE)
+					filledProducers.push(EntityAmount{ entity, itemType, plannedAmount });
 			}));
 		}
 

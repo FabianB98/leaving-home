@@ -23,6 +23,8 @@ namespace game::world
 
 		virtual std::shared_ptr<IItem> clone() = 0;
 
+		virtual std::shared_ptr<IItem> clone(float clonedAmount) = 0;
+
 		virtual std::shared_ptr<IItem> split(float amountToSplit) = 0;
 
 		virtual IHarvestable* getHarvestable() = 0;
@@ -94,6 +96,15 @@ namespace game::world
 		void addItemTyped(float amount)
 		{
 			addItem(std::make_shared<T>(amount));
+		}
+
+		float getStoredAmount(std::shared_ptr<IItem> itemType)
+		{
+			auto& found = items.find(itemType);
+			if (found == items.end())
+				return 0.0f;
+			else
+				return (*found)->amount;
 		}
 
 		std::shared_ptr<IItem> getItem(std::shared_ptr<IItem> itemType)
