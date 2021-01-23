@@ -2,12 +2,14 @@
 
 namespace rendering::systems
 {
-	extern model::Mesh* lightVolume;
-	extern shading::Shader* phongShader;
-	extern std::shared_ptr<bounding_geometry::BoundingGeometry> lightCulling;
+	extern model::Mesh* pointLightVolume;
+	extern model::Mesh* spotLightVolume;
+	extern shading::Shader* phongShaderPoint;
+	extern shading::Shader* phongShaderSpot;
+	extern std::shared_ptr<bounding_geometry::BoundingGeometry> pointLightCulling;
+	extern std::shared_ptr<bounding_geometry::BoundingGeometry> spotLightCulling;
 
 	extern entt::observer transformObserver;
-	extern entt::observer pointLightObserver;
 
 	extern std::set<model::Mesh*> transformChanged;
 	extern std::unordered_map<model::Mesh*, std::pair<std::vector<glm::mat4>, std::vector<glm::mat3>>> meshTransforms;
@@ -90,8 +92,8 @@ namespace rendering::systems
 
 	void updatePointLights(entt::registry& registry)
 	{
-		auto& models = meshTransforms[lightVolume].first;
-		auto& normals = meshTransforms[lightVolume].second;
+		auto& models = meshTransforms[pointLightVolume].first;
+		auto& normals = meshTransforms[pointLightVolume].second;
 
 		models.clear();
 		normals.clear();
@@ -118,6 +120,50 @@ namespace rendering::systems
 			lightInfo[0] = pLight.intensity;
 			lightInfo[1] = lightPos;
 			lightInfo[2] = pLight.attenuation;
+
+			models.push_back(model);
+			normals.push_back(lightInfo);
+		}
+	}
+
+	void updateSpotLights(entt::registry& registry)
+	{
+		auto& models = meshTransforms[spotLightVolume].first;
+		auto& normals = meshTransforms[spotLightVolume].second;
+
+		models.clear();
+		normals.clear();
+
+		auto group = registry.group<components::SpotLight>(entt::get<components::MatrixTransform>);
+		for (auto entity : group) {
+			auto& sLight = group.get<components::SpotLight>(entity);
+			auto& transform = registry.get<components::MatrixTransform>(entity);
+			auto relationship = registry.try_get<components::Relationship>(entity);
+
+			glm::mat4& modelMatrix = relationship ? relationship->totalTransform : transform.getTransform();
+			entityToTransformIndexMap[entity] = models.size();
+			
+			glm::vec4 lightPosWorld = modelMatrix * glm::vec4(sLight.position, 1.f);
+			glm::vec4 dirWorld = modelMatrix * glm::vec4(sLight.direction, 0.f);
+			float radius = sLight.getRadius();
+			float xyScale = radius * tanf(sLight.fov);
+
+			glm::vec3 other;
+			if (dirWorld.x == 0.f) other = glm::vec3(1, 0, 0);
+			else other = glm::vec3(0, 1, 0);
+
+			glm::mat4 model = glm::inverse(glm::lookAt(glm::vec3(lightPosWorld), 
+				glm::vec3(lightPosWorld + dirWorld), glm::cross(glm::vec3(dirWorld), other)));
+			model = model * glm::scale(glm::vec3(xyScale, xyScale, radius));
+
+			glm::vec4 lightPos = viewMatrix * lightPosWorld;
+			glm::vec3 packedDir = sLight.packDirection(viewMatrix * dirWorld);
+
+			// fill the "normal" matrix with light info
+			glm::mat3 lightInfo;
+			lightInfo[0] = sLight.intensity;
+			lightInfo[1] = lightPos;
+			lightInfo[2] = packedDir;
 
 			models.push_back(model);
 			normals.push_back(lightInfo);
@@ -236,6 +282,7 @@ namespace rendering::systems
 
 		//if (pointLightObserver.size() != 0)
 		updatePointLights(registry);
+		updateSpotLights(registry);
 
 		// get directional light that casts the shadow
 		auto& shadowComp = registry.get<components::CastShadow>(shadowCameras[0]);
@@ -243,7 +290,6 @@ namespace rendering::systems
 
 		transformObserver.clear();
 		transformChanged.clear();
-		pointLightObserver.clear();
 
 		// Fill meshShaders with all meshes from meshTransforms and their shaders
 		meshShaders.clear();

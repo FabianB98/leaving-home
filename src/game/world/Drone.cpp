@@ -83,5 +83,12 @@ namespace game::world
 		rendering::systems::cullingRelationship(registry, droneEntity, rotor3Entity);
 		// Crate is not guaranteed to be fully included in the culling geometry of the drone. Therefore, it can't be a culling
 		// child of the drone.
+
+		entt::entity spotLight = registry.create();
+		registry.emplace<rendering::components::MatrixTransform>(spotLight, glm::mat4(1));
+		registry.emplace<rendering::components::Relationship>(spotLight);
+		registry.emplace<rendering::components::SpotLight>(spotLight, glm::vec3(80,50,50), glm::vec3(0), glm::vec3(0, -1, 0), 3.1416f / 12.f);
+
+		rendering::systems::relationship(registry, droneEntity, spotLight);
 	}
 }

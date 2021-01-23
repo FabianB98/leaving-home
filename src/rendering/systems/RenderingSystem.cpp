@@ -3,16 +3,18 @@
 namespace rendering::systems
 {
 	// Resources used for point lights and light volumes
-	model::Mesh* lightVolume;
-	shading::Shader* phongShader;
-	std::shared_ptr<bounding_geometry::BoundingGeometry> lightCulling;
+	model::Mesh* pointLightVolume;
+	model::Mesh* spotLightVolume;
+	shading::Shader* phongShaderPoint;
+	shading::Shader* phongShaderSpot;
+	std::shared_ptr<bounding_geometry::BoundingGeometry> pointLightCulling;
+	std::shared_ptr<bounding_geometry::BoundingGeometry> spotLightCulling;
 
 	// Handles additional uniforms during shader changes
 	ShaderManager* shaderManager;
 
 	// Observer for changed transform and light components
 	entt::observer transformObserver;
-	entt::observer pointLightObserver;
 
 	// Collections for mesh rendering
 	std::set<model::Mesh*> transformChanged;
@@ -78,11 +80,23 @@ namespace rendering::systems
 
 	void createdPointLight(entt::registry& registry, entt::entity entity)
 	{
-		registry.emplace_or_replace<components::CullingGeometry>(entity, lightCulling);
-		registry.emplace_or_replace<components::MeshRenderer>(entity, lightVolume);
+		registry.emplace_or_replace<components::CullingGeometry>(entity, pointLightCulling);
+		registry.emplace_or_replace<components::MeshRenderer>(entity, pointLightVolume);
 	}
 
 	void destroyedPointLight(entt::registry& registry, entt::entity entity)
+	{
+		registry.remove_if_exists<components::CullingGeometry>(entity);
+		registry.remove_if_exists<components::MeshRenderer>(entity);
+	}
+
+	void createdSpotLight(entt::registry& registry, entt::entity entity)
+	{
+		registry.emplace_or_replace<components::CullingGeometry>(entity, spotLightCulling);
+		registry.emplace_or_replace<components::MeshRenderer>(entity, spotLightVolume);
+	}
+
+	void destroyedSpotLight(entt::registry& registry, entt::entity entity)
 	{
 		registry.remove_if_exists<components::CullingGeometry>(entity);
 		registry.remove_if_exists<components::MeshRenderer>(entity);
@@ -92,17 +106,23 @@ namespace rendering::systems
 	{
 		shaderManager = manager;
 
-		lightVolume = new model::Mesh("lightVolume");
-		phongShader = new shading::Shader("deferred/phong");
-		lightCulling = std::make_shared<rendering::bounding_geometry::Sphere>(glm::vec3(0.f), 1.f,
+		pointLightVolume = new model::Mesh("lightVolume");
+		phongShaderPoint = new shading::Shader("deferred/phongPoint");
+		pointLightCulling = std::make_shared<rendering::bounding_geometry::Sphere>(glm::vec3(0.f), 1.f,
 			new rendering::bounding_geometry::Sphere::ObjectSpace);
+
+		spotLightVolume = new model::Mesh("lightCone");
+		phongShaderSpot = new shading::Shader("deferred/phongSpot");
+		spotLightCulling = std::make_shared<rendering::bounding_geometry::AABB>(glm::vec3(-1.f, -1.f, -1.f), glm::vec3(1.f, 1.f, 0.f),
+			new rendering::bounding_geometry::AABB::ObjectSpace);
 
 		registry.set<MeshShading>();
 		registry.set<Picking>();
 		registry.set<ShadowMapping>();
 
 		// default light volumes are always rendered with the default phong shader
-		registry.ctx<MeshShading>().shaders.insert(std::make_pair(lightVolume, phongShader));
+		registry.ctx<MeshShading>().shaders.insert(std::make_pair(pointLightVolume, phongShaderPoint));
+		registry.ctx<MeshShading>().shaders.insert(std::make_pair(spotLightVolume, phongShaderSpot));
 
 		registry.on_construct<components::MeshRenderer>().connect<&changedMeshRenderer>();
 		registry.on_destroy<components::MeshRenderer>().connect<&changedMeshRenderer>();
@@ -111,12 +131,8 @@ namespace rendering::systems
 		registry.on_construct<components::PointLight>().connect<&createdPointLight>();
 		registry.on_destroy<components::PointLight>().connect<&destroyedPointLight>();
 
-		pointLightObserver.connect(registry, 
-			entt::collector.update<components::PointLight>()
-			.group<components::PointLight>()
-			.update<components::MatrixTransform>()
-			.where<components::PointLight>());
-		entt::collector.update<components::PointLight>();
+		registry.on_construct<components::SpotLight>().connect<&createdSpotLight>();
+		registry.on_destroy<components::SpotLight>().connect<&destroyedSpotLight>();
 
 		registry.on_construct<components::CullingGeometry>().connect<&addedCullingGeometry>();
 		registry.on_destroy<components::CullingGeometry>().connect<&removedCullingGeometry>();
@@ -124,8 +140,10 @@ namespace rendering::systems
 
 	void cleanUpRenderingSystem(entt::registry& registry)
 	{
-		delete lightVolume;
-		delete phongShader;
+		delete pointLightVolume;
+		delete spotLightVolume;
+		delete phongShaderPoint;
+		delete phongShaderSpot;
 
 		registry.on_construct<components::MeshRenderer>().disconnect<&changedMeshRenderer>();
 		registry.on_destroy<components::MeshRenderer>().disconnect<&changedMeshRenderer>();
@@ -133,7 +151,9 @@ namespace rendering::systems
 
 		registry.on_construct<components::PointLight>().disconnect<&createdPointLight>();
 		registry.on_destroy<components::PointLight>().disconnect<&destroyedPointLight>();
-		pointLightObserver.disconnect();
+
+		registry.on_construct<components::SpotLight>().disconnect<&createdSpotLight>();
+		registry.on_destroy<components::SpotLight>().disconnect<&destroyedSpotLight>();
 
 		registry.on_construct<components::CullingGeometry>().disconnect<&addedCullingGeometry>();
 		registry.on_destroy<components::CullingGeometry>().disconnect<&removedCullingGeometry>();
