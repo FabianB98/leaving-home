@@ -40,7 +40,7 @@ namespace game
 	entt::entity sun;
 	entt::entity starlight;
 
-	DayNightCycle daynight;
+	//DayNightCycle daynight;
 	rendering::Skybox* skybox;
 	rendering::shading::Shader* simple;
 	rendering::shading::Shader* waterShader;
@@ -84,6 +84,7 @@ namespace game
 		using namespace rendering::components;
 
 		auto& registry = renderingEngine->getRegistry();
+		registry.set<DayNightCycle>();
 
 		wrld = new world::World(256, registry, terrainShader, waterShader);
 		int worldSize = 8;
@@ -186,6 +187,7 @@ namespace game
 		wrld->update();
 
 		auto& registry = renderingEngine->getRegistry();
+		auto& daynight = registry.ctx<DayNightCycle>();
 
 		systems::updateResourceProcessingSystem(registry, deltaTime, wrld->getHeightGenerator());
 
@@ -225,6 +227,7 @@ namespace game
 	
 	void Game::render(rendering::RenderingEngine* renderingEngine)
 	{
+		auto& daynight = renderingEngine->getRegistry().ctx<DayNightCycle>();
 		float time = daynight.getTime();
 
 		skybox->use();

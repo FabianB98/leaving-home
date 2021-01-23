@@ -798,8 +798,10 @@ namespace game::systems
 
 		// Update the drone's light if it pursues a task
 		bool on = !drone.tasks.empty();
-		registry.patch<rendering::components::SpotLight>(drone.spotLightEntity, [on](auto& spotLight) {
-			spotLight.intensity = glm::vec3(80, 50, 50) * (on ? 1.f : 0.f);
+		auto& daynight = registry.ctx<DayNightCycle>();
+		float brightness = .25f + .75f * (1.f - daynight.getBrightness());
+		registry.patch<rendering::components::SpotLight>(drone.spotLightEntity, [on, brightness](auto& spotLight) {
+			spotLight.intensity = glm::vec3(50, 50, 50) * (on ? brightness : 0.f);
 		});
 
 		// Update the rotation of the drone's rotors.
