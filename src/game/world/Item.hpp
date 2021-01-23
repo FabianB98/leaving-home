@@ -51,6 +51,16 @@ namespace game::world
 			systems::registerItemType(typeRepresentative);
 		}
 
+		std::shared_ptr<IItem> clone()
+		{
+			return std::make_shared<T>(amount);
+		}
+
+		std::shared_ptr<IItem> clone(float clonedAmount)
+		{
+			return std::make_shared<T>(clonedAmount);
+		}
+
 		std::shared_ptr<IItem> split(float amountToSplit)
 		{
 			float resultAmount;

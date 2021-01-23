@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "Chunk.hpp"
+#include "Inventory.hpp"
 
 namespace game::world
 {
@@ -311,6 +312,29 @@ namespace game::world
 
 		virtual void placeBuildingOfThisTypeOnCell(Cell* cell) = 0;
 
+		virtual const Inventory& getResourcesRequiredToBuild() = 0;
+
+		virtual const Inventory& getResourcesObtainedByRemoval() = 0;
+
+		const Inventory _getResourcesObtainedByRemoval(Cell* cell)
+		{
+			const Inventory& resourcesPerHeight = getResourcesObtainedByRemoval();
+
+			unsigned int height = 0;
+			auto found = heightPerCell.find(cell);
+			if (found != heightPerCell.end())
+				height = found->second;
+
+			Inventory result = Inventory();
+			for (const std::shared_ptr<IItem>& item : resourcesPerHeight.items)
+			{
+				std::shared_ptr<IItem> clonedItem = item->clone();
+				clonedItem->amount *= height;
+				result.items.insert(clonedItem);
+			}
+			return result;
+		}
+
 		const std::unordered_map<Cell*, unsigned int>& getHeightPerCell()
 		{
 			return heightPerCell;
@@ -340,5 +364,7 @@ namespace game::world
 		virtual void _removedFromCell(Cell* cell) = 0;
 
 		virtual void update() = 0;
+
+		virtual void inventoryUpdated() = 0;
 	};
 }

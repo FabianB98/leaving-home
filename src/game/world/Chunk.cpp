@@ -1228,6 +1228,16 @@ namespace game::world
 		}
 	}
 
+	Inventory CellContent::getResourcesObtainedByRemoval(Cell* cell)
+	{
+		Inventory resourcesObtainedByRemoval = _getResourcesObtainedByRemoval(cell);
+
+		if (getCells().size() == 1)
+			resourcesObtainedByRemoval.addItems(getRegistry()->get<Inventory>(getEntity()));
+
+		return resourcesObtainedByRemoval;
+	}
+
 	std::string CellContent::getInventoryContentsString()
 	{
 		return registry->get<Inventory>(entity).getStoredItemsString();

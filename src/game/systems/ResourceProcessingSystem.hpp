@@ -3,6 +3,8 @@
 #include <limits>
 #include <math.h>
 #include <queue>
+#include <sstream>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -30,7 +32,7 @@ namespace game::systems
 
 	void enqueueDestruction(world::Cell* cell);
 
-	void attachRessourceProcessor(IResourceProcessor* resourceProcessor);
+	void attachResourceProcessor(IResourceProcessor* resourceProcessor);
 
 	void registerItemType(std::shared_ptr<world::IItem> item);
 }

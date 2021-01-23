@@ -448,6 +448,8 @@ namespace game::world
 
 		void enqueueUpdate();
 
+		virtual void inventoryUpdated() = 0;
+
 		const std::unordered_map<Cell*, CellContentCellData>& getCells()
 		{
 			return cells;
@@ -480,6 +482,8 @@ namespace game::world
 			return description;
 		}
 
+		Inventory getResourcesObtainedByRemoval(Cell* cell);
+
 		std::string getInventoryContentsString();
 
 	protected:
@@ -494,6 +498,8 @@ namespace game::world
 		virtual void _removedFromCell(Cell* cell) = 0;
 
 		virtual void update() = 0;
+
+		virtual const Inventory _getResourcesObtainedByRemoval(Cell* cell) = 0;
 
 		void setMeshData(Cell* cell, std::shared_ptr<rendering::model::MeshData> meshData);
 

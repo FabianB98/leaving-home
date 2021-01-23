@@ -3,10 +3,14 @@
 namespace game::world
 {
 	static const std::string testBuildingTypeName = "TestBuilding";
-	static const std::string testBuildingDescription = "A building which consumes one unit of wood each 5 seconds. If it doesn't have any wood to consume, it will get destroyed over time.";
+	static const std::string testBuildingDescription = "A building which consumes one unit of wood each 15 seconds. If it doesn't have any wood to consume, it will get destroyed over time.";
+	static const Inventory testBuildingConstructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(5.0f) });
+	static const Inventory testBuildingDestructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(2.5f) });
 
 	static const std::string otherTestBuildingTypeName = "OtherTestBuilding";
 	static const std::string otherTestBuildingDescription = "A building which produces one unit of wood each 5 seconds.";
+	static const Inventory otherTestBuildingConstructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(4.0f) });
+	static const Inventory otherTestBuildingDestructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(2.0f) });
 
 	static std::shared_ptr<BuildingPieceSet> testBuildingPieceSet = std::make_shared<BuildingPieceSet>(
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
@@ -155,7 +159,7 @@ namespace game::world
 			for (auto& entity : registry.view<TestBuildingComponent>())
 			{
 				registry.patch<TestBuildingComponent>(entity, [&registry, entity, time](auto& building) {
-					if (time - building.lastConsumed > 5.0f)
+					if (time - building.lastConsumed > 15.0f)
 					{
 						building.lastConsumed = time;
 
@@ -194,7 +198,7 @@ namespace game::world
 
 	void TestBuilding::__addedToCell(Cell* cell)
 	{
-		game::systems::attachRessourceProcessor(&testBuildingResourceProcessor);
+		game::systems::attachResourceProcessor(&testBuildingResourceProcessor);
 
 		if (!getRegistry()->has<TestBuildingComponent>(getEntity()))
 		{
@@ -208,6 +212,21 @@ namespace game::world
 		// Nothing to do here...
 	}
 
+	void TestBuilding::inventoryUpdated()
+	{
+		// Nothing to do here...
+	}
+
+	const Inventory& TestBuilding::getResourcesRequiredToBuild()
+	{
+		return testBuildingConstructionResources;
+	}
+
+	const Inventory& TestBuilding::getResourcesObtainedByRemoval()
+	{
+		return testBuildingDestructionResources;
+	}
+
 	OtherTestBuilding::OtherTestBuilding(
 		IBuilding* original,
 		std::unordered_set<Cell*> cellsToCopy
@@ -215,7 +234,7 @@ namespace game::world
 
 	void OtherTestBuilding::__addedToCell(Cell* cell)
 	{
-		game::systems::attachRessourceProcessor(&testBuildingResourceProcessor);
+		game::systems::attachResourceProcessor(&testBuildingResourceProcessor);
 
 		if (!getRegistry()->has<OtherTestBuildingComponent>(getEntity()))
 		{
@@ -227,5 +246,20 @@ namespace game::world
 	void OtherTestBuilding::__removedFromCell(Cell* cell)
 	{
 		// Nothing to do here...
+	}
+
+	void OtherTestBuilding::inventoryUpdated()
+	{
+		// Nothing to do here...
+	}
+
+	const Inventory& OtherTestBuilding::getResourcesRequiredToBuild()
+	{
+		return otherTestBuildingConstructionResources;
+	}
+
+	const Inventory& OtherTestBuilding::getResourcesObtainedByRemoval()
+	{
+		return otherTestBuildingDestructionResources;
 	}
 }

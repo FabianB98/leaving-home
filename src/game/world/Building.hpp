@@ -29,6 +29,12 @@ namespace game::world
 			cell->placeBuilding<BuildingType>();
 		}
 
+		virtual void inventoryUpdated() = 0;
+
+		virtual const Inventory& getResourcesRequiredToBuild() = 0;
+
+		virtual const Inventory& getResourcesObtainedByRemoval() = 0;
+
 	protected:
 		Building(
 			const std::string& _typeName,
@@ -344,6 +350,12 @@ namespace game::world
 
 		virtual ~TestBuilding() {}
 
+		void inventoryUpdated();
+
+		const Inventory& getResourcesRequiredToBuild();
+
+		const Inventory& getResourcesObtainedByRemoval();
+
 	protected:
 		void __addedToCell(Cell* cell);
 
@@ -356,6 +368,12 @@ namespace game::world
 		OtherTestBuilding(IBuilding* original, std::unordered_set<Cell*> cellsToCopy);
 
 		virtual ~OtherTestBuilding() {}
+
+		void inventoryUpdated();
+
+		const Inventory& getResourcesRequiredToBuild();
+
+		const Inventory& getResourcesObtainedByRemoval();
 
 	protected:
 		void __addedToCell(Cell* cell);

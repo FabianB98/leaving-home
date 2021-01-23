@@ -5,6 +5,8 @@ namespace game::world
 	std::default_random_engine generator;
 	std::uniform_real_distribution<float> randomFloat(0.0f, 1.0f);
 
+	static const Inventory emptyInventory = Inventory();
+
 	static const std::string treeTypeName = "Tree";
 	static const std::string treeDescription = "A tree is a reliable source of wood. What else did you expect?";
 	static std::shared_ptr<rendering::model::MeshData> treeMeshData = std::make_shared<rendering::model::MeshData>("tree");
@@ -28,6 +30,29 @@ namespace game::world
 	void Resource::_removedFromCell(Cell* cell)
 	{
 		__removedFromCell(cell);
+	}
+
+	void Resource::inventoryUpdated()
+	{
+		// If the resource's inventory is empty, the resource was fully harvested, so it needs to be removed from the world.
+		Inventory& inventory = getRegistry()->get<Inventory>(getEntity());
+		if (inventory.items.empty())
+		{
+			// Copying the cells is needed because the removal will (a) modify the cells map which would cause an iteration over
+			// a changed map and (b) eventually delete this object which could cause null pointer exceptions and illegal memory
+			// accesses.
+			std::vector<Cell*> cellsToRemoveFrom;
+			for (auto& cell : getCells())
+				cellsToRemoveFrom.push_back(cell.first);
+
+			for (Cell* cell : cellsToRemoveFrom)
+				cell->setContent(nullptr);
+		}
+	}
+
+	const Inventory Resource::_getResourcesObtainedByRemoval(Cell* cell)
+	{
+		return emptyInventory;
 	}
 
 	Tree::Tree() : Resource(treeTypeName, treeDescription, randomFloat(generator) > 0.5f ? treeMeshData : treeMeshData2) {}
