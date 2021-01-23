@@ -24,6 +24,12 @@ namespace game::world
 
 		virtual ~Building() {}
 
+		bool canBePlacedOnCell(Cell* cell)
+		{
+			CellContent* existingContent = cell->getContent();
+			return existingContent == nullptr || (dynamic_cast<BuildingType*>(existingContent) != nullptr);
+		}
+
 		void placeBuildingOfThisTypeOnCell(Cell* cell)
 		{
 			cell->placeBuilding<BuildingType>();

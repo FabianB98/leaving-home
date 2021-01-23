@@ -310,6 +310,8 @@ namespace game::world
 
 		virtual ~IBuilding() {}
 
+		virtual bool canBePlacedOnCell(Cell* cell) = 0;
+
 		virtual void placeBuildingOfThisTypeOnCell(Cell* cell) = 0;
 
 		virtual const Inventory& getResourcesRequiredToBuild() = 0;

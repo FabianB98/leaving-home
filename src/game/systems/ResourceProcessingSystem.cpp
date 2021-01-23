@@ -421,7 +421,7 @@ namespace game::systems
 			world::Drone& drone,
 			world::Inventory& inventory
 		) {
-			return true;
+			return buildingType->canBePlacedOnCell(destination);
 		}
 
 		bool destinationReached(
@@ -631,11 +631,14 @@ namespace game::systems
 			std::pair<world::Cell*, world::IBuilding*> cellAndBuilding = buildingsToPlace.front();
 			buildingsToPlace.pop();
 
-			constructionTaskScheduled = tryScheduleConstructionTask(registry, entity, drone, cellAndBuilding);
-			if (constructionTaskScheduled)
-				break;
-			else
-				buildingsToReenqueue.push_back(cellAndBuilding);
+			if (cellAndBuilding.second->canBePlacedOnCell(cellAndBuilding.first))
+			{
+				constructionTaskScheduled = tryScheduleConstructionTask(registry, entity, drone, cellAndBuilding);
+				if (constructionTaskScheduled)
+					break;
+				else
+					buildingsToReenqueue.push_back(cellAndBuilding);
+			}
 		}
 
 		for (std::pair<world::Cell*, world::IBuilding*>& cellAndBuilding : buildingsToReenqueue)
@@ -844,6 +847,9 @@ namespace game::systems
 
 	void enqueueConstruction(world::Cell* cell, world::IBuilding* buildingType)
 	{
+		if (!buildingType->canBePlacedOnCell(cell))
+			return;
+
 		buildingsToPlace.push(std::make_pair(cell, buildingType));
 	}
 
