@@ -16,6 +16,7 @@
 #include "../components/Camera.hpp"
 #include "../components/CullingGeometry.hpp"
 #include "../bounding_geometry/Sphere.hpp"
+#include "../bounding_geometry/AABB.hpp"
 #include "../components/MeshRenderer.hpp"
 #include "../components/Transform.hpp"
 #include "../components/Relationship.hpp"

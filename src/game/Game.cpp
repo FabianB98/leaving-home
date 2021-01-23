@@ -96,6 +96,7 @@ namespace game
 
 		world::Drone::spawnNewDrone(registry, glm::vec3(0.0f, wrld->getHeightGenerator().getHeight(0.0f, 0.0f) + world::DRONE_FLIGHT_HEIGHT, 0.0f));
 		world::Drone::spawnNewDrone(registry, glm::vec3(10.0f, wrld->getHeightGenerator().getHeight(10.0f, 10.0f) + world::DRONE_FLIGHT_HEIGHT, 10.0f));
+		world::Drone::spawnNewDrone(registry, glm::vec3(10.0f, wrld->getHeightGenerator().getHeight(10.0f, 10.0f) + world::DRONE_FLIGHT_HEIGHT, 10.0f));
 
 		float width = renderingEngine->getFramebufferWidth();
 		float height = renderingEngine->getFramebufferHeight();
