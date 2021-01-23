@@ -22,7 +22,7 @@ namespace game::world
 
 		void inventoryUpdated();
 
-		const Inventory getResourcesObtainedByRemoval(Cell* cell);
+		const Inventory _getResourcesObtainedByRemoval(Cell* cell);
 
 	protected:
 		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;

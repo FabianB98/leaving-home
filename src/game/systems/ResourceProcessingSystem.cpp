@@ -398,6 +398,11 @@ namespace game::systems
 			plannedDelivery.execute(registry, entity, destination->getContent()->getEntity());
 			return true;
 		}
+
+		void cancel(entt::registry& registry)
+		{
+			plannedDelivery.cancel(registry);
+		}
 	};
 
 	struct ConstructionTask : public world::DroneTask
@@ -460,11 +465,8 @@ namespace game::systems
 		) {
 			world::CellContent* destinationContent = destination->getContent();
 			inventory.addItems(destinationContent->getResourcesObtainedByRemoval(destination));
-			if (destinationContent->getCells().size() == 1)
-			{
-				inventory.addItems(registry.get<world::Inventory>(destinationContent->getEntity()));
-				destinationContent->inventoryUpdated();
-			}
+
+			destinationContent->inventoryUpdated();
 			drone.inventoryUpdated(registry, entity, inventory);
 
 			destination->setContent(nullptr);
@@ -521,8 +523,8 @@ namespace game::systems
 		world::Cell* lastCell = nullptr;
 		for (std::shared_ptr<world::IItem> item : cellAndBuilding.second->getResourcesRequiredToBuild().items)
 		{
-			float remainingAmountToPickup = item->amount;
-			while (remainingAmountToPickup != 0.0f)
+			float remainingAmountToPickup = item->amount - registry.get<world::Inventory>(entity).getStoredAmount(item);
+			while (remainingAmountToPickup > 0.0f)
 			{
 				world::CellContent* sourceCellContent = findPickupCellContent(registry, entity, drone, item, true);
 				if (sourceCellContent == nullptr)
@@ -554,7 +556,54 @@ namespace game::systems
 		return true;
 	}
 
-	void findTask(entt::registry& registry, entt::entity& entity, world::Drone& drone) {
+	bool tryScheduleDestructionTask(entt::registry& registry, entt::entity& entity, world::Drone& drone, world::Cell* cell)
+	{
+		world::CellContent* destinationContent = cell->getContent();
+		world::Inventory resourcesObtainedByRemoval = destinationContent->getResourcesObtainedByRemoval(cell);
+
+		std::vector<DeliveryTask*> deliveryTasks;
+		world::Cell* lastCell = cell;
+		for (std::shared_ptr<world::IItem> item : resourcesObtainedByRemoval.items)
+		{
+			world::CellContent* destinationCellContent = findDeliveryCellContent(registry, entity, drone, item);
+			if (destinationCellContent == nullptr)
+			{
+				for (DeliveryTask* deliveryTask : deliveryTasks)
+				{
+					deliveryTask->cancel(registry);
+					delete deliveryTask;
+				}
+				return false;
+
+				lastCell = findNearestCell(lastCell, destinationCellContent);
+				deliveryTasks.push_back(new DeliveryTask(lastCell, item));
+			}
+		}
+
+		drone.tasks.push(new DestructionTask(cell));
+		for (DeliveryTask* deliveryTask : deliveryTasks)
+			drone.tasks.push(deliveryTask);
+
+		return true;
+	}
+
+	bool tryFindTaskToEmptyInventory(entt::registry& registry, entt::entity& entity, world::Drone& drone, world::Inventory& inventory)
+	{
+		for (std::shared_ptr<world::IItem> item : inventory.items)
+		{
+			world::CellContent* destinationCellContent = findDeliveryCellContent(registry, entity, drone, item);
+			if (destinationCellContent != nullptr)
+			{
+				drone.tasks.push(new DeliveryTask(findNearestCell(registry, entity, destinationCellContent), item));
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool tryFindTaskForStarvingConsumer(entt::registry& registry, entt::entity& entity, world::Drone& drone)
+	{
 		while (!starvingConsumers.empty())
 		{
 			EntityAmount consumer = starvingConsumers.top();
@@ -565,12 +614,18 @@ namespace game::systems
 			{
 				world::CellContent* destinationCellContent = registry.get<world::CellContentComponent>(consumer.entity).cellContent;
 				schedulePickupAndDeliveryTask(registry, entity, drone, consumer.itemType, sourceCellContent, destinationCellContent);
-				return;
+				return true;
 			}
 		}
 
+		return false;
+	}
+
+	bool tryFindConstructionTask(entt::registry& registry, entt::entity& entity, world::Drone& drone)
+	{
 		bool constructionTaskScheduled = false;
 		std::vector<std::pair<world::Cell*, world::IBuilding*>> buildingsToReenqueue;
+
 		while (!buildingsToPlace.empty())
 		{
 			std::pair<world::Cell*, world::IBuilding*> cellAndBuilding = buildingsToPlace.front();
@@ -582,19 +637,38 @@ namespace game::systems
 			else
 				buildingsToReenqueue.push_back(cellAndBuilding);
 		}
+
 		for (std::pair<world::Cell*, world::IBuilding*>& cellAndBuilding : buildingsToReenqueue)
 			buildingsToPlace.push(cellAndBuilding);
-		if (constructionTaskScheduled)
-			return;
+		
+		return constructionTaskScheduled;
+	}
+
+	bool tryFindDestructionTask(entt::registry& registry, entt::entity& entity, world::Drone& drone)
+	{
+		bool destructionTaskScheduled = false;
+		std::vector<world::Cell*> cellsToReenqueue;
 
 		while (!buildingsToRemove.empty())
 		{
-			drone.tasks.push(new DestructionTask(buildingsToRemove.front()));
+			world::Cell* cell = buildingsToRemove.front();
 			buildingsToRemove.pop();
 
-			return;
+			destructionTaskScheduled = tryScheduleDestructionTask(registry, entity, drone, cell);
+			if (destructionTaskScheduled)
+				break;
+			else
+				cellsToReenqueue.push_back(cell);
 		}
 
+		for (world::Cell* cell : cellsToReenqueue)
+			buildingsToRemove.push(cell);
+
+		return false;
+	}
+
+	bool tryFindTaskForFilledProducer(entt::registry& registry, entt::entity& entity, world::Drone& drone)
+	{
 		while (!filledProducers.empty())
 		{
 			EntityAmount producer = filledProducers.top();
@@ -606,8 +680,90 @@ namespace game::systems
 				world::CellContent* sourceCellContent = registry.get<world::CellContentComponent>(producer.entity).cellContent;
 				schedulePickupAndDeliveryTask(registry, entity, drone, producer.itemType, sourceCellContent, destinationCellContent);
 
-				return;
+				return true;
 			}
+		}
+
+		return false;
+	}
+
+	void tryFindTask(entt::registry& registry, entt::entity& entity, world::Drone& drone, world::Inventory& inventory) {
+		if (tryFindTaskToEmptyInventory(registry, entity, drone, inventory))
+			return;
+
+		if (tryFindTaskForStarvingConsumer(registry, entity, drone))
+			return;
+
+		if (tryFindConstructionTask(registry, entity, drone))
+			return;
+
+		if (tryFindDestructionTask(registry, entity, drone))
+			return;
+
+		tryFindTaskForFilledProducer(registry, entity, drone);
+	}
+
+	void pursueTask(
+		entt::registry& registry,
+		entt::entity& entity,
+		world::Drone& drone,
+		world::DroneTask* task,
+		world::Inventory& inventory,
+		rendering::components::EulerComponentwiseTransform& transform,
+		double deltaTime
+	) {
+		glm::vec2 destination = task->destination->getRelaxedPosition();
+		glm::vec2 currentPosition = glm::vec2(transform.getTranslation().x, transform.getTranslation().z);
+		if (currentPosition == destination)
+		{
+			// Drone has reached its destination. Perform the intended action.
+			if (task->destinationReached(registry, entity, drone, inventory))
+			{
+				// Action was performed successfully. We can now delete it from the drone's tasks.
+				drone.tasks.pop();
+				delete task;
+			}
+		}
+		else
+		{
+			// Drone has not yet reached its destination. Move towards the destination position.
+			glm::vec2 deltaToDestination = destination - currentPosition;
+			glm::vec2 direction = glm::normalize(deltaToDestination);
+			float distanceToDestination = glm::length(deltaToDestination);
+
+			float movementLength = world::DRONE_MOVEMENT_SPEED * (float)deltaTime;
+			if (movementLength > distanceToDestination)
+				movementLength = distanceToDestination;
+
+			glm::vec2 deltaPos = direction * movementLength;
+			glm::vec3 translation = transform.getTranslation();
+			glm::vec2 newPos = glm::vec2(translation.x, translation.z) + deltaPos;
+			transform.setTranslation(glm::vec3(newPos.x, 0.0f, newPos.y));
+			transform.setYaw(atan2(direction.x, direction.y));
+		}
+	}
+
+	void tryPursueTask(
+		entt::registry& registry,
+		entt::entity& entity,
+		world::Drone& drone,
+		world::Inventory& inventory,
+		rendering::components::EulerComponentwiseTransform& transform,
+		double deltaTime
+	) {
+		world::DroneTask* task = drone.tasks.front();
+		if (task->checkAndUpdateDestination(registry, entity, drone, inventory))
+		{
+			// Task's destination is valid. Pursue the task by moving to the task's destination and performing the
+			// task's action.
+			pursueTask(registry, entity, drone, task, inventory, transform, deltaTime);
+		}
+		else
+		{
+			// The current task is no longer valid and can therefore be no longer pursued. Delete it from the
+			// drone's tasks and continue with the next task on the next update.
+			drone.tasks.pop();
+			delete task;
 		}
 	}
 
@@ -621,73 +777,10 @@ namespace game::systems
 		auto& transform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
 		auto& inventory = registry.get<world::Inventory>(entity);
 
-		if (!drone.tasks.empty())
-		{
-			// Drone has a task which needs to be pursued.
-			world::DroneTask* task = drone.tasks.front();
-			if (task->checkAndUpdateDestination(registry, entity, drone, inventory))
-			{
-				// Task is still valid and therefore needs to be pursued.
-				if (task->destination != nullptr)
-				{
-					// Task's destination is valid. Move to the destination and perform the task's action.
-					glm::vec2 destination = task->destination->getRelaxedPosition();
-					glm::vec2 currentPosition = glm::vec2(transform.getTranslation().x, transform.getTranslation().z);
-					if (currentPosition == destination)
-					{
-						// Drone has reached its destination. Perform the intended action.
-						if (task->destinationReached(registry, entity, drone, inventory))
-						{
-							// Action was performed successfully. We can now delete it from the drone's tasks.
-							drone.tasks.pop();
-							delete task;
-						}
-					}
-					else
-					{
-						// Drone has not yet reached its destination. Move towards the destination position.
-						glm::vec2 deltaToDestination = destination - currentPosition;
-						glm::vec2 direction = glm::normalize(deltaToDestination);
-						float distanceToDestination = glm::length(deltaToDestination);
-
-						float movementLength = world::DRONE_MOVEMENT_SPEED * (float)deltaTime;
-						if (movementLength > distanceToDestination)
-							movementLength = distanceToDestination;
-
-						glm::vec2 deltaPos = direction * movementLength;
-						glm::vec3 translation = transform.getTranslation();
-						glm::vec2 newPos = glm::vec2(translation.x, translation.z) + deltaPos;
-						transform.setTranslation(glm::vec3(newPos.x, 0.0f, newPos.y));
-						transform.setYaw(atan2(direction.x, direction.y));
-					}
-				}
-			}
-			else
-			{
-				// The current task is no longer valid and can therefore be no longer pursued. Delete it from the
-				// drone's tasks and continue with the next task on the next update.
-				drone.tasks.pop();
-				delete task;
-			}
-		}
-		else if (!inventory.items.empty())
-		{
-			// Drone has no goal, but stores items. Try to find a place where these items can be dropped of.
-			for (std::shared_ptr<world::IItem> item : inventory.items)
-			{
-				world::CellContent* destinationCellContent = findDeliveryCellContent(registry, entity, drone, item);
-				if (destinationCellContent != nullptr)
-				{
-					drone.tasks.push(new DeliveryTask(findNearestCell(registry, entity, destinationCellContent), item));
-					break;
-				}
-			}
-		}
+		if (drone.tasks.empty())
+			tryFindTask(registry, entity, drone, inventory);
 		else
-		{
-			// Drone has no goal and doesn't store items. Search for a new goal.
-			findTask(registry, entity, drone);
-		}
+			tryPursueTask(registry, entity, drone, inventory, transform, deltaTime);
 
 		// Let the drone wobble slightly up and down to make its flight look more realistic.
 		double time = glfwGetTime();

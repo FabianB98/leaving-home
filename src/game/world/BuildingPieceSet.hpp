@@ -316,7 +316,7 @@ namespace game::world
 
 		virtual const Inventory& getResourcesObtainedByRemoval() = 0;
 
-		const Inventory getResourcesObtainedByRemoval(Cell* cell)
+		const Inventory _getResourcesObtainedByRemoval(Cell* cell)
 		{
 			const Inventory& resourcesPerHeight = getResourcesObtainedByRemoval();
 

@@ -50,7 +50,7 @@ namespace game::world
 		}
 	}
 
-	const Inventory Resource::getResourcesObtainedByRemoval(Cell* cell)
+	const Inventory Resource::_getResourcesObtainedByRemoval(Cell* cell)
 	{
 		return emptyInventory;
 	}

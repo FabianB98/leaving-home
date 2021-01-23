@@ -482,7 +482,7 @@ namespace game::world
 			return description;
 		}
 
-		virtual const Inventory getResourcesObtainedByRemoval(Cell* cell) = 0;
+		Inventory getResourcesObtainedByRemoval(Cell* cell);
 
 		std::string getInventoryContentsString();
 
@@ -498,6 +498,8 @@ namespace game::world
 		virtual void _removedFromCell(Cell* cell) = 0;
 
 		virtual void update() = 0;
+
+		virtual const Inventory _getResourcesObtainedByRemoval(Cell* cell) = 0;
 
 		void setMeshData(Cell* cell, std::shared_ptr<rendering::model::MeshData> meshData);
 
