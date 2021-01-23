@@ -654,11 +654,14 @@ namespace game::systems
 			world::Cell* cell = buildingsToRemove.front();
 			buildingsToRemove.pop();
 
-			destructionTaskScheduled = tryScheduleDestructionTask(registry, entity, drone, cell);
-			if (destructionTaskScheduled)
-				break;
-			else
-				cellsToReenqueue.push_back(cell);
+			if (cell->getContent() != nullptr)
+			{
+				destructionTaskScheduled = tryScheduleDestructionTask(registry, entity, drone, cell);
+				if (destructionTaskScheduled)
+					break;
+				else
+					cellsToReenqueue.push_back(cell);
+			}
 		}
 
 		for (world::Cell* cell : cellsToReenqueue)
