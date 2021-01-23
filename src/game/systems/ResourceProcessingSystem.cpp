@@ -159,18 +159,12 @@ namespace game::systems
 		}
 	};
 
-	world::Cell* findNearestCell(
-		entt::registry& registry,
-		entt::entity& entity,
-		world::CellContent* cellContent
-	) {
+	world::Cell* findNearestCell(glm::vec2 dronePosition, world::CellContent* destination)
+	{
 		world::Cell* result = nullptr;
 		float currentSquaredDistance = std::numeric_limits<float>::max();
 
-		auto& transform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
-		glm::vec2 dronePosition = glm::vec2(transform.getTranslation().x, transform.getTranslation().z);
-
-		for (auto cell : cellContent->getCells())
+		for (auto cell : destination->getCells())
 		{
 			float squaredDistanceToCell = glm::distance2(dronePosition, cell.first->getRelaxedPosition());
 			if (squaredDistanceToCell < currentSquaredDistance)
@@ -183,23 +177,36 @@ namespace game::systems
 		return result;
 	}
 
+	world::Cell* findNearestCell(world::Cell* startCell, world::CellContent* destination)
+	{
+		return findNearestCell(startCell->getRelaxedPosition(), destination);
+	}
+
+	world::Cell* findNearestCell(
+		entt::registry& registry,
+		entt::entity& entity,
+		world::CellContent* destination
+	) {
+		auto& transform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
+		glm::vec2 dronePosition = glm::vec2(transform.getTranslation().x, transform.getTranslation().z);
+
+		return findNearestCell(dronePosition, destination);
+	}
+
 	template <class ItemInteraction>
 	void findBestCandidate(
 		float& currentBestScore,
 		world::CellContent*& bestMatch,
 		entt::registry& registry,
-		entt::entity& entity,
+		glm::vec2 dronePos,
 		std::shared_ptr<world::IItem> item,
 		std::function<float(world::Inventory&, PlannedInventoryChanges*)>& getItemScore,
 		ItemInteraction* candidates
 	) {
-		auto& droneTransform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
-		glm::vec2 dronePos = glm::vec2(droneTransform.getTranslation().x, droneTransform.getTranslation().z);
-
-		candidates->iterateAllEntities(registry, std::function([&currentBestScore, &bestMatch, &registry, &entity, item, &getItemScore, dronePos](entt::entity& candidate, ItemInteraction* interaction) {
+		candidates->iterateAllEntities(registry, std::function([&currentBestScore, &bestMatch, &registry, item, &getItemScore, dronePos](entt::entity& candidate, ItemInteraction* interaction) {
 			// Calculate the distance from the drone to the candidate.
 			world::CellContent* candidateCellContent = registry.get<world::CellContentComponent>(candidate).cellContent;
-			world::Cell* nearestCell = findNearestCell(registry, entity, candidateCellContent);
+			world::Cell* nearestCell = findNearestCell(dronePos, candidateCellContent);
 			float distanceScore = -glm::distance(dronePos, nearestCell->getRelaxedPosition());
 
 			// Calculate the candidate's item score (i.e. how preferred the candidate would be selected based on the amount
@@ -214,7 +221,7 @@ namespace game::systems
 				return;
 
 			// Check if the current candidate is better than the current best, and update the current best accordingly.
-			float totalScore = distanceScore * world::RESOURCE_MANAGEMENT_CANDIDATE_PLANNING_DISTANCE_WEIGHT 
+			float totalScore = distanceScore * world::RESOURCE_MANAGEMENT_CANDIDATE_PLANNING_DISTANCE_WEIGHT
 				+ itemScore * world::RESOURCE_MANAGEMENT_CANDIDATE_PLANNING_ITEMS_WEIGHT;
 			if (totalScore > currentBestScore)
 			{
@@ -231,6 +238,9 @@ namespace game::systems
 		std::shared_ptr<world::IItem> item,
 		bool checkHarvestables
 	) {
+		auto& droneTransform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
+		glm::vec2 dronePos = glm::vec2(droneTransform.getTranslation().x, droneTransform.getTranslation().z);
+
 		auto getItemScore = std::function([item](world::Inventory& inventory, PlannedInventoryChanges* plannedChanges) -> float {
 			float stored = inventory.getStoredAmount(item);
 
@@ -247,11 +257,11 @@ namespace game::systems
 
 		float currentBestScore = std::numeric_limits<float>::lowest();
 		world::CellContent* bestMatch = nullptr;
-		findBestCandidate(currentBestScore, bestMatch, registry, entity, item, getItemScore, item->getProduces());
-		findBestCandidate(currentBestScore, bestMatch, registry, entity, item, getItemScore, item->getStores());
+		findBestCandidate(currentBestScore, bestMatch, registry, dronePos, item, getItemScore, item->getProduces());
+		findBestCandidate(currentBestScore, bestMatch, registry, dronePos, item, getItemScore, item->getStores());
 
 		if (checkHarvestables && bestMatch == nullptr)
-			findBestCandidate(currentBestScore, bestMatch, registry, entity, item, getItemScore, item->getHarvestable());
+			findBestCandidate(currentBestScore, bestMatch, registry, dronePos, item, getItemScore, item->getHarvestable());
 
 		return bestMatch;
 	}
@@ -262,6 +272,9 @@ namespace game::systems
 		world::Drone& drone,
 		std::shared_ptr<world::IItem> itemType
 	) {
+		auto& droneTransform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
+		glm::vec2 dronePos = glm::vec2(droneTransform.getTranslation().x, droneTransform.getTranslation().z);
+
 		auto getItemScore = std::function([itemType](world::Inventory& inventory, PlannedInventoryChanges* plannedChanges) -> float {
 			float stored = inventory.getStoredAmount(itemType);
 
@@ -277,7 +290,7 @@ namespace game::systems
 
 		float currentBestScore = std::numeric_limits<float>::lowest();
 		world::CellContent* bestMatch = nullptr;
-		findBestCandidate(currentBestScore, bestMatch, registry, entity, itemType, getItemScore, itemType->getConsumes());
+		findBestCandidate(currentBestScore, bestMatch, registry, dronePos, itemType, getItemScore, itemType->getConsumes());
 
 		return bestMatch;
 	}
@@ -340,6 +353,11 @@ namespace game::systems
 			}
 
 			return true;
+		}
+
+		void cancel(entt::registry& registry)
+		{
+			plannedPickup.cancel(registry);
 		}
 	};
 
@@ -455,6 +473,23 @@ namespace game::systems
 		}
 	};
 
+	float calculateAmountToPickup(
+		entt::registry& registry,
+		world::CellContent* sourceCellContent,
+		std::shared_ptr<world::IItem> itemType,
+		float maxAmountToPickup
+	) {
+		float stored = registry.get<world::Inventory>(sourceCellContent->getEntity()).getStoredAmount(itemType);
+
+		float plannedForPickup = 0.0f;
+		auto& found = plannedInventoryChanges.find(sourceCellContent->getEntity());
+		if (found != plannedInventoryChanges.end())
+			plannedForPickup = found->second.plannedPickups.getStoredAmount(itemType);
+
+		float availableAmount = stored - plannedForPickup;
+		return std::min(availableAmount, maxAmountToPickup);
+	}
+
 	void schedulePickupAndDeliveryTask(
 		entt::registry& registry,
 		entt::entity& entity,
@@ -463,18 +498,17 @@ namespace game::systems
 		world::CellContent* sourceCellContent,
 		world::CellContent* destinationCellContent
 	) {
-		float stored = registry.get<world::Inventory>(sourceCellContent->getEntity()).getStoredAmount(itemType);
-		float plannedForPickup = 0.0f;
-		auto& found = plannedInventoryChanges.find(sourceCellContent->getEntity());
-		if (found != plannedInventoryChanges.end())
-			plannedForPickup = found->second.plannedPickups.getStoredAmount(itemType);
-
-		float maxAmountToPickup = stored - plannedForPickup;
-		float amountToPickup = std::min(maxAmountToPickup, world::RESOURCE_MANAGEMENT_DEFAULT_TRANSPORT_CAPACITY);
+		float amountToPickup = calculateAmountToPickup(
+			registry,
+			sourceCellContent,
+			itemType,
+			world::RESOURCE_MANAGEMENT_DEFAULT_TRANSPORT_CAPACITY
+		);
 
 		std::shared_ptr<world::IItem> itemAndAmount = itemType->clone(amountToPickup);
-		drone.tasks.push(new PickupTask(findNearestCell(registry, entity, sourceCellContent), itemAndAmount, false, false));
-		drone.tasks.push(new DeliveryTask(findNearestCell(registry, entity, destinationCellContent), itemAndAmount));
+		world::Cell* pickupCell = findNearestCell(registry, entity, sourceCellContent);
+		drone.tasks.push(new PickupTask(pickupCell, itemAndAmount, false, false));
+		drone.tasks.push(new DeliveryTask(findNearestCell(pickupCell, destinationCellContent), itemAndAmount));
 	}
 
 	bool tryScheduleConstructionTask(
@@ -483,20 +517,38 @@ namespace game::systems
 		world::Drone& drone,
 		std::pair<world::Cell*, world::IBuilding*>& cellAndBuilding
 	) {
-		std::vector<std::pair<std::shared_ptr<world::IItem>, world::Cell*>> pickupCells;
+		std::vector<PickupTask*> pickupTasks;
+		world::Cell* lastCell = nullptr;
 		for (std::shared_ptr<world::IItem> item : cellAndBuilding.second->getResourcesRequiredToBuild().items)
 		{
-			world::CellContent* sourceCellContent = findPickupCellContent(registry, entity, drone, item, true);
-			if (sourceCellContent == nullptr)
-				return false;
+			float remainingAmountToPickup = item->amount;
+			while (remainingAmountToPickup != 0.0f)
+			{
+				world::CellContent* sourceCellContent = findPickupCellContent(registry, entity, drone, item, true);
+				if (sourceCellContent == nullptr)
+				{
+					for (PickupTask* pickupTask : pickupTasks)
+					{
+						pickupTask->cancel(registry);
+						delete pickupTask;
+					}
+					return false;
+				}
 
-			// TODO: Check whether the found cell content stores enough items to fulfill the required resource demands.
+				float amountToPickup = calculateAmountToPickup(registry, sourceCellContent, item, remainingAmountToPickup);
+				remainingAmountToPickup -= amountToPickup;
+				std::shared_ptr<world::IItem> itemAndAmount = item->clone(amountToPickup);
 
-			pickupCells.push_back(std::make_pair(item->clone(), findNearestCell(registry, entity, sourceCellContent)));
+				if (lastCell == nullptr)
+					lastCell = findNearestCell(registry, entity, sourceCellContent);
+				else
+					lastCell = findNearestCell(lastCell, sourceCellContent);
+				pickupTasks.push_back(new PickupTask(lastCell, itemAndAmount, true, true));
+			}
 		}
 
-		for (std::pair<std::shared_ptr<world::IItem>, world::Cell*> itemAndCell : pickupCells)
-				drone.tasks.push(new PickupTask(itemAndCell.second, itemAndCell.first, true, true));
+		for (PickupTask* pickupTask : pickupTasks)
+			drone.tasks.push(pickupTask);
 		drone.tasks.push(new ConstructionTask(cellAndBuilding.first, cellAndBuilding.second));
 
 		return true;
