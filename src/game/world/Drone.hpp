@@ -23,6 +23,7 @@ namespace game::world
 		entt::entity rotor2Entity{ entt::null };
 		entt::entity rotor3Entity{ entt::null };
 		entt::entity crateEntity{ entt::null };
+		entt::entity spotLightEntity{ entt::null };
 
 		float relativeWobbleSpeed{ 1.0f };
 		float heightAboveGround{ DRONE_FLIGHT_HEIGHT };

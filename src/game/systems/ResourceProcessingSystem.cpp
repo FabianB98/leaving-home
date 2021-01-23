@@ -793,6 +793,12 @@ namespace game::systems
 			+ world::DRONE_WOBBLE_HEIGHT * sin(time * world::DRONE_WOBBLE_SPEED * drone.relativeWobbleSpeed);
 		transform.setTranslation(glm::vec3(translation.x, height, translation.z));
 
+		// Update the drone's light if it pursues a task
+		bool on = !drone.tasks.empty();
+		registry.patch<rendering::components::SpotLight>(drone.spotLightEntity, [on](auto& spotLight) {
+			spotLight.intensity = glm::vec3(80, 50, 50) * (on ? 1.f : 0.f);
+		});
+
 		// Update the rotation of the drone's rotors.
 		float rotation = fmodf(time * world::DRONE_ROTOR_ROTATION_SPEED, 2.0f * M_PI);
 		registry.get<rendering::components::EulerComponentwiseTransform>(drone.rotor1Entity).setYaw(rotation);

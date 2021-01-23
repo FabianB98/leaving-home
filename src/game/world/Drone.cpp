@@ -35,6 +35,7 @@ namespace game::world
 		entt::entity rotor2Entity = registry.create();
 		entt::entity rotor3Entity = registry.create();
 		entt::entity crateEntity = registry.create();
+		entt::entity spotLightEntity = registry.create();
 
 		if (droneMesh == nullptr)
 		{
@@ -46,7 +47,7 @@ namespace game::world
 			shadows.castShadow.insert(std::make_pair(droneMesh, 0));
 		}
 
-		registry.emplace<Drone>(droneEntity, rotor1Entity, rotor2Entity, rotor3Entity, crateEntity, wobbleDistribution(randomEngine));
+		registry.emplace<Drone>(droneEntity, rotor1Entity, rotor2Entity, rotor3Entity, crateEntity, spotLightEntity, wobbleDistribution(randomEngine));
 		registry.emplace<Inventory>(droneEntity);
 		registry.emplace<rendering::components::MeshRenderer>(droneEntity, droneMesh);
 		registry.emplace<rendering::components::CullingGeometry>(droneEntity, droneBoundingGeometry);
@@ -84,11 +85,10 @@ namespace game::world
 		// Crate is not guaranteed to be fully included in the culling geometry of the drone. Therefore, it can't be a culling
 		// child of the drone.
 
-		entt::entity spotLight = registry.create();
-		registry.emplace<rendering::components::MatrixTransform>(spotLight, glm::mat4(1));
-		registry.emplace<rendering::components::Relationship>(spotLight);
-		registry.emplace<rendering::components::SpotLight>(spotLight, glm::vec3(80,50,50), glm::vec3(0), glm::vec3(0, -1, 0), 3.1416f / 12.f);
+		registry.emplace<rendering::components::MatrixTransform>(spotLightEntity, glm::mat4(1));
+		registry.emplace<rendering::components::Relationship>(spotLightEntity);
+		registry.emplace<rendering::components::SpotLight>(spotLightEntity, glm::vec3(0), glm::vec3(0), glm::vec3(0, -1, 0), 3.1416f / 12.f);
 
-		rendering::systems::relationship(registry, droneEntity, spotLight);
+		rendering::systems::relationship(registry, droneEntity, spotLightEntity);
 	}
 }
