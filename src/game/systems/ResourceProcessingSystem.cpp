@@ -233,14 +233,11 @@ namespace game::systems
 
 	world::CellContent* findPickupCellContent(
 		entt::registry& registry,
-		entt::entity& entity,
+		glm::vec2 dronePos,
 		world::Drone& drone,
 		std::shared_ptr<world::IItem> item,
 		bool checkHarvestables
 	) {
-		auto& droneTransform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
-		glm::vec2 dronePos = glm::vec2(droneTransform.getTranslation().x, droneTransform.getTranslation().z);
-
 		auto getItemScore = std::function([item](world::Inventory& inventory, PlannedInventoryChanges* plannedChanges) -> float {
 			float stored = inventory.getStoredAmount(item);
 
@@ -265,16 +262,36 @@ namespace game::systems
 
 		return bestMatch;
 	}
+	
+	world::CellContent* findPickupCellContent(
+		entt::registry& registry,
+		world::Cell* startCell,
+		world::Drone& drone,
+		std::shared_ptr<world::IItem> item,
+		bool checkHarvestables
+	) {
+		return findPickupCellContent(registry, startCell->getRelaxedPosition(), drone, item, checkHarvestables);
+	}
 
-	world::CellContent* findDeliveryCellContent(
+	world::CellContent* findPickupCellContent(
 		entt::registry& registry,
 		entt::entity& entity,
 		world::Drone& drone,
-		std::shared_ptr<world::IItem> itemType
+		std::shared_ptr<world::IItem> item,
+		bool checkHarvestables
 	) {
 		auto& droneTransform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
 		glm::vec2 dronePos = glm::vec2(droneTransform.getTranslation().x, droneTransform.getTranslation().z);
 
+		return findPickupCellContent(registry, dronePos, drone, item, checkHarvestables);
+	}
+
+	world::CellContent* findDeliveryCellContent(
+		entt::registry& registry,
+		glm::vec2 dronePos,
+		world::Drone& drone,
+		std::shared_ptr<world::IItem> itemType
+	) {
 		auto getItemScore = std::function([itemType](world::Inventory& inventory, PlannedInventoryChanges* plannedChanges) -> float {
 			float stored = inventory.getStoredAmount(itemType);
 
@@ -293,6 +310,27 @@ namespace game::systems
 		findBestCandidate(currentBestScore, bestMatch, registry, dronePos, itemType, getItemScore, itemType->getConsumes());
 
 		return bestMatch;
+	}
+
+	world::CellContent* findDeliveryCellContent(
+		entt::registry& registry,
+		world::Cell* startCell,
+		world::Drone& drone,
+		std::shared_ptr<world::IItem> itemType
+	) {
+		return findDeliveryCellContent(registry, startCell->getRelaxedPosition(), drone, itemType);
+	}
+
+	world::CellContent* findDeliveryCellContent(
+		entt::registry& registry,
+		entt::entity& entity,
+		world::Drone& drone,
+		std::shared_ptr<world::IItem> itemType
+	) {
+		auto& droneTransform = registry.get<rendering::components::EulerComponentwiseTransform>(entity);
+		glm::vec2 dronePos = glm::vec2(droneTransform.getTranslation().x, droneTransform.getTranslation().z);
+
+		return findDeliveryCellContent(registry, dronePos, drone, itemType);
 	}
 
 	void setDestination(
@@ -526,7 +564,9 @@ namespace game::systems
 			float remainingAmountToPickup = item->amount - registry.get<world::Inventory>(entity).getStoredAmount(item);
 			while (remainingAmountToPickup > 0.0f)
 			{
-				world::CellContent* sourceCellContent = findPickupCellContent(registry, entity, drone, item, true);
+				world::CellContent* sourceCellContent = lastCell == nullptr 
+					? findPickupCellContent(registry, entity, drone, item, true)
+					: findPickupCellContent(registry, lastCell, drone, item, true);
 				if (sourceCellContent == nullptr)
 				{
 					for (PickupTask* pickupTask : pickupTasks)
@@ -541,10 +581,9 @@ namespace game::systems
 				remainingAmountToPickup -= amountToPickup;
 				std::shared_ptr<world::IItem> itemAndAmount = item->clone(amountToPickup);
 
-				if (lastCell == nullptr)
-					lastCell = findNearestCell(registry, entity, sourceCellContent);
-				else
-					lastCell = findNearestCell(lastCell, sourceCellContent);
+				lastCell = lastCell == nullptr
+					? findNearestCell(registry, entity, sourceCellContent)
+					: findNearestCell(lastCell, sourceCellContent);
 				pickupTasks.push_back(new PickupTask(lastCell, itemAndAmount, true, true));
 			}
 		}
@@ -565,7 +604,7 @@ namespace game::systems
 		world::Cell* lastCell = cell;
 		for (std::shared_ptr<world::IItem> item : resourcesObtainedByRemoval.items)
 		{
-			world::CellContent* destinationCellContent = findDeliveryCellContent(registry, entity, drone, item);
+			world::CellContent* destinationCellContent = findDeliveryCellContent(registry, lastCell, drone, item);
 			if (destinationCellContent == nullptr)
 			{
 				for (DeliveryTask* deliveryTask : deliveryTasks)
