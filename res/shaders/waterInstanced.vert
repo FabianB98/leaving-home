@@ -41,7 +41,7 @@ float perlin(vec2 p, float dim, float time) {
 
 float height(vec2 pos) {
 	float p = perlin(pos, 1.0, 0.0);
-	return 0.5 * (sin(5*pos.x*p + time) + cos(5*pos.y*p + time));
+	return 0.5 * (sin(5*(pos.x + p) + time) + cos(5*(pos.y + p) + time));
 }
 
 

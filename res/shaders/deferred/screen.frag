@@ -29,7 +29,7 @@ uniform float shadowMult[2];
 uniform mat4 T_S[2];
 uniform DirectionalLight[MAX_LIGHT_COUNT] directionalLights;
 
-float BIAS[2] = float[](0.001, 0.001);
+float BIAS[2] = float[](0.001, 0.002);
 
 out vec4 color;
 

@@ -12,6 +12,7 @@
 
 #include <glm/glm.hpp>
 
+#include "../DayNightCycle.hpp"
 #include "../world/BuildingPieceSet.hpp"
 #include "../world/Chunk.hpp"
 #include "../world/Constants.hpp"
