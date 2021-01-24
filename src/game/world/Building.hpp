@@ -26,6 +26,9 @@ namespace game::world
 
 		bool canBePlacedOnCell(Cell* cell)
 		{
+			if (cell->getHeight() <= WATER_HEIGHT)
+				return false;
+
 			CellContent* existingContent = cell->getContent();
 			return existingContent == nullptr || (dynamic_cast<BuildingType*>(existingContent) != nullptr);
 		}

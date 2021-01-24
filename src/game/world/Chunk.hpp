@@ -301,9 +301,6 @@ namespace game::world
 		{
 			static_assert(std::is_base_of<IBuilding, T>::value, "Template parameter T must be a subclass of IBuilding!");
 
-			if (height < WATER_HEIGHT)
-				return;
-
 			if (content != nullptr && dynamic_cast<T*>(content))
 			{
 				content->addedToCell(this);
