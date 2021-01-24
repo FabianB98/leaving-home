@@ -22,6 +22,12 @@ out vec2 uv;
 out vec3 world_normal;
 out vec3 world_pos;
 
+const vec3 highlightColors[3] = vec3[3](
+	vec3(0.0, 0.0, 0.0),	// No highlighting
+	vec3(0.0, 0.1, 0.0),	// Planned for construction
+	vec3(0.1, 0.0, 0.0)		// Planned for destruction
+);
+
 void main() {
 	gl_Position = T_MVP * vec4(vertexPos, 1);
 
@@ -33,11 +39,18 @@ void main() {
 	world_normal = normalize(T_Normal * normal);
 
 	int cellID = int(cellIdAndType.x);
+	int highlightID = int(cellIdAndType.y);
 
 	ambient = kA;
 	e = 0;
+
 	if ((pick & 0xffffff) == (cellID & 0xffffff)) {
-		ambient = vec3(0.1);
+		ambient += vec3(0.1);
+		e = 2;
+	}
+
+	if (highlightID != 0) {
+		ambient += highlightColors[highlightID];
 		e = 2;
 	}
 }

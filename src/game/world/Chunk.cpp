@@ -205,9 +205,27 @@ namespace game::world
 					glm::mat4 transform = cellData.transform.getTransform();
 
 					auto cellIds = std::make_shared<rendering::model::VertexAttribute<glm::uvec2>>(
-						2, rendering::model::VertexAttributeType::INTEGER, GL_UNSIGNED_INT);
-					for (size_t i = 0; i < cellData.meshData->vertices.size(); i++)
-						cellIds->attributeData.push_back(glm::uvec2(cell.second->completeId));
+						2,
+						rendering::model::VertexAttributeType::INTEGER,
+						GL_UNSIGNED_INT
+					);
+
+					bool meshDataHasCellIds = false;
+					auto& found = cellData.meshData->additionalVertexAttributes.find(CELL_ID_ATTRIBUTE_LOCATION);
+					if (found != cellData.meshData->additionalVertexAttributes.end())
+					{
+						auto attributeCasted = std::dynamic_pointer_cast<rendering::model::VertexAttribute<glm::uvec2>>(found->second);
+						if (attributeCasted != nullptr)
+						{
+							meshDataHasCellIds = true;
+							for (size_t i = 0; i < cellData.meshData->vertices.size(); i++)
+								cellIds->attributeData.push_back(glm::uvec2(cell.second->completeId, attributeCasted->attributeData[i].y));
+						}
+					}
+
+					if (!meshDataHasCellIds)
+						for (size_t i = 0; i < cellData.meshData->vertices.size(); i++)
+							cellIds->attributeData.push_back(glm::uvec2(cell.second->completeId, cellData.highlightStatus));
 
 					std::unordered_map<GLuint, std::shared_ptr<rendering::model::IVertexAttribute>> additionalVertexAttributes;
 					additionalVertexAttributes.insert(std::make_pair(CELL_ID_ATTRIBUTE_LOCATION, cellIds));
@@ -1180,6 +1198,16 @@ namespace game::world
 		}
 
 		registry->emplace_or_replace<CellContentUpdate>(entity, this);
+	}
+
+	void CellContent::setHighlightStatus(Cell* cell, CellHighlightStatus highlightStatus)
+	{
+		auto& found = cells.find(cell);
+		if (found != cells.end())
+		{
+			found->second.highlightStatus = highlightStatus;
+			cell->getChunk()->enqueueUpdate();
+		}
 	}
 
 	bool CellContent::hasMeshData()

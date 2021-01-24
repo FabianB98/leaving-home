@@ -432,10 +432,16 @@ namespace game::world
 		GRASS, STONE, SNOW, SAND
 	};
 
+	enum class CellHighlightStatus
+	{
+		NO_HIGHLIGHTING, PLANNED_FOR_CONSTRUCTION, PLANNED_FOR_DESTRUCTION
+	};
+
 	struct CellContentCellData
 	{
 		std::shared_ptr<rendering::model::MeshData> meshData{ nullptr };
 		rendering::components::MatrixTransform transform{ glm::mat4(1.0f) };
+		CellHighlightStatus highlightStatus{ CellHighlightStatus::NO_HIGHLIGHTING };
 	};
 
 	class CellContent
@@ -454,6 +460,8 @@ namespace game::world
 		{
 			return cells;
 		}
+
+		void setHighlightStatus(Cell* cell, CellHighlightStatus highlightStatus);
 
 		bool hasMeshData();
 
