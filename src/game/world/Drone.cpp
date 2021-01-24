@@ -28,6 +28,22 @@ namespace game::world
 			registry.emplace_or_replace<rendering::components::MeshRenderer>(crateEntity, crateMesh);
 	}
 
+	rendering::model::Mesh* setUpMesh(
+		rendering::model::MeshData& meshData,
+		std::shared_ptr<rendering::bounding_geometry::BoundingGeometry> boundingGeometry
+	) {
+		auto cellIds = std::make_shared<rendering::model::VertexAttribute<glm::uvec2>>(
+			2,
+			rendering::model::VertexAttributeType::INTEGER,
+			GL_UNSIGNED_INT
+			);
+		for (size_t i = 0; i < meshData.vertices.size(); i++)
+			cellIds->attributeData.push_back(glm::uvec2(std::numeric_limits<uint32_t>::max() - 1, 0));
+		meshData.additionalVertexAttributes.insert(std::make_pair(CELL_ID_ATTRIBUTE_LOCATION, cellIds));
+
+		return new rendering::model::Mesh(meshData, boundingGeometry);
+	}
+
 	void Drone::spawnNewDrone(entt::registry& registry, const glm::vec3& position)
 	{
 		entt::entity droneEntity = registry.create();
@@ -39,9 +55,9 @@ namespace game::world
 
 		if (droneMesh == nullptr)
 		{
-			droneMesh = new rendering::model::Mesh(droneMeshData, droneBoundingGeometry);
-			rotorMesh = new rendering::model::Mesh(rotorMeshData, rotorBoundingGeometry);
-			crateMesh = new rendering::model::Mesh(crateMeshData, crateBoundingGeometry);
+			droneMesh = setUpMesh(droneMeshData, droneBoundingGeometry);
+			rotorMesh = setUpMesh(rotorMeshData, rotorBoundingGeometry);
+			crateMesh = setUpMesh(crateMeshData, crateBoundingGeometry);
 
 			auto& shadows = registry.ctx<rendering::systems::ShadowMapping>();
 			shadows.castShadow.insert(std::make_pair(droneMesh, 0));
