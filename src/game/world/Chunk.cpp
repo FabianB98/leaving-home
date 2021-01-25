@@ -1124,12 +1124,17 @@ namespace game::world
 					maxPieces = cellsSplit.second.size();
 				}
 
+			Inventory& partsToReuseInventory = chunk->getRegistry().get<Inventory>(content->entity);
+			partsToReuseInventory.split(splitInto.size());
+
 			for (auto& cellsSplit : splitInto)
 				if (cellsSplit.first != partsToReuse)
 				{
 					CellContent* contentSplit = content->createNewCellContentOfSameType(cellsSplit.second);
 					for (Cell* cell : cellsSplit.second)
 						cell->_setContent(contentSplit, false, true, true);
+
+					contentSplit->getRegistry()->get<Inventory>(contentSplit->entity).addItems(partsToReuseInventory);
 				}
 		}
 	}

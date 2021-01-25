@@ -327,14 +327,22 @@ namespace game::world
 					for (T* building : buildingsToConnectTo)
 						if (buildingToReuse == nullptr || building->getCells().size() > buildingToReuse->getCells().size())
 							buildingToReuse = building;
+					Inventory& buildingToReuseInventory = chunk->getRegistry().get<Inventory>(buildingToReuse->entity);
 
 					std::unordered_map<Cell*, BuildingHeight> cellsToPlaceBuildingOn;
 					cellsToPlaceBuildingOn.insert(std::make_pair(this, BuildingHeight{ 1, 0 }));
 
 					for (T* building : buildingsToConnectTo)
 						if (building != buildingToReuse)
+						{
 							for (auto& cellAndHeight : building->getHeightPerCell())
 								cellsToPlaceBuildingOn.insert(std::make_pair(cellAndHeight.first, cellAndHeight.second));
+
+							// As the buildings which are to be connected to the building to reuse will be destroyed, we need
+							// to move their inventory contents to the inventory of the building to reuse.
+							Inventory& inventory = chunk->getRegistry().get<Inventory>(building->entity);
+							buildingToReuseInventory.addItems(inventory);
+						}
 
 					for (auto& cellAndHeight : cellsToPlaceBuildingOn)
 					{
