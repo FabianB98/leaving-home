@@ -33,6 +33,11 @@ namespace game::world
 			return existingContent == nullptr || (dynamic_cast<BuildingType*>(existingContent) != nullptr);
 		}
 
+		void displayPlannedBuildingOfThisTypeOnCell(Cell* cell)
+		{
+			cell->displayPlannedBuilding<BuildingType>();
+		}
+
 		void placeBuildingOfThisTypeOnCell(Cell* cell)
 		{
 			cell->placeBuilding<BuildingType>();
@@ -58,13 +63,24 @@ namespace game::world
 			return new BuildingType(this, cellsToCopy);
 		}
 
+		void _enqueuedToAddToCell(Cell* cell)
+		{
+			auto& height = heightPerCell.find(cell);
+			if (height != heightPerCell.end())
+				height->second.plannedHeight += 1;
+			else
+				heightPerCell.insert(std::make_pair(cell, BuildingHeight{ 1, 0 }));
+
+			enqueueUpdate();
+		}
+
 		void _addedToCell(Cell* cell)
 		{
 			auto& height = heightPerCell.find(cell);
 			if (height != heightPerCell.end())
-				height->second += 1;
+				height->second.actualHeight += 1;
 			else
-				heightPerCell.insert(std::make_pair(cell, 1));
+				heightPerCell.insert(std::make_pair(cell, BuildingHeight{ 1, 1 }));
 
 			enqueueUpdate();
 
@@ -72,6 +88,12 @@ namespace game::world
 		}
 
 		virtual void __addedToCell(Cell* cell) = 0;
+
+		void _enqueuedToRemoveFromCell(Cell* cell)
+		{
+			heightPerCell[cell].plannedHeight = 0;
+			enqueueUpdate();
+		}
 
 		void _removedFromCell(Cell* cell)
 		{
@@ -96,7 +118,7 @@ namespace game::world
 			std::unordered_map<Cell*, std::vector<std::shared_ptr<rendering::model::MeshData>>> meshPieces;
 			for (auto& cellAndHeight : heightPerCell)
 				for (auto& face : cellAndHeight.first->getFaces())
-					for (unsigned int floor = 0; floor < cellAndHeight.second; floor++)
+					for (unsigned int floor = 0; floor < cellAndHeight.second.getMaxHeight(); floor++)
 						addMeshPieces(meshPieces, cellAndHeight.first, face, floor);
 
 			for (auto& cellAndPieces : meshPieces)
@@ -284,13 +306,21 @@ namespace game::world
 
 			if (lowerPiece != nullptr)
 			{
-				auto data = constructMeshDataForPiece(lowerPiece, frontLeft, frontRight, backLeft, backRight, lowerHeight, centerHeight);
+				auto data = constructMeshDataForPiece(
+					lowerPiece, frontLeft, frontRight, backLeft, backRight,
+					lowerHeight, centerHeight,
+					heightPerCell[cell], floor
+				);
 				meshPieces[cell].push_back(data);
 			}
 
 			if (upperPiece != nullptr)
 			{
-				auto data = constructMeshDataForPiece(upperPiece, frontLeft, frontRight, backLeft, backRight, centerHeight, upperHeight);
+				auto data = constructMeshDataForPiece(
+					upperPiece, frontLeft, frontRight, backLeft, backRight,
+					centerHeight, upperHeight,
+					heightPerCell[cell], floor
+				);
 				meshPieces[cell].push_back(data);
 			}
 		}
@@ -302,10 +332,24 @@ namespace game::world
 			glm::vec2 backLeft,
 			glm::vec2 backRight,
 			float lowerHeight,
-			float upperHeight
+			float upperHeight,
+			const BuildingHeight& buildingHeight,
+			unsigned int floor
 		) {
 			float deltaHeight = upperHeight - lowerHeight;
 			constexpr float normalEpsilon = 0.1f;
+
+			auto cellIds = std::make_shared<rendering::model::VertexAttribute<glm::uvec2>>(
+				2,
+				rendering::model::VertexAttributeType::INTEGER,
+				GL_UNSIGNED_INT
+			);
+
+			CellHighlightStatus highlightStatus = CellHighlightStatus::NO_HIGHLIGHTING;
+			if (floor >= buildingHeight.actualHeight)
+				highlightStatus = CellHighlightStatus::PLANNED_FOR_CONSTRUCTION;
+			else if (floor >= buildingHeight.plannedHeight)
+				highlightStatus = CellHighlightStatus::PLANNED_FOR_DESTRUCTION;
 
 			auto meshData = std::make_shared<rendering::model::MeshData>(*piece->getMeshData());
 			for (int i = 0; i < meshData->vertices.size(); i++)
@@ -321,7 +365,11 @@ namespace game::world
 				pos += normalEpsilon * glm::vec2(normal.x, normal.z);
 				glm::vec2 normalDir = interpolateBilinear(pos, frontLeft, frontRight, backLeft, backRight) - transformedPos;
 				normal = glm::normalize(glm::vec3(normalDir.x, normalEpsilon * normal.y * deltaHeight, normalDir.y));
+
+				cellIds->attributeData.push_back(glm::uvec2(0, highlightStatus));
 			}
+
+			meshData->additionalVertexAttributes.insert(std::make_pair(CELL_ID_ATTRIBUTE_LOCATION, cellIds));
 
 			return meshData;
 		}
@@ -345,7 +393,7 @@ namespace game::world
 				return false;
 
 			auto& found = heightPerCell.find(cell);
-			return found != heightPerCell.end() && found->second > floor;
+			return found != heightPerCell.end() && found->second.getMaxHeight() > floor;
 		}
 	};
 

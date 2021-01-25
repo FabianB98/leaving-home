@@ -892,15 +892,13 @@ namespace game::systems
 			return;
 
 		buildingsToPlace.push(std::make_pair(cell, buildingType));
+		buildingType->displayPlannedBuildingOfThisTypeOnCell(cell);
 	}
 
 	void enqueueDestruction(world::Cell* cell)
 	{
 		buildingsToRemove.push(cell);
-
-		world::CellContent* content = cell->getContent();
-		if (content != nullptr)
-			content->setHighlightStatus(cell, world::CellHighlightStatus::PLANNED_FOR_DESTRUCTION);
+		cell->displayPlannedRemoval();
 	}
 
 	void attachResourceProcessor(IResourceProcessor* resourceProcessor)

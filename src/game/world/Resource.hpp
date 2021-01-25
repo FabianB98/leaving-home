@@ -27,7 +27,11 @@ namespace game::world
 	protected:
 		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
 
+		void _enqueuedToAddToCell(Cell* cell);
+
 		void _addedToCell(Cell* cell);
+
+		void _enqueuedToRemoveFromCell(Cell* cell);
 
 		void _removedFromCell(Cell* cell);
 

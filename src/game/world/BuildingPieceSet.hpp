@@ -299,6 +299,17 @@ namespace game::world
 		std::vector<std::shared_ptr<NoEdgeBuildingPiece>> noEdgeRoofPieces;
 	};
 
+	struct BuildingHeight
+	{
+		unsigned int plannedHeight;
+		unsigned int actualHeight;
+
+		unsigned int getMaxHeight()
+		{
+			return std::max(plannedHeight, actualHeight);
+		}
+	};
+
 	class IBuilding : public CellContent
 	{
 	public:
@@ -311,6 +322,8 @@ namespace game::world
 		virtual ~IBuilding() {}
 
 		virtual bool canBePlacedOnCell(Cell* cell) = 0;
+
+		virtual void displayPlannedBuildingOfThisTypeOnCell(Cell* cell) = 0;
 
 		virtual void placeBuildingOfThisTypeOnCell(Cell* cell) = 0;
 
@@ -325,7 +338,7 @@ namespace game::world
 			unsigned int height = 0;
 			auto found = heightPerCell.find(cell);
 			if (found != heightPerCell.end())
-				height = found->second;
+				height = found->second.actualHeight;
 
 			Inventory result = Inventory();
 			for (const std::shared_ptr<IItem>& item : resourcesPerHeight.items)
@@ -337,14 +350,14 @@ namespace game::world
 			return result;
 		}
 
-		const std::unordered_map<Cell*, unsigned int>& getHeightPerCell()
+		const std::unordered_map<Cell*, BuildingHeight>& getHeightPerCell()
 		{
 			return heightPerCell;
 		}
 
 	protected:
 		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
-		std::unordered_map<Cell*, unsigned int> heightPerCell;
+		std::unordered_map<Cell*, BuildingHeight> heightPerCell;
 
 		IBuilding(
 			const std::string& _typeName,
@@ -355,13 +368,23 @@ namespace game::world
 		) : CellContent(true, _typeName, _description), buildingPieceSet(_buildingPieceSet)
 		{
 			if (original != nullptr)
+			{
 				for (Cell* cell : cellsToCopy)
-					heightPerCell.insert(std::make_pair(cell, original->heightPerCell[cell] - 1));
+				{
+					BuildingHeight& originalHeight = original->heightPerCell[cell];
+					BuildingHeight height{ originalHeight.plannedHeight - 1, originalHeight.actualHeight - 1 };
+					heightPerCell.insert(std::make_pair(cell, height));
+				}
+			}
 		}
 
 		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
 
+		virtual void _enqueuedToAddToCell(Cell* cell) = 0;
+
 		virtual void _addedToCell(Cell* cell) = 0;
+
+		virtual void _enqueuedToRemoveFromCell(Cell* cell) = 0;
 
 		virtual void _removedFromCell(Cell* cell) = 0;
 

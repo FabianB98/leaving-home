@@ -293,17 +293,17 @@ namespace game::world
 
 		void setContent(CellContent* _content)
 		{
-			_setContent(_content, true);
+			_setContent(_content, true, true, false);
 		}
 
 		template<class T>
-		void placeBuilding()
+		void displayPlannedBuilding()
 		{
 			static_assert(std::is_base_of<IBuilding, T>::value, "Template parameter T must be a subclass of IBuilding!");
 
 			if (content != nullptr && dynamic_cast<T*>(content))
 			{
-				content->addedToCell(this);
+				content->enqueuedToAddToCell(this);
 			}
 			else if (content == nullptr)
 			{
@@ -317,7 +317,7 @@ namespace game::world
 
 				if (buildingsToConnectTo.empty())
 				{
-					_setContent(new T(nullptr, std::unordered_set<Cell*>{}), false);
+					_setContent(new T(nullptr, std::unordered_set<Cell*>{}), false, false, true);
 				}
 				else
 				{
@@ -328,8 +328,8 @@ namespace game::world
 						if (buildingToReuse == nullptr || building->getCells().size() > buildingToReuse->getCells().size())
 							buildingToReuse = building;
 
-					std::unordered_map<Cell*, unsigned int> cellsToPlaceBuildingOn;
-					cellsToPlaceBuildingOn.insert(std::make_pair(this, 1));
+					std::unordered_map<Cell*, BuildingHeight> cellsToPlaceBuildingOn;
+					cellsToPlaceBuildingOn.insert(std::make_pair(this, BuildingHeight{ 1, 0 }));
 
 					for (T* building : buildingsToConnectTo)
 						if (building != buildingToReuse)
@@ -338,13 +338,28 @@ namespace game::world
 
 					for (auto& cellAndHeight : cellsToPlaceBuildingOn)
 					{
-						cellAndHeight.first->_setContent(buildingToReuse, false);
-						for (int i = 1; i < cellAndHeight.second; i++)
+						cellAndHeight.first->_setContent(buildingToReuse, false, false, false);
+
+						for (int i = 0; i < cellAndHeight.second.plannedHeight; i++)
+							buildingToReuse->enqueuedToAddToCell(cellAndHeight.first);
+
+						for (int i = 0; i < cellAndHeight.second.actualHeight; i++)
 							buildingToReuse->addedToCell(cellAndHeight.first);
 					}
 				}
 			}
 		}
+
+		template<class T>
+		void placeBuilding()
+		{
+			static_assert(std::is_base_of<IBuilding, T>::value, "Template parameter T must be a subclass of IBuilding!");
+
+			if (content != nullptr && dynamic_cast<T*>(content))
+				content->addedToCell(this);
+		}
+
+		void displayPlannedRemoval();
 
 		uint16_t getCellId()
 		{
@@ -413,7 +428,7 @@ namespace game::world
 		float height;
 		CellType cellType;
 
-		void _setContent(CellContent* _content, bool splitMultiCellContent);
+		void _setContent(CellContent* _content, bool splitMultiCellContent, bool callAddedToCell, bool callEnqueuedToAddToCell);
 
 		void setRelaxedPosition(glm::vec2 _relaxedPosition);
 
@@ -494,9 +509,17 @@ namespace game::world
 	protected:
 		virtual CellContent* createNewCellContentOfSameType(std::unordered_set<Cell*> cellsToCopy) = 0;
 
+		void enqueuedToAddToCell(Cell* cell);
+
+		virtual void _enqueuedToAddToCell(Cell* cell) = 0;
+
 		void addedToCell(Cell* cell);
 
 		virtual void _addedToCell(Cell* cell) = 0;
+
+		void enqueuedToRemoveFromCell(Cell* cell);
+
+		virtual void _enqueuedToRemoveFromCell(Cell* cell) = 0;
 
 		void removedFromCell(Cell* cell);
 
@@ -524,6 +547,8 @@ namespace game::world
 
 		entt::registry* registry{ nullptr };
 		entt::entity entity{ entt::null };
+
+		void setUpEntity(Cell* cell);
 
 		friend Cell;
 		friend class World;

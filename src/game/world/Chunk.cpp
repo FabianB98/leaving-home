@@ -218,8 +218,8 @@ namespace game::world
 						if (attributeCasted != nullptr)
 						{
 							meshDataHasCellIds = true;
-							for (size_t i = 0; i < cellData.meshData->vertices.size(); i++)
-								cellIds->attributeData.push_back(glm::uvec2(cell.second->completeId, attributeCasted->attributeData[i].y));
+							for (size_t i = 0; i < attributeCasted->attributeData.size(); i++)
+								attributeCasted->attributeData[i].x = cell.second->completeId;
 						}
 					}
 
@@ -1017,7 +1017,7 @@ namespace game::world
 		}
 	}
 
-	void Cell::_setContent(CellContent* _content, bool splitMultiCellContent)
+	void Cell::_setContent(CellContent* _content, bool splitMultiCellContent, bool callAddedToCell, bool callEnqueuedToAddToCell)
 	{
 		bool newContentEqualsOldContent = content == _content;
 		bool singleCellAlreadyPlaced = _content != nullptr && !_content->multiCellPlaceable && !_content->cells.empty();
@@ -1043,7 +1043,10 @@ namespace game::world
 		if (content != nullptr)
 		{
 			content->cells.insert(std::make_pair(this, CellContentCellData()));
-			content->addedToCell(this);
+			if (callAddedToCell)
+				content->addedToCell(this);
+			if (callEnqueuedToAddToCell)
+				content->enqueuedToAddToCell(this);
 
 			if (content->hasMeshData())
 				chunk->enqueueUpdate();
@@ -1126,9 +1129,15 @@ namespace game::world
 				{
 					CellContent* contentSplit = content->createNewCellContentOfSameType(cellsSplit.second);
 					for (Cell* cell : cellsSplit.second)
-						cell->_setContent(contentSplit, false);
+						cell->_setContent(contentSplit, false, true, true);
 				}
 		}
+	}
+
+	void Cell::displayPlannedRemoval()
+	{
+		if (content != nullptr)
+			content->enqueuedToRemoveFromCell(this);
 	}
 
 	const std::vector<Cell*> Cell::getNeighbors()
@@ -1170,7 +1179,7 @@ namespace game::world
 			registry->destroy(entity);
 	}
 
-	void CellContent::addedToCell(Cell* cell)
+	void CellContent::setUpEntity(Cell* cell)
 	{
 		if (registry == nullptr)
 		{
@@ -1180,8 +1189,26 @@ namespace game::world
 			registry->emplace<CellContentComponent>(entity, this);
 			registry->emplace<Inventory>(entity);
 		}
+	}
 
+	void CellContent::enqueuedToAddToCell(Cell* cell)
+	{
+		setUpEntity(cell);
+		setHighlightStatus(cell, CellHighlightStatus::PLANNED_FOR_CONSTRUCTION);
+		_enqueuedToAddToCell(cell);
+	}
+
+	void CellContent::addedToCell(Cell* cell)
+	{
+		setUpEntity(cell);
+		setHighlightStatus(cell, CellHighlightStatus::NO_HIGHLIGHTING);
 		_addedToCell(cell);
+	}
+
+	void CellContent::enqueuedToRemoveFromCell(Cell* cell)
+	{
+		setHighlightStatus(cell, CellHighlightStatus::PLANNED_FOR_DESTRUCTION);
+		_enqueuedToRemoveFromCell(cell);
 	}
 
 	void CellContent::removedFromCell(Cell* cell)

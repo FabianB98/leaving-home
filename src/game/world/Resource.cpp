@@ -16,6 +16,11 @@ namespace game::world
 	static const std::string rockDescription = "A glowing rock. May contain precious gems.";
 	static std::shared_ptr<rendering::model::MeshData> stoneMeshData = std::make_shared<rendering::model::MeshData>("stone");
 
+	void Resource::_enqueuedToAddToCell(Cell* cell)
+	{
+		// Nothing to do here (at least as long as resources can't be placed by the user)...
+	}
+
 	void Resource::_addedToCell(Cell* cell)
 	{
 		setMeshDataAndTransform(cell, meshData, rendering::components::EulerComponentwiseTransform(
@@ -25,6 +30,11 @@ namespace game::world
 		).toTransformationMatrix());
 
 		__addedToCell(cell);
+	}
+
+	void Resource::_enqueuedToRemoveFromCell(Cell* cell)
+	{
+		// Nothing to do here...
 	}
 
 	void Resource::_removedFromCell(Cell* cell)
