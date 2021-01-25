@@ -325,7 +325,7 @@ namespace game::world
 
 		virtual void displayPlannedBuildingOfThisTypeOnCell(Cell* cell) = 0;
 
-		virtual void placeBuildingOfThisTypeOnCell(Cell* cell) = 0;
+		virtual bool placeBuildingOfThisTypeOnCell(Cell* cell) = 0;
 
 		virtual const Inventory& getResourcesRequiredToBuild() = 0;
 

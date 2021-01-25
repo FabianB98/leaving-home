@@ -38,9 +38,9 @@ namespace game::world
 			cell->displayPlannedBuilding<BuildingType>();
 		}
 
-		void placeBuildingOfThisTypeOnCell(Cell* cell)
+		bool placeBuildingOfThisTypeOnCell(Cell* cell)
 		{
-			cell->placeBuilding<BuildingType>();
+			return cell->placeBuilding<BuildingType>();
 		}
 
 		virtual void inventoryUpdated() = 0;

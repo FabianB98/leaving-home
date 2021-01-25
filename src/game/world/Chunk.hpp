@@ -351,12 +351,15 @@ namespace game::world
 		}
 
 		template<class T>
-		void placeBuilding()
+		bool placeBuilding()
 		{
 			static_assert(std::is_base_of<IBuilding, T>::value, "Template parameter T must be a subclass of IBuilding!");
 
-			if (content != nullptr && dynamic_cast<T*>(content))
+			bool canBePlaced = content != nullptr && dynamic_cast<T*>(content);
+			if (canBePlaced)
 				content->addedToCell(this);
+
+			return canBePlaced;
 		}
 
 		void displayPlannedRemoval();

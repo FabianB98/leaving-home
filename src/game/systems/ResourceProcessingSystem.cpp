@@ -468,11 +468,12 @@ namespace game::systems
 			world::Drone& drone,
 			world::Inventory& inventory
 		) {
-			for (std::shared_ptr<world::IItem> item : buildingType->getResourcesRequiredToBuild().items)
-				inventory.removeItem(item, item->amount);
-			drone.inventoryUpdated(registry, entity, inventory);
-
-			buildingType->placeBuildingOfThisTypeOnCell(destination);
+			if (buildingType->placeBuildingOfThisTypeOnCell(destination))
+			{
+				for (std::shared_ptr<world::IItem> item : buildingType->getResourcesRequiredToBuild().items)
+					inventory.removeItem(item, item->amount);
+				drone.inventoryUpdated(registry, entity, inventory);
+			}
 
 			return true;
 		}
