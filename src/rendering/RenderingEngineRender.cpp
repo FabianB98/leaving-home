@@ -20,20 +20,22 @@ namespace rendering
 
     void RenderingEngine::setLightingTextureUniforms(shading::Shader& shader)
     {
+        GLuint target = MSAA_SAMPLES == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gPosition);
+        glBindTexture(target, gPosition);
         shader.setUniformInt("gPosition", 0);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gNormal);
+        glBindTexture(target, gNormal);
         shader.setUniformInt("gNormal", 1);
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gAmbient);
+        glBindTexture(target, gAmbient);
         shader.setUniformInt("gAmbient", 2);
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gDiffuse);
+        glBindTexture(target, gDiffuse);
         shader.setUniformInt("gDiffuse", 3);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gSpecular);
+        glBindTexture(target, gSpecular);
         shader.setUniformInt("gSpecular", 4);
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, ssaoBlur ? ssaoBlurColor : ssaoColor);
@@ -96,7 +98,7 @@ namespace rendering
         shader.setUniformVec4("invProjection", invProjection);
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, ssaoZ);
+        glBindTexture(GL_TEXTURE_2D, MSAA_SAMPLES == 0 ? gZ : ssaoZ);
         shader.setUniformInt("gZ", 0);
 
         glBindVertexArray(quadVAO);
@@ -217,14 +219,17 @@ namespace rendering
         systems::renderDeferredGPass(registry, camera);
 
         // SSAO
-        // this pass creates a texture with high precision camera space z values (and resolves geometry pass multisampling)
-        glBindFramebuffer(GL_FRAMEBUFFER, ssaoZBuffer);
-        glClearColor(0.f, 0.f, 0.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        if (MSAA_SAMPLES > 0) {
+            // this pass resolves the multisampling of the texture with high precision camera space z values
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoZBuffer);
+            glClearColor(0.f, 0.f, 0.f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        renderSSAOZ(camera);
+            renderSSAOZ(camera);
+        }
+        GLuint zTexture = MSAA_SAMPLES == 0 ? gZ : ssaoZ;
         // this is important! generating mipmaps of the z texture reduces cache misses for AO samples
-        glBindTexture(GL_TEXTURE_2D, ssaoZ);
+        glBindTexture(GL_TEXTURE_2D, zTexture);
         glGenerateMipmap(GL_TEXTURE_2D);
 
         // noisy AO sample pass
@@ -252,7 +257,7 @@ namespace rendering
 
 
         // DEFERRED - LIGHTING PASS
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, mainBuffer);
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -260,9 +265,9 @@ namespace rendering
         if (true) {
             renderScreen(camera);
 
-            //copy depth buffer of geometry pass to the default framebuffer
+            //copy depth buffer of geometry pass to main framebuffer
             glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mainBuffer);
             glBlitFramebuffer(
                 0, 0, getFramebufferWidth(), getFramebufferHeight(),
                 0, 0, getFramebufferWidth(), getFramebufferHeight(),
@@ -293,9 +298,24 @@ namespace rendering
             glDisable(GL_BLEND);
         }
         
-
-
         game->render(this);
+
+        /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/
+
+
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, mainBuffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(
+            0, 0, getFramebufferWidth(), getFramebufferHeight(),
+            0, 0, getFramebufferWidth(), getFramebufferHeight(),
+            GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT, GL_NEAREST
+        );
+
+
+
         renderDebugWindow();
         gui::render();
 
