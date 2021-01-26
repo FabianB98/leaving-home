@@ -140,16 +140,19 @@ namespace game::world
 			Face* face,
 			unsigned int floor
 		) {
-			// Determine the index of the cell within the face.
+			// Determine the indices of the four cells within the face.
 			unsigned int cellIndex = 0;
 			auto& nodes = face->getNodes();
 			while ((Cell*)(nodes[cellIndex]->getAdditionalData()) != cell)
 				cellIndex++;
+			unsigned int counterClockwiseNeighborIndex = (cellIndex + 1) % 4;
+			unsigned int diagonalNeighborIndex = (cellIndex + 2) % 4;
+			unsigned int clockwiseNeighborIndex = (cellIndex + 3) % 4;
 
 			// Get pointers to the other three cells of the face.
-			Cell* counterClockwiseNeighborCell = (Cell*)(nodes[(cellIndex + 1) % 4]->getAdditionalData());
-			Cell* diagonalNeighborCell = (Cell*)(nodes[(cellIndex + 2) % 4]->getAdditionalData());
-			Cell* clockwiseNeighborCell = (Cell*)(nodes[(cellIndex + 3) % 4]->getAdditionalData());
+			Cell* counterClockwiseNeighborCell = (Cell*)(nodes[counterClockwiseNeighborIndex]->getAdditionalData());
+			Cell* diagonalNeighborCell = (Cell*)(nodes[diagonalNeighborIndex]->getAdditionalData());
+			Cell* clockwiseNeighborCell = (Cell*)(nodes[clockwiseNeighborIndex]->getAdditionalData());
 
 			// Determine which corners of the current cube are occupied.
 			bool occupiedCellUp = occupies(cell, floor + 1);
@@ -180,6 +183,20 @@ namespace game::world
 			glm::vec2 faceCenterPos = (cell->getRelaxedPosition() + counterClockwiseNeighborCell->getRelaxedPosition()
 				+ diagonalNeighborCell->getRelaxedPosition() + clockwiseNeighborCell->getRelaxedPosition()) / 4.0f;
 
+			Face cellNeighborFace = face->getEdges()[cellIndex]->getOtherDirection()->calculateFace();
+			glm::vec2 cellNeighborFaceCenterPos =
+				(((Cell*)cellNeighborFace.getNodes()[0]->getAdditionalData())->getRelaxedPosition()
+				+ ((Cell*)cellNeighborFace.getNodes()[1]->getAdditionalData())->getRelaxedPosition()
+				+ ((Cell*)cellNeighborFace.getNodes()[2]->getAdditionalData())->getRelaxedPosition()
+				+ ((Cell*)cellNeighborFace.getNodes()[3]->getAdditionalData())->getRelaxedPosition()) / 4.0f;
+
+			Face clockwiseNeighborFace = face->getEdges()[clockwiseNeighborIndex]->getOtherDirection()->calculateFace();
+			glm::vec2 clockwiseNeighborFaceCenterPos =
+				(((Cell*)clockwiseNeighborFace.getNodes()[0]->getAdditionalData())->getRelaxedPosition()
+					+ ((Cell*)clockwiseNeighborFace.getNodes()[1]->getAdditionalData())->getRelaxedPosition()
+					+ ((Cell*)clockwiseNeighborFace.getNodes()[2]->getAdditionalData())->getRelaxedPosition()
+					+ ((Cell*)clockwiseNeighborFace.getNodes()[3]->getAdditionalData())->getRelaxedPosition()) / 4.0f;
+
 			// Determine the positions of the piece's four corners (from a top-down view).
 			glm::vec2 frontLeft, frontRight, backLeft, backRight;
 			bool onRightHalf = straightEdgeDown && occupiedClockwiseDown || !straightEdgeDown && !noEdgeDown
@@ -187,16 +204,16 @@ namespace game::world
 			if (onRightHalf)
 			{
 				frontLeft = faceCenterPos;
-				frontRight = (cell->getRelaxedPosition() + counterClockwiseNeighborCell->getRelaxedPosition()) / 2.0f;
-				backLeft = (cell->getRelaxedPosition() + clockwiseNeighborCell->getRelaxedPosition()) / 2.0f;
+				frontRight = (faceCenterPos + cellNeighborFaceCenterPos) / 2.0f;
+				backLeft = (faceCenterPos + clockwiseNeighborFaceCenterPos) / 2.0f;
 				backRight = cell->getRelaxedPosition();
 			}
 			else
 			{
-				frontLeft = (cell->getRelaxedPosition() + clockwiseNeighborCell->getRelaxedPosition()) / 2.0f;
+				frontLeft = (faceCenterPos + clockwiseNeighborFaceCenterPos) / 2.0f;
 				frontRight = faceCenterPos;
 				backLeft = cell->getRelaxedPosition();
-				backRight = (cell->getRelaxedPosition() + counterClockwiseNeighborCell->getRelaxedPosition()) / 2.0f;
+				backRight = (faceCenterPos + cellNeighborFaceCenterPos) / 2.0f;
 			}
 
 			// Determine which pieces need to be placed. Beware: Ugly tree of nested if-else-branches ahead!
