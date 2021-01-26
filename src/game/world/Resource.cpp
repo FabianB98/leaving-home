@@ -13,7 +13,7 @@ namespace game::world
 	static std::shared_ptr<rendering::model::MeshData> treeMeshData2 = std::make_shared<rendering::model::MeshData>("tree2");
 
 	static const std::string rockTypeName = "Rock";
-	static const std::string rockDescription = "A glowing rock. May contain precious gems.";
+	static const std::string rockDescription = "A glowing rock. May contain precious ores.";
 	static std::shared_ptr<rendering::model::MeshData> stoneMeshData = std::make_shared<rendering::model::MeshData>("stone");
 
 	void Resource::_enqueuedToAddToCell(Cell* cell)
@@ -104,10 +104,17 @@ namespace game::world
 		).toTransformationMatrix();
 		setTransform(cell, transform);
 
-		//getRegistry()->emplace<Wood>(getEntity(), 1.0f);
-		//getRegistry()->emplace<Harvestable<Wood>>(getEntity());
-		getRegistry()->emplace<rendering::components::MatrixTransform>(getEntity(), transform);
-		getRegistry()->emplace<rendering::components::PointLight>(getEntity(), glm::vec3(1.5,1.5,3), glm::vec3(0,1,0), glm::vec3(0,1,0.1));
+		entt::registry* registry = getRegistry();
+		entt::entity& entity = getEntity();
+
+		registry->get<Inventory>(entity).addItemTyped<Stone>(1.0f);
+		registry->emplace<Harvestable<Stone>>(entity);
+
+		registry->get<Inventory>(entity).addItemTyped<Ores>(0.5f);
+		registry->emplace<Harvestable<Ores>>(entity);
+
+		registry->emplace<rendering::components::MatrixTransform>(entity, transform);
+		registry->emplace<rendering::components::PointLight>(entity, glm::vec3(1.5,1.5,3), glm::vec3(0,1,0), glm::vec3(0,1,0.1));
 	}
 
 	void Rock::__removedFromCell(Cell* cell)
