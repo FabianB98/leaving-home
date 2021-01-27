@@ -9,6 +9,7 @@
 
 #include "Util.hpp"
 #include "../game/world/buildings/TestBuildings.hpp"
+#include "../game/world/buildings/ResidenceBuilding.hpp"
 #include "../rendering/textures/Texture.hpp"
 
 namespace gui
