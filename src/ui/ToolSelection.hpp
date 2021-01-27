@@ -8,7 +8,7 @@
 #include <glfw/glfw3.h>
 
 #include "Util.hpp"
-#include "../game/world/Building.hpp"
+#include "../game/world/buildings/TestBuildings.hpp"
 #include "../rendering/textures/Texture.hpp"
 
 namespace gui

@@ -6,13 +6,13 @@
 
 #include <entt/entt.hpp>
 
-#include "../../rendering/components/Transform.hpp"
-#include "../../rendering/model/Mesh.hpp"
-#include "../systems/ResourceProcessingSystem.hpp"
-#include "BuildingPieceSet.hpp"
-#include "Chunk.hpp"
-#include "Constants.hpp"
-#include "Item.hpp"
+#include "../../../rendering/components/Transform.hpp"
+#include "../../../rendering/model/Mesh.hpp"
+#include "../../systems/ResourceProcessingSystem.hpp"
+#include "../BuildingPieceSet.hpp"
+#include "../Chunk.hpp"
+#include "../Constants.hpp"
+#include "../Item.hpp"
 
 namespace game::world
 {
@@ -416,42 +416,4 @@ namespace game::world
 
 	template <class BuildingType>
 	BuildingType Building<BuildingType>::typeRepresentative = BuildingType(nullptr, std::unordered_set<Cell*>{});
-
-	class TestBuilding : public Building<TestBuilding>
-	{
-	public:
-		TestBuilding(IBuilding* original, std::unordered_set<Cell*> cellsToCopy);
-
-		virtual ~TestBuilding() {}
-
-		void inventoryUpdated();
-
-		const Inventory& getResourcesRequiredToBuild();
-
-		const Inventory& getResourcesObtainedByRemoval();
-
-	protected:
-		void __addedToCell(Cell* cell);
-
-		void __removedFromCell(Cell* cell);
-	};
-
-	class OtherTestBuilding : public Building<OtherTestBuilding>
-	{
-	public:
-		OtherTestBuilding(IBuilding* original, std::unordered_set<Cell*> cellsToCopy);
-
-		virtual ~OtherTestBuilding() {}
-
-		void inventoryUpdated();
-
-		const Inventory& getResourcesRequiredToBuild();
-
-		const Inventory& getResourcesObtainedByRemoval();
-
-	protected:
-		void __addedToCell(Cell* cell);
-
-		void __removedFromCell(Cell* cell);
-	};
 }

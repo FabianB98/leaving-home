@@ -9,7 +9,6 @@
 #include "../../rendering/bounding_geometry/Sphere.hpp"
 #include "../../rendering/model/Mesh.hpp"
 #include "../../rendering/systems/TransformHierarchySystem.hpp"
-#include "Building.hpp"
 #include "Chunk.hpp"
 #include "Inventory.hpp"
 
