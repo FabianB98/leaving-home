@@ -355,6 +355,26 @@ namespace game::world
 			return heightPerCell;
 		}
 
+		unsigned int getTotalAmountOfActualOccupiedSpace()
+		{
+			unsigned int result = 0;
+
+			for (const std::pair<Cell*, BuildingHeight>& cellAndHeight : heightPerCell)
+				result += cellAndHeight.second.actualHeight;
+
+			return result;
+		}
+
+		unsigned int getTotalAmountOfPlannedOccupiedSpace()
+		{
+			unsigned int result = 0;
+
+			for (const std::pair<Cell*, BuildingHeight>& cellAndHeight : heightPerCell)
+				result += cellAndHeight.second.plannedHeight;
+
+			return result;
+		}
+
 	protected:
 		const std::shared_ptr<BuildingPieceSet> buildingPieceSet;
 		std::unordered_map<Cell*, BuildingHeight> heightPerCell;

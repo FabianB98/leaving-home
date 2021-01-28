@@ -150,11 +150,13 @@ namespace game::world
 					{
 						building.lastConsumed = time;
 
-						// TODO: Food consumption should be dependent on the size of the building.
-
-						std::shared_ptr<Food> food = registry.get<Inventory>(entity).getItemTyped<Food>();
-						if (food != nullptr && food->amount >= 1.0f)
-							food->amount -= 1.0f;
+						float amountToConsume = 0.5f * building.building->getTotalAmountOfActualOccupiedSpace();
+						std::shared_ptr<Food> consumedFood = registry.get<Inventory>(entity).removeItemTyped<Food>(amountToConsume);
+						if (consumedFood == nullptr || consumedFood->amount != amountToConsume)
+						{
+							// TODO: Building didn't have enough food to feed all citizens. What to do now? Should the building (or
+							// some part of it) be removed?
+						}
 					}
 				});
 			}
