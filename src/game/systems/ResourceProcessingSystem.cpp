@@ -308,6 +308,7 @@ namespace game::systems
 		float currentBestScore = std::numeric_limits<float>::lowest();
 		world::CellContent* bestMatch = nullptr;
 		findBestCandidate(currentBestScore, bestMatch, registry, dronePos, itemType, getItemScore, itemType->getConsumes());
+		findBestCandidate(currentBestScore, bestMatch, registry, dronePos, itemType, getItemScore, itemType->getStores());
 
 		return bestMatch;
 	}
