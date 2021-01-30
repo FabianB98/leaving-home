@@ -13,6 +13,7 @@ namespace gui
 	rendering::textures::Texture2D* iconRemove;
 	rendering::textures::Texture2D* iconTestBuilding;
 	rendering::textures::Texture2D* iconOtherTestBuilding;
+	rendering::textures::Texture2D* iconMineBuilding;
 	rendering::textures::Texture2D* iconStorageBuilding;
 	rendering::textures::Texture2D* iconResidenceBuilding;
 
@@ -24,6 +25,7 @@ namespace gui
 
 		iconTestBuilding = new rendering::textures::Texture2D("remove");
 		iconOtherTestBuilding = new rendering::textures::Texture2D("remove");
+		iconMineBuilding = new rendering::textures::Texture2D("remove");
 		iconStorageBuilding = new rendering::textures::Texture2D("remove");
 		iconResidenceBuilding = new rendering::textures::Texture2D("remove");
 	}
@@ -93,14 +95,15 @@ namespace gui
 
 		ImGui::Begin("Building", &open, flags);
 		ImGui::SetWindowPos("Building", ImVec2(2.f * tsMargin + width, frameHeight - tsMargin - height));
-		constexpr int numBuildings = 4;
+		constexpr int numBuildings = 5;
 		width = numBuildings * bsIconWidth + (numBuildings + 1) * tsSpacing;
 		ImGui::SetWindowSize("Building", ImVec2(width, height));
 
 		ImVec4 c1 = rgba(255, 255, 255, *selectedBuilding == &game::world::TestBuilding::typeRepresentative ? 1.f : 0.4f);
 		ImVec4 c2 = rgba(255, 255, 255, *selectedBuilding == &game::world::OtherTestBuilding::typeRepresentative ? 1.f : 0.4f);
-		ImVec4 c3 = rgba(255, 255, 255, *selectedBuilding == &game::world::StorageBuilding::typeRepresentative ? 1.f : 0.4f);
-		ImVec4 c4 = rgba(255, 255, 255, *selectedBuilding == &game::world::ResidenceBuilding::typeRepresentative ? 1.f : 0.4f);
+		ImVec4 c3 = rgba(255, 255, 255, *selectedBuilding == &game::world::MineBuilding::typeRepresentative ? 1.f : 0.4f);
+		ImVec4 c4 = rgba(255, 255, 255, *selectedBuilding == &game::world::StorageBuilding::typeRepresentative ? 1.f : 0.4f);
+		ImVec4 c5 = rgba(255, 255, 255, *selectedBuilding == &game::world::ResidenceBuilding::typeRepresentative ? 1.f : 0.4f);
 
 		//ImGui::Button("Test");
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
@@ -119,13 +122,18 @@ namespace gui
 			*selectedBuilding = &game::world::OtherTestBuilding::typeRepresentative;
 
 		ImGui::SetCursorPos(ImVec2(p.x + 2.f * (bsIconWidth + tsSpacing), p.y));
-		if (ImGui::ImageButton((void*)iconStorageBuilding->getId(), ImVec2(tsIconSize, tsIconSize),
+		if (ImGui::ImageButton((void*)iconMineBuilding->getId(), ImVec2(tsIconSize, tsIconSize),
 			ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), c3))
-			*selectedBuilding = &game::world::StorageBuilding::typeRepresentative;
+			*selectedBuilding = &game::world::MineBuilding::typeRepresentative;
 
 		ImGui::SetCursorPos(ImVec2(p.x + 3.f * (bsIconWidth + tsSpacing), p.y));
-		if (ImGui::ImageButton((void*)iconResidenceBuilding->getId(), ImVec2(tsIconSize, tsIconSize),
+		if (ImGui::ImageButton((void*)iconStorageBuilding->getId(), ImVec2(tsIconSize, tsIconSize),
 			ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), c4))
+			*selectedBuilding = &game::world::StorageBuilding::typeRepresentative;
+
+		ImGui::SetCursorPos(ImVec2(p.x + 4.f * (bsIconWidth + tsSpacing), p.y));
+		if (ImGui::ImageButton((void*)iconResidenceBuilding->getId(), ImVec2(tsIconSize, tsIconSize),
+			ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), c5))
 			*selectedBuilding = &game::world::ResidenceBuilding::typeRepresentative;
 
 		ImGui::SetCursorPos(ImVec2(p.x + 10.f, p.y + tsIconSize + tsSpacing));
@@ -134,10 +142,13 @@ namespace gui
 		ImGui::SetCursorPos(ImVec2(p.x - 10.f + (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
 		ImGui::Text("Other Test");
 
-		ImGui::SetCursorPos(ImVec2(p.x + 5.f + 2.f * (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
+		ImGui::SetCursorPos(ImVec2(p.x + 15.f + 2.f * (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
+		ImGui::Text("Mine");
+
+		ImGui::SetCursorPos(ImVec2(p.x + 5.f + 3.f * (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
 		ImGui::Text("Storage");
 
-		ImGui::SetCursorPos(ImVec2(p.x + 0.f + 3.f * (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
+		ImGui::SetCursorPos(ImVec2(p.x + 0.f + 4.f * (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
 		ImGui::Text("Residence");
 
 		ImGui::PopStyleColor(3);
