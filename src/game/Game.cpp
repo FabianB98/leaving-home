@@ -114,7 +114,7 @@ namespace game
 		auto parameters = std::make_shared<rendering::components::PerspectiveCameraParameters>(
 			glm::radians(45.f), width / height, 1.f, 10000.f);
 		registry.emplace<rendering::components::Camera>(defaultCamera, parameters); 
-		registry.emplace<EulerComponentwiseTransform>(defaultCamera, glm::vec3(0, 0, 100), 0, 0, 0, glm::vec3(1.0f));
+		registry.emplace<EulerComponentwiseTransform>(defaultCamera, glm::vec3(0, 0, 500), 0, 0, 0, glm::vec3(1.0f));
 		registry.emplace<components::AxisConstrainedMoveController>(defaultCamera, glm::vec3(0, 0, 1), 20.0f, 50.0f, 1000.0f);
 		registry.emplace<rendering::components::Relationship>(defaultCamera);
 
