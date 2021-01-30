@@ -168,6 +168,11 @@ namespace game::world
 		std::unordered_set<Cell*> cellsToCopy
 	) : Building(buildingTypeName, buildingDescription, pieceSet, original, cellsToCopy) {}
 
+	bool ResidenceBuilding::_canBePlacedOnCell(Cell* cell)
+	{
+		return true;
+	}
+
 	void ResidenceBuilding::__addedToCell(Cell* cell)
 	{
 		game::systems::attachResourceProcessor(&resourceProcessor);

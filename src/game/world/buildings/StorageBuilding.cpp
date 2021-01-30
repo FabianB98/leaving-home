@@ -135,6 +135,11 @@ namespace game::world
 		std::unordered_set<Cell*> cellsToCopy
 	) : Building(buildingTypeName, buildingDescription, pieceSet, original, cellsToCopy) {}
 
+	bool StorageBuilding::_canBePlacedOnCell(Cell* cell)
+	{
+		return true;
+	}
+
 	void StorageBuilding::__addedToCell(Cell* cell)
 	{
 		getRegistry()->emplace_or_replace<Stores<Wood>>(getEntity());

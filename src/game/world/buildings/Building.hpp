@@ -30,7 +30,10 @@ namespace game::world
 				return false;
 
 			CellContent* existingContent = cell->getContent();
-			return existingContent == nullptr || (dynamic_cast<BuildingType*>(existingContent) != nullptr);
+			if (existingContent != nullptr && dynamic_cast<BuildingType*>(existingContent) == nullptr)
+				return false;
+
+			return _canBePlacedOnCell(cell);
 		}
 
 		void displayPlannedBuildingOfThisTypeOnCell(Cell* cell)
@@ -62,6 +65,8 @@ namespace game::world
 		{
 			return new BuildingType(this, cellsToCopy);
 		}
+
+		virtual bool _canBePlacedOnCell(Cell* cell) = 0;
 
 		void _enqueuedToAddToCell(Cell* cell)
 		{
