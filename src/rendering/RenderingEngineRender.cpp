@@ -137,6 +137,20 @@ namespace rendering
         glBindVertexArray(0);
     }
 
+    void RenderingEngine::renderFXAA()
+    {
+        shading::Shader& shader = *fxaaShader;
+        shader.use();
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, mainColor);
+        shader.setUniformInt("image", 0);
+
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
+
     void RenderingEngine::doPicking()
     {
         // read picking framebuffer
@@ -164,8 +178,6 @@ namespace rendering
             pickingResult = 0xffffff;
         }
     }
-
-#include <chrono>
 
     void RenderingEngine::render()
     {
@@ -300,20 +312,24 @@ namespace rendering
         
         game->render(this);
 
-        /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/
+        if (MSAA_SAMPLES == 0 && useFXAA) {
+            // use fxaa
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, mainBuffer);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBlitFramebuffer(
-            0, 0, getFramebufferWidth(), getFramebufferHeight(),
-            0, 0, getFramebufferWidth(), getFramebufferHeight(),
-            GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT, GL_NEAREST
-        );
-
+            renderFXAA();
+        }
+        else {
+            // no fxaa, blit mainBuffer to default framebuffer
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, mainBuffer);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+            glBlitFramebuffer(
+                0, 0, getFramebufferWidth(), getFramebufferHeight(),
+                0, 0, getFramebufferWidth(), getFramebufferHeight(),
+                GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT, GL_NEAREST
+            );
+        }
 
 
         renderDebugWindow();

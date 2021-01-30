@@ -157,6 +157,7 @@ namespace rendering
             toggleWireframe(showWireframe);
 
         ImGui::Checkbox("SSAO Blur", &ssaoBlur);
+        ImGui::Checkbox("FXAA", &useFXAA);
 
         ImGui::End();
     }
@@ -251,5 +252,16 @@ namespace rendering
 
         delete mainShader;
         delete wireframeShader;
+
+        delete pickingShader;
+
+        delete shadowZShader;
+        delete ssaoShader;
+        delete ssaoZShader;
+        delete blurShader;
+
+        delete quadShader;
+        delete screenShader;
+        delete fxaaShader;
     }
 }

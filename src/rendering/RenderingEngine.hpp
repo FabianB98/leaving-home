@@ -160,12 +160,14 @@ namespace rendering
 
 		shading::Shader* quadShader;
 		shading::Shader* screenShader;
+		shading::Shader* fxaaShader;
 
 		// debug values
 		bool showWireframe = false;
 		double frameTimeMillis = 0.0;
 		int lastFrameCount = 0;
 		bool ssaoBlur = true;
+		bool useFXAA = true;
 
 		// shadow mapping values
 		GLuint shadowBuffers[MAX_SHADOW_MAPS];
@@ -221,6 +223,7 @@ namespace rendering
 		void renderSSAO(rendering::components::Camera& camera);
 		void renderSSAOZ(rendering::components::Camera& camera);
 		void renderSSAOBlur(GLuint input, bool first);
+		void renderFXAA();
 		void renderQuad(GLuint image);
 		void render();
 

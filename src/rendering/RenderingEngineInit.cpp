@@ -57,6 +57,7 @@ namespace rendering
         ssaoShader = new shading::Shader("deferred/ssao");
         ssaoZShader = new shading::Shader("deferred/ssaoZ");
         blurShader = new shading::Shader("deferred/blur");
+        fxaaShader = new shading::Shader("deferred/fxaa");
 
         initShadowMapping();
         initPicking();
@@ -127,8 +128,8 @@ namespace rendering
             glTexImage2D(target, 0, data, width, height, 0, GL_RGBA, storage, NULL);
         else
             glTexImage2DMultisample(target, MSAA_SAMPLES, data, width, height, GL_TRUE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, target, *location, 0);
     }
 
