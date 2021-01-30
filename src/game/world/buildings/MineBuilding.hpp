@@ -4,12 +4,12 @@
 
 namespace game::world
 {
-	class ResidenceBuilding : public Building<ResidenceBuilding>
+	class MineBuilding : public Building<MineBuilding>
 	{
 	public:
-		ResidenceBuilding(IBuilding* original, std::unordered_set<Cell*> cellsToCopy);
+		MineBuilding(IBuilding* original, std::unordered_set<Cell*> cellsToCopy);
 
-		virtual ~ResidenceBuilding() {}
+		virtual ~MineBuilding() {}
 
 		void inventoryUpdated();
 

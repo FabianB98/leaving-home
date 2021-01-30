@@ -196,6 +196,11 @@ namespace game::world
 		std::unordered_set<Cell*> cellsToCopy
 	) : Building(testBuildingTypeName, testBuildingDescription, testBuildingPieceSet, original, cellsToCopy) {}
 
+	bool TestBuilding::_canBePlacedOnCell(Cell* cell)
+	{
+		return true;
+	}
+
 	void TestBuilding::__addedToCell(Cell* cell)
 	{
 		game::systems::attachResourceProcessor(&testBuildingResourceProcessor);
@@ -231,6 +236,11 @@ namespace game::world
 		IBuilding* original,
 		std::unordered_set<Cell*> cellsToCopy
 	) : Building(otherTestBuildingTypeName, otherTestBuildingDescription, testBuildingPieceSet, original, cellsToCopy) {}
+
+	bool OtherTestBuilding::_canBePlacedOnCell(Cell* cell)
+	{
+		return true;
+	}
 
 	void OtherTestBuilding::__addedToCell(Cell* cell)
 	{

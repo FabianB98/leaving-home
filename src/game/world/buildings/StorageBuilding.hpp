@@ -18,6 +18,8 @@ namespace game::world
 		const Inventory& getResourcesObtainedByRemoval();
 
 	protected:
+		bool _canBePlacedOnCell(Cell* cell);
+
 		void __addedToCell(Cell* cell);
 
 		void __removedFromCell(Cell* cell);
