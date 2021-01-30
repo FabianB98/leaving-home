@@ -15,6 +15,7 @@ namespace gui
 	rendering::textures::Texture2D* iconOtherTestBuilding;
 	rendering::textures::Texture2D* iconMineBuilding;
 	rendering::textures::Texture2D* iconStorageBuilding;
+	rendering::textures::Texture2D* iconDroneFactoryBuilding;
 	rendering::textures::Texture2D* iconResidenceBuilding;
 
 	void initToolSelection() 
@@ -27,6 +28,7 @@ namespace gui
 		iconOtherTestBuilding = new rendering::textures::Texture2D("remove");
 		iconMineBuilding = new rendering::textures::Texture2D("remove");
 		iconStorageBuilding = new rendering::textures::Texture2D("remove");
+		iconDroneFactoryBuilding = new rendering::textures::Texture2D("remove");
 		iconResidenceBuilding = new rendering::textures::Texture2D("remove");
 	}
 
@@ -95,7 +97,7 @@ namespace gui
 
 		ImGui::Begin("Building", &open, flags);
 		ImGui::SetWindowPos("Building", ImVec2(2.f * tsMargin + width, frameHeight - tsMargin - height));
-		constexpr int numBuildings = 5;
+		constexpr int numBuildings = 6;
 		width = numBuildings * bsIconWidth + (numBuildings + 1) * tsSpacing;
 		ImGui::SetWindowSize("Building", ImVec2(width, height));
 
@@ -103,7 +105,8 @@ namespace gui
 		ImVec4 c2 = rgba(255, 255, 255, *selectedBuilding == &game::world::OtherTestBuilding::typeRepresentative ? 1.f : 0.4f);
 		ImVec4 c3 = rgba(255, 255, 255, *selectedBuilding == &game::world::MineBuilding::typeRepresentative ? 1.f : 0.4f);
 		ImVec4 c4 = rgba(255, 255, 255, *selectedBuilding == &game::world::StorageBuilding::typeRepresentative ? 1.f : 0.4f);
-		ImVec4 c5 = rgba(255, 255, 255, *selectedBuilding == &game::world::ResidenceBuilding::typeRepresentative ? 1.f : 0.4f);
+		ImVec4 c5 = rgba(255, 255, 255, *selectedBuilding == &game::world::DroneFactoryBuilding::typeRepresentative ? 1.f : 0.4f);
+		ImVec4 c6 = rgba(255, 255, 255, *selectedBuilding == &game::world::ResidenceBuilding::typeRepresentative ? 1.f : 0.4f);
 
 		//ImGui::Button("Test");
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
@@ -132,8 +135,13 @@ namespace gui
 			*selectedBuilding = &game::world::StorageBuilding::typeRepresentative;
 
 		ImGui::SetCursorPos(ImVec2(p.x + 4.f * (bsIconWidth + tsSpacing), p.y));
-		if (ImGui::ImageButton((void*)iconResidenceBuilding->getId(), ImVec2(tsIconSize, tsIconSize),
+		if (ImGui::ImageButton((void*)iconDroneFactoryBuilding->getId(), ImVec2(tsIconSize, tsIconSize),
 			ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), c5))
+			*selectedBuilding = &game::world::DroneFactoryBuilding::typeRepresentative;
+
+		ImGui::SetCursorPos(ImVec2(p.x + 5.f * (bsIconWidth + tsSpacing), p.y));
+		if (ImGui::ImageButton((void*)iconResidenceBuilding->getId(), ImVec2(tsIconSize, tsIconSize),
+			ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), c6))
 			*selectedBuilding = &game::world::ResidenceBuilding::typeRepresentative;
 
 		ImGui::SetCursorPos(ImVec2(p.x + 10.f, p.y + tsIconSize + tsSpacing));
@@ -148,7 +156,10 @@ namespace gui
 		ImGui::SetCursorPos(ImVec2(p.x + 5.f + 3.f * (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
 		ImGui::Text("Storage");
 
-		ImGui::SetCursorPos(ImVec2(p.x + 0.f + 4.f * (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
+		ImGui::SetCursorPos(ImVec2(p.x - 5.f + 4.f * (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
+		ImGui::Text("Drone Hub");
+
+		ImGui::SetCursorPos(ImVec2(p.x + 0.f + 5.f * (bsIconWidth + tsSpacing), p.y + tsIconSize + tsSpacing));
 		ImGui::Text("Residence");
 
 		ImGui::PopStyleColor(3);

@@ -151,7 +151,7 @@ namespace game::world
 		double lastProduced;
 	};
 
-	static class : public game::systems::IResourceProcessor {
+	static class TestBuildingsResourceProcessor : public game::systems::IResourceProcessor {
 		void processResources(entt::registry& registry, double deltaTime)
 		{
 			double time = glfwGetTime();
