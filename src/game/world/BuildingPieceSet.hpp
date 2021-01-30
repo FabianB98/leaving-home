@@ -325,7 +325,7 @@ namespace game::world
 
 		virtual void displayPlannedBuildingOfThisTypeOnCell(Cell* cell) = 0;
 
-		virtual void placeBuildingOfThisTypeOnCell(Cell* cell) = 0;
+		virtual bool placeBuildingOfThisTypeOnCell(Cell* cell) = 0;
 
 		virtual const Inventory& getResourcesRequiredToBuild() = 0;
 
@@ -353,6 +353,26 @@ namespace game::world
 		const std::unordered_map<Cell*, BuildingHeight>& getHeightPerCell()
 		{
 			return heightPerCell;
+		}
+
+		unsigned int getTotalAmountOfActualOccupiedSpace()
+		{
+			unsigned int result = 0;
+
+			for (const std::pair<Cell*, BuildingHeight>& cellAndHeight : heightPerCell)
+				result += cellAndHeight.second.actualHeight;
+
+			return result;
+		}
+
+		unsigned int getTotalAmountOfPlannedOccupiedSpace()
+		{
+			unsigned int result = 0;
+
+			for (const std::pair<Cell*, BuildingHeight>& cellAndHeight : heightPerCell)
+				result += cellAndHeight.second.plannedHeight;
+
+			return result;
 		}
 
 	protected:

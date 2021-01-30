@@ -65,7 +65,7 @@ namespace gui
 			ImGui::Text("Content: %p", cellContent);
 			ImGui::TextWrapped("%s", cellContent->getTypeName().c_str());
 			ImGui::TextWrapped("%s", cellContent->getDescription().c_str());
-			ImGui::TextWrapped("%s", cellContent->getInventoryContentsString());
+			ImGui::TextUnformatted(cellContent->getInventoryContentsString().c_str());
 		}
 
 		ImGui::End();

@@ -267,12 +267,48 @@ namespace game::world
 		}
 	};
 
-	struct Wood : public Item<Wood> 
+	struct Wood : public Item<Wood>
 	{
 		static const std::string TYPE_NAME;
 
 		Wood() : Item(TYPE_NAME) {}
 
 		Wood(float _amount) : Item(_amount, TYPE_NAME) {}
+	};
+
+	struct Stone : public Item<Stone>
+	{
+		static const std::string TYPE_NAME;
+
+		Stone() : Item(TYPE_NAME) {}
+
+		Stone(float _amount) : Item(_amount, TYPE_NAME) {}
+	};
+
+	struct Ores : public Item<Ores>
+	{
+		static const std::string TYPE_NAME;
+
+		Ores() : Item(TYPE_NAME) {}
+
+		Ores(float _amount) : Item(_amount, TYPE_NAME) {}
+	};
+
+	struct Biomass : public Item<Biomass>
+	{
+		static const std::string TYPE_NAME;
+
+		Biomass() : Item(TYPE_NAME) {}
+
+		Biomass(float _amount) : Item(_amount, TYPE_NAME) {}
+	};
+
+	struct Food : public Item<Food>
+	{
+		static const std::string TYPE_NAME;
+
+		Food() : Item(TYPE_NAME) {}
+
+		Food(float _amount) : Item(_amount, TYPE_NAME) {}
 	};
 }

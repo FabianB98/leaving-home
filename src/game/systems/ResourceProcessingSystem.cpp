@@ -308,6 +308,7 @@ namespace game::systems
 		float currentBestScore = std::numeric_limits<float>::lowest();
 		world::CellContent* bestMatch = nullptr;
 		findBestCandidate(currentBestScore, bestMatch, registry, dronePos, itemType, getItemScore, itemType->getConsumes());
+		findBestCandidate(currentBestScore, bestMatch, registry, dronePos, itemType, getItemScore, itemType->getStores());
 
 		return bestMatch;
 	}
@@ -468,11 +469,12 @@ namespace game::systems
 			world::Drone& drone,
 			world::Inventory& inventory
 		) {
-			for (std::shared_ptr<world::IItem> item : buildingType->getResourcesRequiredToBuild().items)
-				inventory.removeItem(item, item->amount);
-			drone.inventoryUpdated(registry, entity, inventory);
-
-			buildingType->placeBuildingOfThisTypeOnCell(destination);
+			if (buildingType->placeBuildingOfThisTypeOnCell(destination))
+			{
+				for (std::shared_ptr<world::IItem> item : buildingType->getResourcesRequiredToBuild().items)
+					inventory.removeItem(item, item->amount);
+				drone.inventoryUpdated(registry, entity, inventory);
+			}
 
 			return true;
 		}

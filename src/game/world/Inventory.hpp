@@ -77,7 +77,7 @@ namespace game::world
 		void addItems(const Inventory& source)
 		{
 			for (std::shared_ptr<IItem> item : source.items)
-				addItem(item);
+				addItem(item->clone());
 		}
 
 		void addItem(std::shared_ptr<IItem> item)
@@ -144,6 +144,14 @@ namespace game::world
 		std::shared_ptr<T> removeItemTyped(float maxAmount)
 		{
 			return std::dynamic_pointer_cast<T>(removeItem(std::make_shared<T>(0.0f), maxAmount));
+		}
+
+		void split(unsigned int amount)
+		{
+			float multiplier = 1.0f / ((float) amount);
+
+			for (std::shared_ptr<IItem> item : items)
+				item->amount *= multiplier;
 		}
 
 		std::string getStoredItemsString()

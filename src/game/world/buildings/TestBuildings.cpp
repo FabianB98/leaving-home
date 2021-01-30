@@ -1,4 +1,4 @@
-#include "Building.hpp"
+#include "TestBuildings.hpp"
 
 namespace game::world
 {
