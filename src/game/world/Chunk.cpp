@@ -1017,6 +1017,40 @@ namespace game::world
 		}
 	}
 
+	Cell* Cell::getAnyNeighborFulfillingPredicate(unsigned int range, std::function<bool(Cell*)> predicate)
+	{
+		std::unordered_set<Cell*> enqueuedOrTraversedCells;
+		std::queue<std::pair<Cell*, unsigned int>> cellsToTraverse;
+
+		enqueuedOrTraversedCells.insert(this);
+		cellsToTraverse.push(std::make_pair(this, range));
+
+		while (!cellsToTraverse.empty())
+		{
+			std::pair<Cell*, unsigned int> currentCellAndRemainingRange = cellsToTraverse.front();
+			Cell* currentCell = currentCellAndRemainingRange.first;
+			unsigned int remainingRange = currentCellAndRemainingRange.second;
+			cellsToTraverse.pop();
+
+			if (predicate(currentCell))
+				return currentCell;
+
+			if (remainingRange > 0)
+			{
+				for (Cell* cell : currentCell->getNeighbors())
+				{
+					if (enqueuedOrTraversedCells.find(cell) == enqueuedOrTraversedCells.end())
+					{
+						enqueuedOrTraversedCells.insert(cell);
+						cellsToTraverse.push(std::make_pair(cell, remainingRange - 1));
+					}
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
 	void Cell::_setContent(CellContent* _content, bool splitMultiCellContent, bool callAddedToCell, bool callEnqueuedToAddToCell)
 	{
 		bool newContentEqualsOldContent = content == _content;

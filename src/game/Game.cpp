@@ -21,7 +21,7 @@
 #include "DayNightCycle.hpp"
 #include "PickingChunkSelection.hpp"
 #include "world/buildings/Building.hpp"
-#include "world/buildings/TestBuildings.hpp"
+#include "world/buildings/WoodcutterBuilding.hpp"
 #include "world/Chunk.hpp"
 #include "world/World.hpp"
 #include "world/Resource.hpp"
@@ -78,7 +78,7 @@ namespace game
 		skybox = new rendering::Skybox("skybox", "skybox");
 
 		selectedTool = gui::Tool::BUILD;
-		selectedBuilding = &world::TestBuilding::typeRepresentative;
+		selectedBuilding = &world::WoodcutterBuilding::typeRepresentative;
 
 		renderingEngine->setClearColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.0f));
 

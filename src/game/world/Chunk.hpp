@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <queue>
 #include <random>
@@ -280,6 +281,8 @@ namespace game::world
 		Cell(Chunk* _chunk, uint16_t _cellId, Node* _node);
 
 		~Cell();
+
+		Cell* getAnyNeighborFulfillingPredicate(unsigned int range, std::function<bool (Cell*)> predicate);
 
 		Chunk* getChunk()
 		{
