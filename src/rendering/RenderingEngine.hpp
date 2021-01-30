@@ -166,6 +166,7 @@ namespace rendering
 		bool showWireframe = false;
 		double frameTimeMillis = 0.0;
 		int lastFrameCount = 0;
+		bool useSSAO = true;
 		bool ssaoBlur = true;
 		bool useFXAA = true;
 

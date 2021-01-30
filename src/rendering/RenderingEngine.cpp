@@ -156,6 +156,7 @@ namespace rendering
         if (ImGui::Checkbox("Show wireframe", &showWireframe))
             toggleWireframe(showWireframe);
 
+        ImGui::Checkbox("SSAO", &useSSAO);
         ImGui::Checkbox("SSAO Blur", &ssaoBlur);
         ImGui::Checkbox("FXAA", &useFXAA);
 

@@ -32,6 +32,8 @@ in vec2 uv;
 	uniform sampler2D gSpecular;
 #endif
 
+uniform int enableAO;
+
 uniform sampler2D ssao;
 uniform sampler2DShadow shadowMap[2];
 
@@ -129,7 +131,7 @@ vec3 calcLight(vec3 intensity, float shadow, vec3 direction) {
 	float cosAlpha = max(0, dot(cameraDir, reflected));
 	
 	float visibility = shadow * getVisibility(vec4(view_pos, 1), cosTheta) + (1.0 - shadow);
-	float ao = texture(ssao, uv).r;
+	float ao = enableAO == 0 ? 1.0 : texture(ssao, uv).r;
 
 	vec3 emmisive = kA * e;
 	vec3 ambient = kA * ao;

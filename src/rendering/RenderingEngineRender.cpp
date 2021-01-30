@@ -40,6 +40,7 @@ namespace rendering
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, ssaoBlur ? ssaoBlurColor : ssaoColor);
         shader.setUniformInt("ssao", 5);
+        shader.setUniformInt("enableAO", useSSAO);
         for (unsigned int i = 0; i < MAX_SHADOW_MAPS; ++i) {
             glActiveTexture(GL_TEXTURE6 + i);
             glBindTexture(GL_TEXTURE_2D, shadowMaps[i]);
@@ -231,40 +232,42 @@ namespace rendering
         systems::renderDeferredGPass(registry, camera);
 
         // SSAO
-        if (MSAA_SAMPLES > 0) {
-            // this pass resolves the multisampling of the texture with high precision camera space z values
-            glBindFramebuffer(GL_FRAMEBUFFER, ssaoZBuffer);
+        if (useSSAO) {
+            if (MSAA_SAMPLES > 0) {
+                // this pass resolves the multisampling of the texture with high precision camera space z values
+                glBindFramebuffer(GL_FRAMEBUFFER, ssaoZBuffer);
+                glClearColor(0.f, 0.f, 0.f, 1.f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                renderSSAOZ(camera);
+            }
+            GLuint zTexture = MSAA_SAMPLES == 0 ? gZ : ssaoZ;
+            // this is important! generating mipmaps of the z texture reduces cache misses for AO samples
+            glBindTexture(GL_TEXTURE_2D, zTexture);
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+            // noisy AO sample pass
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoBuffer);
             glClearColor(0.f, 0.f, 0.f, 1.f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            renderSSAOZ(camera);
-        }
-        GLuint zTexture = MSAA_SAMPLES == 0 ? gZ : ssaoZ;
-        // this is important! generating mipmaps of the z texture reduces cache misses for AO samples
-        glBindTexture(GL_TEXTURE_2D, zTexture);
-        glGenerateMipmap(GL_TEXTURE_2D);
+            renderSSAO(camera);
 
-        // noisy AO sample pass
-        glBindFramebuffer(GL_FRAMEBUFFER, ssaoBuffer);
-        glClearColor(0.f, 0.f, 0.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            // AO blur passes (one horizontal, one vertical)
+            if (ssaoBlur)
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBufferI);
+                glClearColor(0.f, 0.f, 0.f, 1.f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        renderSSAO(camera);
+                renderSSAOBlur(ssaoColor, true);
 
-        // AO blur passes (one horizontal, one vertical)
-        if (ssaoBlur)
-        {
-            glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBufferI);
-            glClearColor(0.f, 0.f, 0.f, 1.f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBuffer);
+                glClearColor(0.f, 0.f, 0.f, 1.f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            renderSSAOBlur(ssaoColor, true);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurBuffer);
-            glClearColor(0.f, 0.f, 0.f, 1.f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            renderSSAOBlur(ssaoBlurColorI, false);
+                renderSSAOBlur(ssaoBlurColorI, false);
+            }
         }
 
 
@@ -312,7 +315,7 @@ namespace rendering
         
         game->render(this);
 
-        if (MSAA_SAMPLES == 0 && useFXAA) {
+        if (MSAA_SAMPLES == 0 && useFXAA && !showWireframe) {
             // use fxaa
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
