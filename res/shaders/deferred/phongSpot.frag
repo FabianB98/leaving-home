@@ -8,20 +8,38 @@ in struct SpotLight{
 	float partOfSphere;
 } spotLight;
 
-uniform sampler2DMS gPosition;
-uniform sampler2DMS gNormal;
-uniform sampler2DMS gAmbient;
-uniform sampler2DMS gDiffuse;
-uniform sampler2DMS gSpecular;
+//#define MS 0
+
+#ifdef MS
+	uniform sampler2DMS gPosition;
+	uniform sampler2DMS gNormal;
+	uniform sampler2DMS gAmbient;
+	uniform sampler2DMS gDiffuse;
+	uniform sampler2DMS gSpecular;
+#else
+	uniform sampler2D gPosition;
+	uniform sampler2D gNormal;
+	uniform sampler2D gAmbient;
+	uniform sampler2D gDiffuse;
+	uniform sampler2D gSpecular;
+#endif
 uniform sampler2D ssao;
 
 //uniform vec3 cameraPos;
 
 out vec4 color;
 
+// Allows easy switch between MSAA and no MSAA
+vec4 fetchGPass(sampler2DMS tex) {
+	return texelFetch(tex, ivec2(gl_FragCoord), gl_SampleID);
+}
+vec4 fetchGPass(sampler2D tex) {
+	return texelFetch(tex, ivec2(gl_FragCoord), 0);
+}
+
 vec3 calcLight() {
-	vec3 view_pos = texelFetch(gPosition, ivec2(gl_FragCoord), gl_SampleID).xyz;
-	vec3 view_normal = texelFetch(gNormal, ivec2(gl_FragCoord), gl_SampleID).xyz;
+	vec3 view_pos = fetchGPass(gPosition).xyz;
+	vec3 view_normal = fetchGPass(gNormal).xyz;
 
 	vec3 toLight = spotLight.position - view_pos;
 	vec3 direction = normalize(toLight);
@@ -31,10 +49,10 @@ vec3 calcLight() {
 	if (spot <= spotLight.cutoff) return vec3(0,0,0);
 	float spotFactor = 1.0 - (1.0 - spot) / (1.0 - spotLight.cutoff);
 
-	vec3 kA = texelFetch(gAmbient, ivec2(gl_FragCoord), gl_SampleID).xyz;
-	vec3 kD = texelFetch(gDiffuse, ivec2(gl_FragCoord), gl_SampleID).xyz;
-	vec3 kS = texelFetch(gSpecular, ivec2(gl_FragCoord), gl_SampleID).xyz;
-	float n = texelFetch(gSpecular, ivec2(gl_FragCoord), gl_SampleID).w;
+	vec3 kA = fetchGPass(gAmbient).xyz;
+	vec3 kD = fetchGPass(gDiffuse).xyz;
+	vec3 kS = fetchGPass(gSpecular).xyz;
+	float n = fetchGPass(gSpecular).w;
 
 	float cosTheta = max(0, dot(view_normal, direction));
 	vec3 cameraDir = normalize(-view_pos);
@@ -54,5 +72,4 @@ vec3 calcLight() {
 
 void main() {
 	color = vec4(calcLight(), 1);
-	//color = vec4(1,0,0,1);
 }

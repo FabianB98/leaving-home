@@ -157,6 +157,7 @@ namespace rendering
             toggleWireframe(showWireframe);
 
         ImGui::Checkbox("SSAO Blur", &ssaoBlur);
+        ImGui::Checkbox("FXAA", &useFXAA);
 
         ImGui::End();
     }
@@ -188,6 +189,24 @@ namespace rendering
         lockMouseCursor = _lockMouseCursor;
     }
 
+    void RenderingEngine::updateFramebufferTexture(GLuint* location, GLuint data, GLuint storage, unsigned int width, unsigned int height)
+    {
+        GLuint target = MSAA_SAMPLES == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+        glBindTexture(target, *location);
+
+        if (MSAA_SAMPLES == 0) glTexImage2D(target, 0, data, width, height, 0, GL_RGBA, storage, NULL);
+        else glTexImage2DMultisample(target, MSAA_SAMPLES, data, width, height, GL_TRUE);
+    }
+
+    void RenderingEngine::updateFramebufferDepthbuffer(GLuint* location, unsigned int width, unsigned int height)
+    {
+        glBindRenderbuffer(GL_RENDERBUFFER, *location);
+        if (MSAA_SAMPLES == 0)
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+        else
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, MSAA_SAMPLES, GL_DEPTH_COMPONENT, width, height);
+    }
+
     void RenderingEngine::_updateSize(int _width, int _height)
     {
         width = _width;
@@ -199,21 +218,14 @@ namespace rendering
         glBindRenderbuffer(GL_RENDERBUFFER, pickingDepthbuffer);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gPosition);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA16F, width, height, GL_TRUE);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gNormal);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA16F, width, height, GL_TRUE);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gAmbient);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA, width, height, GL_TRUE);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gDiffuse);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA, width, height, GL_TRUE);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gSpecular);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA, width, height, GL_TRUE);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gZ);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_R32F, width, height, GL_TRUE);
+        updateFramebufferTexture(&gPosition, GL_RGBA16F, GL_FLOAT, width, height);
+        updateFramebufferTexture(&gNormal, GL_RGBA16F, GL_FLOAT, width, height);
+        updateFramebufferTexture(&gAmbient, GL_RGBA, GL_UNSIGNED_BYTE, width, height);
+        updateFramebufferTexture(&gDiffuse, GL_RGBA, GL_UNSIGNED_BYTE, width, height);
+        updateFramebufferTexture(&gSpecular, GL_RGBA, GL_UNSIGNED_BYTE, width, height);
+        updateFramebufferTexture(&gZ, GL_R32F, GL_FLOAT, width, height);
 
-        glBindRenderbuffer(GL_RENDERBUFFER, gDepthBuffer);
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, MSAA_SAMPLES, GL_DEPTH_COMPONENT, width, height);
+        updateFramebufferDepthbuffer(&gDepthBuffer, width, height);
 
         glBindTexture(GL_TEXTURE_2D, ssaoColor);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_FLOAT, NULL);
@@ -223,6 +235,9 @@ namespace rendering
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_FLOAT, NULL);
         glBindTexture(GL_TEXTURE_2D, ssaoBlurColor);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_FLOAT, NULL);
+
+        updateFramebufferTexture(&mainColor, GL_RGBA, GL_UNSIGNED_BYTE, width, height);
+        updateFramebufferDepthbuffer(&mainDepth, width, height);
 
         glViewport(0, 0, _width, _height);
         render();
@@ -237,5 +252,16 @@ namespace rendering
 
         delete mainShader;
         delete wireframeShader;
+
+        delete pickingShader;
+
+        delete shadowZShader;
+        delete ssaoShader;
+        delete ssaoZShader;
+        delete blurShader;
+
+        delete quadShader;
+        delete screenShader;
+        delete fxaaShader;
     }
 }

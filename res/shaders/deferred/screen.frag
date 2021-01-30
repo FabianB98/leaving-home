@@ -8,6 +8,8 @@
 #define SAMPLES 16
 #define SAMPLE_ROTATION 7
 
+//#define MS 0
+
 struct DirectionalLight {
 	vec3 intensity;
 	vec3 direction_world;
@@ -16,11 +18,20 @@ struct DirectionalLight {
 
 in vec2 uv;
 
-uniform sampler2DMS gPosition;
-uniform sampler2DMS gNormal;
-uniform sampler2DMS gAmbient;
-uniform sampler2DMS gDiffuse;
-uniform sampler2DMS gSpecular;
+#ifdef MS
+	uniform sampler2DMS gPosition;
+	uniform sampler2DMS gNormal;
+	uniform sampler2DMS gAmbient;
+	uniform sampler2DMS gDiffuse;
+	uniform sampler2DMS gSpecular;
+#else
+	uniform sampler2D gPosition;
+	uniform sampler2D gNormal;
+	uniform sampler2D gAmbient;
+	uniform sampler2D gDiffuse;
+	uniform sampler2D gSpecular;
+#endif
+
 uniform sampler2D ssao;
 uniform sampler2DShadow shadowMap[2];
 
@@ -32,6 +43,15 @@ uniform DirectionalLight[MAX_LIGHT_COUNT] directionalLights;
 float BIAS[2] = float[](0.001, 0.002);
 
 out vec4 color;
+
+// Allows easy switch between MSAA and no MSAA
+vec4 fetchGPass(sampler2DMS tex) {
+	return texelFetch(tex, ivec2(gl_FragCoord), gl_SampleID);
+}
+vec4 fetchGPass(sampler2D tex) {
+	return texture(tex, uv);
+}
+
 
 vec3 sampleScreenPos(int totalSamples, vec2 screenPos, float screenRadius, int index, float random) {
 	float alpha = (index + .5f) / totalSamples;
@@ -92,14 +112,14 @@ float getVisibility(vec4 viewPos, float cosTheta) {
 }
 
 vec3 calcLight(vec3 intensity, float shadow, vec3 direction) {
-	vec3 view_pos = texelFetch(gPosition, ivec2(gl_FragCoord), gl_SampleID).xyz;
-	vec3 view_normal = texelFetch(gNormal, ivec2(gl_FragCoord), gl_SampleID).xyz;
+	vec3 view_pos = fetchGPass(gPosition).xyz;
+	vec3 view_normal = fetchGPass(gNormal).xyz;
 
-	vec4 ambientTex = texelFetch(gAmbient, ivec2(gl_FragCoord), gl_SampleID);
+	vec4 ambientTex = fetchGPass(gAmbient);
 	vec3 kA = ambientTex.xyz;
 	float e = ambientTex.w;
-	vec3 kD = texelFetch(gDiffuse, ivec2(gl_FragCoord), gl_SampleID).xyz;
-	vec4 specTex = texelFetch(gSpecular, ivec2(gl_FragCoord), gl_SampleID);
+	vec3 kD = fetchGPass(gDiffuse).xyz;
+	vec4 specTex = fetchGPass(gSpecular);
 	vec3 kS = specTex.xyz;
 	float n = specTex.w;
 

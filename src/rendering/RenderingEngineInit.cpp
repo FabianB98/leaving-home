@@ -57,6 +57,7 @@ namespace rendering
         ssaoShader = new shading::Shader("deferred/ssao");
         ssaoZShader = new shading::Shader("deferred/ssaoZ");
         blurShader = new shading::Shader("deferred/blur");
+        fxaaShader = new shading::Shader("deferred/fxaa");
 
         initShadowMapping();
         initPicking();
@@ -115,65 +116,67 @@ namespace rendering
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
     }
 
+    void RenderingEngine::createFramebufferTexture(GLuint* location, GLuint data, GLuint storage, unsigned int attachment)
+    {
+        GLuint target = MSAA_SAMPLES == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+        auto width = getFramebufferWidth();
+        auto height = getFramebufferHeight();
+
+        glGenTextures(1, location);
+        glBindTexture(target, *location);
+        if (MSAA_SAMPLES == 0)
+            glTexImage2D(target, 0, data, width, height, 0, GL_RGBA, storage, NULL);
+        else
+            glTexImage2DMultisample(target, MSAA_SAMPLES, data, width, height, GL_TRUE);
+        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, target, *location, 0);
+    }
+
+    void RenderingEngine::createFramebufferDepthbuffer(GLuint* location)
+    {
+        auto width = getFramebufferWidth();
+        auto height = getFramebufferHeight();
+
+        glGenRenderbuffers(1, location);
+        glBindRenderbuffer(GL_RENDERBUFFER, *location);
+        if (MSAA_SAMPLES == 0)
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+        else
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, MSAA_SAMPLES, GL_DEPTH_COMPONENT, width, height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, *location);
+    }
+
     void RenderingEngine::initDeferred()
     {
+        auto width = getFramebufferWidth();
+        auto height = getFramebufferHeight();
+
         glGenFramebuffers(1, &gBuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
 
-        glGenTextures(1, &gPosition);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gPosition);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA16F, getFramebufferWidth(), getFramebufferHeight(), GL_TRUE);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, gPosition, 0);
-
-        glGenTextures(1, &gNormal);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gNormal);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA16F, getFramebufferWidth(), getFramebufferHeight(), GL_TRUE);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, gNormal, 0);
-
-        glGenTextures(1, &gAmbient);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gAmbient);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA, getFramebufferWidth(), getFramebufferHeight(), GL_TRUE);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D_MULTISAMPLE, gAmbient, 0);
-
-        glGenTextures(1, &gDiffuse);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gDiffuse);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA, getFramebufferWidth(), getFramebufferHeight(), GL_TRUE);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D_MULTISAMPLE, gDiffuse, 0);
-
-        glGenTextures(1, &gSpecular);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gSpecular);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_RGBA, getFramebufferWidth(), getFramebufferHeight(), GL_TRUE);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D_MULTISAMPLE, gSpecular, 0);
-
-        glGenTextures(1, &gZ);
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gZ);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, GL_R32F, getFramebufferWidth(), getFramebufferHeight(), GL_TRUE);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D_MULTISAMPLE, gZ, 0);
+        createFramebufferTexture(&gPosition, GL_RGBA16F, GL_FLOAT, 0);
+        createFramebufferTexture(&gNormal, GL_RGBA16F, GL_FLOAT, 1);
+        createFramebufferTexture(&gAmbient, GL_RGBA, GL_UNSIGNED_BYTE, 2);
+        createFramebufferTexture(&gDiffuse, GL_RGBA, GL_UNSIGNED_BYTE, 3);
+        createFramebufferTexture(&gSpecular, GL_RGBA, GL_UNSIGNED_BYTE, 4);
+        createFramebufferTexture(&gZ, GL_R32F, GL_FLOAT, 5);
 
         GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
             GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
         glDrawBuffers(6, attachments);
 
-        glGenRenderbuffers(1, &gDepthBuffer);
-        glBindRenderbuffer(GL_RENDERBUFFER, gDepthBuffer);
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, MSAA_SAMPLES, GL_DEPTH_COMPONENT, getFramebufferWidth(), getFramebufferHeight());
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, gDepthBuffer);
+        createFramebufferDepthbuffer(&gDepthBuffer);
 
         glGenVertexArrays(1, &quadVAO);
+
+
+        glGenFramebuffers(1, &mainBuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, mainBuffer);
+
+        createFramebufferTexture(&mainColor, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        createFramebufferDepthbuffer(&mainDepth);
+
     }
 
     void RenderingEngine::initSSAO()

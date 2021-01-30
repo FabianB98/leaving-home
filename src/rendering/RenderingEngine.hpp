@@ -24,7 +24,7 @@
 
 namespace rendering 
 {	
-	constexpr auto MSAA_SAMPLES = 2;
+	constexpr auto MSAA_SAMPLES = 0;
 	constexpr auto SHADOW_MAP_RES = 1024;
 	constexpr auto MAX_SHADOW_MAPS = 2;
 
@@ -160,12 +160,14 @@ namespace rendering
 
 		shading::Shader* quadShader;
 		shading::Shader* screenShader;
+		shading::Shader* fxaaShader;
 
 		// debug values
 		bool showWireframe = false;
 		double frameTimeMillis = 0.0;
 		int lastFrameCount = 0;
 		bool ssaoBlur = true;
+		bool useFXAA = true;
 
 		// shadow mapping values
 		GLuint shadowBuffers[MAX_SHADOW_MAPS];
@@ -195,12 +197,22 @@ namespace rendering
 		GLuint ssaoZBuffer;
 		GLuint ssaoZ;
 
+		// output buffer
+		GLuint mainBuffer;
+		GLuint mainColor;
+		GLuint mainDepth;
+
 		int init();
 
 		void initShadowMapping();
 		void initPicking();
 		void initSSAO();
 		void initDeferred();
+
+		void createFramebufferTexture(GLuint* location, GLuint data, GLuint storage, unsigned int attachment);
+		void createFramebufferDepthbuffer(GLuint* location);
+		void updateFramebufferTexture(GLuint* location, GLuint data, GLuint storage, unsigned int width, unsigned int height);
+		void updateFramebufferDepthbuffer(GLuint* location, unsigned int width, unsigned int height);
 
 		void input(double deltaTime);
 
@@ -211,6 +223,7 @@ namespace rendering
 		void renderSSAO(rendering::components::Camera& camera);
 		void renderSSAOZ(rendering::components::Camera& camera);
 		void renderSSAOBlur(GLuint input, bool first);
+		void renderFXAA();
 		void renderQuad(GLuint image);
 		void render();
 
