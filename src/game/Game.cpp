@@ -103,8 +103,9 @@ namespace game
 		float width = renderingEngine->getFramebufferWidth();
 		float height = renderingEngine->getFramebufferHeight();
 
+		float baseHeight = wrld->getHeightGenerator().getHeight(0.f, 0.f);
 		cameraBase = registry.create();
-		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, 0, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));
+		registry.emplace<EulerComponentwiseTransform>(cameraBase, glm::vec3(0, baseHeight, 0), 0, glm::radians(-40.0f), 0, glm::vec3(1.0f));
 		registry.emplace<components::HeightConstrainedMoveController>(cameraBase, GLFW_MOUSE_BUTTON_RIGHT, 0.2f);
 		registry.emplace<components::FirstPersonRotateController>(cameraBase, GLFW_MOUSE_BUTTON_MIDDLE, 0.005f, glm::radians(-90.0f), glm::radians(-10.0f));
 		registry.emplace<rendering::components::Relationship>(cameraBase);

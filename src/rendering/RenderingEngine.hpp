@@ -25,7 +25,7 @@
 namespace rendering 
 {	
 	constexpr auto MSAA_SAMPLES = 0;
-	constexpr auto SHADOW_MAP_RES = 1024;
+	constexpr auto SHADOW_MAP_RES = 2048;
 	constexpr auto MAX_SHADOW_MAPS = 2;
 
 	class RenderingEngine;
