@@ -1,16 +1,16 @@
-#include "ResidenceBuilding.hpp"
+#include "DroneFactoryBuilding.hpp"
 
 namespace game::world
 {
-	static const std::string buildingTypeName = "Residence Building";
-	static const std::string buildingDescription = "A habitat for your citizens. Consumes food.";
-	static const Inventory constructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(1.0f), std::make_shared<Stone>(2.0f) });
-	static const Inventory destructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(0.5f), std::make_shared<Stone>(1.0f) });
+	static const std::string buildingTypeName = "Drone Factory";
+	static const std::string buildingDescription = "A factory for producing more drones. Consumes ores for each drone to produce.";
+	static const Inventory constructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Stone>(4.0f), std::make_shared<Ores>(2.0f) });
+	static const Inventory destructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Stone>(2.0f), std::make_shared<Ores>(1.0f) });
 
 	static std::shared_ptr<BuildingPieceSet> pieceSet = std::make_shared<BuildingPieceSet>(
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Wall"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -18,7 +18,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Wall_Roof_Outer_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall_Roof_Outer_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -26,7 +26,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Roof_Wall_Inner_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Roof_Wall_Inner_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -34,7 +34,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Wall_Roof_Left"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall_Roof_Left"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -42,7 +42,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Wall_Roof_Right"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall_Roof_Right"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -50,7 +50,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -58,7 +58,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall_Roof_Outer_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Outer_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -66,7 +66,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Roof_Wall_Inner_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Roof_Wall_Inner_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -74,7 +74,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall_Roof_Left"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Left"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -82,7 +82,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall_Roof_Right"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Right"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -90,7 +90,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall_Roof_Both"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Both"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -98,7 +98,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Outer_Corner_Wall"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Outer_Corner_Wall"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -106,7 +106,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Outer_Corner_Wall_Roof_Outer_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Outer_Corner_Wall_Roof_Outer_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -114,7 +114,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Outer_Corner_Roof_Wall_Inner_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Outer_Corner_Roof_Wall_Inner_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -122,7 +122,7 @@ namespace game::world
 		) },
 		std::vector<std::shared_ptr<NoEdgeBuildingPiece>>{ std::make_shared<NoEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/No_Edge_Roof"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/No_Edge_Roof"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
@@ -130,76 +130,84 @@ namespace game::world
 		) }
 	);
 
-	struct ResidenceBuildingComponent
-	{
-		ResidenceBuildingComponent(ResidenceBuilding* _building) : building(_building), lastConsumed(glfwGetTime()) {}
-
-		ResidenceBuilding* building;
-		double lastConsumed;
-	};
-
-	static class ResidenceResourceProcessor : public game::systems::IResourceProcessor {
+	static class DroneFactoryResourceProcessor : public game::systems::IResourceProcessor {
 		void processResources(entt::registry& registry, double deltaTime)
 		{
 			double time = glfwGetTime();
 
-			for (auto& entity : registry.view<ResidenceBuildingComponent>())
+			for (auto& entity : registry.view<DroneFactoryBuildingComponent>())
 			{
-				registry.patch<ResidenceBuildingComponent>(entity, [&registry, entity, time](auto& building) {
-					if (time - building.lastConsumed > 60.0f)
+				registry.patch<DroneFactoryBuildingComponent>(entity, [&registry, entity, time](auto& building) {
+					if (building.amountOfDronesToProduce > 0)
 					{
-						building.lastConsumed = time;
+						registry.emplace_or_replace<Consumes<Ores>>(entity);
 
-						float amountToConsume = 0.5f * building.building->getTotalAmountOfActualOccupiedSpace();
-						std::shared_ptr<Food> consumedFood = registry.get<Inventory>(entity).removeItemTyped<Food>(amountToConsume);
-						if (consumedFood == nullptr || consumedFood->amount != amountToConsume)
+						Inventory& inventory = registry.get<Inventory>(entity);
+						std::shared_ptr<Ores> ores = inventory.getItemTyped<Ores>();
+						bool hasEnoughOres = ores != nullptr && ores->amount >= 3.0f;
+						if (hasEnoughOres)
 						{
-							// TODO: Building didn't have enough food to feed all citizens. What to do now? Should the building (or
-							// some part of it) be removed?
+							float occupiedSpace = building.building->getTotalAmountOfActualOccupiedSpace();
+							float timeForProduction = 30.0f + 30.0f / occupiedSpace;
+
+							if (time - building.lastProduced > timeForProduction)
+							{
+								building.lastProduced = time;
+								building.amountOfDronesToProduce -= 1;
+								inventory.removeItemTyped<Ores>(3.0f);
+
+								glm::vec3 cellPos = building.building->getCells().begin()->first->getRelaxedPositionAndHeight();
+								Drone::spawnNewDrone(registry, cellPos + glm::vec3(0.0f, DRONE_FLIGHT_HEIGHT, 0.0f));
+							}
 						}
+						else
+						{
+							building.lastProduced = time;
+						}
+					}
+					else
+					{
+						registry.remove_if_exists<Consumes<Ores>>(entity);
 					}
 				});
 			}
 		}
 	} resourceProcessor;
 
-	ResidenceBuilding::ResidenceBuilding(
+	DroneFactoryBuilding::DroneFactoryBuilding(
 		IBuilding* original,
 		std::unordered_set<Cell*> cellsToCopy
 	) : Building(buildingTypeName, buildingDescription, pieceSet, original, cellsToCopy) {}
 
-	bool ResidenceBuilding::_canBePlacedOnCell(Cell* cell)
+	bool DroneFactoryBuilding::_canBePlacedOnCell(Cell* cell)
 	{
 		return true;
 	}
 
-	void ResidenceBuilding::__addedToCell(Cell* cell)
+	void DroneFactoryBuilding::__addedToCell(Cell* cell)
 	{
 		game::systems::attachResourceProcessor(&resourceProcessor);
 
-		if (!getRegistry()->has<ResidenceBuildingComponent>(getEntity()))
-		{
-			getRegistry()->emplace<ResidenceBuildingComponent>(getEntity(), this);
-			getRegistry()->emplace<Consumes<Food>>(getEntity());
-		}
+		if (!getRegistry()->has<DroneFactoryBuildingComponent>(getEntity()))
+			getRegistry()->emplace<DroneFactoryBuildingComponent>(getEntity(), this);
 	}
 
-	void ResidenceBuilding::__removedFromCell(Cell* cell)
+	void DroneFactoryBuilding::__removedFromCell(Cell* cell)
 	{
 		// Nothing to do here...
 	}
 
-	void ResidenceBuilding::inventoryUpdated()
+	void DroneFactoryBuilding::inventoryUpdated()
 	{
 		// Nothing to do here...
 	}
 
-	const Inventory& ResidenceBuilding::getResourcesRequiredToBuild()
+	const Inventory& DroneFactoryBuilding::getResourcesRequiredToBuild()
 	{
 		return constructionResources;
 	}
 
-	const Inventory& ResidenceBuilding::getResourcesObtainedByRemoval()
+	const Inventory& DroneFactoryBuilding::getResourcesObtainedByRemoval()
 	{
 		return destructionResources;
 	}

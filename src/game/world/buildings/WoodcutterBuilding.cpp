@@ -1,161 +1,176 @@
-#include "ResidenceBuilding.hpp"
+#include "WoodcutterBuilding.hpp"
 
 namespace game::world
 {
-	static const std::string buildingTypeName = "Residence Building";
-	static const std::string buildingDescription = "A habitat for your citizens. Consumes food.";
-	static const Inventory constructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(1.0f), std::make_shared<Stone>(2.0f) });
-	static const Inventory destructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(0.5f), std::make_shared<Stone>(1.0f) });
+	static const std::string buildingTypeName = "Woodcutter";
+	static const std::string buildingDescription = "Cuts trees within its neighborhood to produce wood and biomass.";
+	static const Inventory constructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(4.0f) });
+	static const Inventory destructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Wood>(2.0f) });
 
 	static std::shared_ptr<BuildingPieceSet> pieceSet = std::make_shared<BuildingPieceSet>(
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Wall"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Wall_Roof_Outer_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall_Roof_Outer_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Roof_Wall_Inner_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Roof_Wall_Inner_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Wall_Roof_Left"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall_Roof_Left"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Straight_Edge_Wall_Roof_Right"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Straight_Edge_Wall_Roof_Right"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall_Roof_Outer_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Outer_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Roof_Wall_Inner_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Roof_Wall_Inner_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall_Roof_Left"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Left"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall_Roof_Right"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Right"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Inner_Corner_Wall_Roof_Both"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Inner_Corner_Wall_Roof_Both"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Outer_Corner_Wall"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Outer_Corner_Wall"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Outer_Corner_Wall_Roof_Outer_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Outer_Corner_Wall_Roof_Outer_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/Outer_Corner_Roof_Wall_Inner_Corner"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/Outer_Corner_Roof_Wall_Inner_Corner"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) },
+	) },
 		std::vector<std::shared_ptr<NoEdgeBuildingPiece>>{ std::make_shared<NoEdgeBuildingPiece>(
 			"0",
-			std::make_shared<rendering::model::MeshData>("Brick Building Piece Set/No_Edge_Roof"),
+			std::make_shared<rendering::model::MeshData>("Test Building Piece Set/No_Edge_Roof"),
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-		) }
+	) }
 	);
 
-	struct ResidenceBuildingComponent
+	struct WoodcutterBuildingComponent
 	{
-		ResidenceBuildingComponent(ResidenceBuilding* _building) : building(_building), lastConsumed(glfwGetTime()) {}
+		WoodcutterBuildingComponent(WoodcutterBuilding* _building) : building(_building), lastProduced(glfwGetTime()) {}
 
-		ResidenceBuilding* building;
-		double lastConsumed;
+		WoodcutterBuilding* building;
+		double lastProduced;
 	};
 
-	static class ResidenceResourceProcessor : public game::systems::IResourceProcessor {
+	static class WoodcutterResourceProcessor : public game::systems::IResourceProcessor {
 		void processResources(entt::registry& registry, double deltaTime)
 		{
 			double time = glfwGetTime();
 
-			for (auto& entity : registry.view<ResidenceBuildingComponent>())
+			for (auto& entity : registry.view<WoodcutterBuildingComponent>())
 			{
-				registry.patch<ResidenceBuildingComponent>(entity, [&registry, entity, time](auto& building) {
-					if (time - building.lastConsumed > 60.0f)
-					{
-						building.lastConsumed = time;
+				registry.patch<WoodcutterBuildingComponent>(entity, [&registry, entity, time](auto& building) {
+					float occupiedSpace = building.building->getTotalAmountOfActualOccupiedSpace();
+					float timeForProduction = 15.0f + 30.0f / occupiedSpace;
 
-						float amountToConsume = 0.5f * building.building->getTotalAmountOfActualOccupiedSpace();
-						std::shared_ptr<Food> consumedFood = registry.get<Inventory>(entity).removeItemTyped<Food>(amountToConsume);
-						if (consumedFood == nullptr || consumedFood->amount != amountToConsume)
+					if (time - building.lastProduced > timeForProduction)
+					{
+						building.lastProduced = time;
+
+						auto& cells = building.building->getCells();
+						std::random_device rd;
+						std::mt19937 gen(rd());
+						std::uniform_int_distribution<> distr(0, cells.size() - 1);
+						auto& randomCell = std::next(std::begin(cells), distr(gen));
+
+						Cell* treeCell = randomCell->first->getAnyNeighborFulfillingPredicate(20, std::function<bool(Cell*)>([](Cell* cell) {
+							CellContent* cellContent = cell->getContent();
+							return cellContent != nullptr && dynamic_cast<Tree*>(cellContent) != nullptr;
+						}));
+
+						if (treeCell != nullptr)
 						{
-							// TODO: Building didn't have enough food to feed all citizens. What to do now? Should the building (or
-							// some part of it) be removed?
+							treeCell->setContent(nullptr);
+
+							Inventory& inventory = registry.get<Inventory>(entity);
+							inventory.addItemTyped<Wood>(2.0f);
+							inventory.addItemTyped<Biomass>(1.0f);
 						}
 					}
 				});
@@ -163,43 +178,44 @@ namespace game::world
 		}
 	} resourceProcessor;
 
-	ResidenceBuilding::ResidenceBuilding(
+	WoodcutterBuilding::WoodcutterBuilding(
 		IBuilding* original,
 		std::unordered_set<Cell*> cellsToCopy
 	) : Building(buildingTypeName, buildingDescription, pieceSet, original, cellsToCopy) {}
 
-	bool ResidenceBuilding::_canBePlacedOnCell(Cell* cell)
+	bool WoodcutterBuilding::_canBePlacedOnCell(Cell* cell)
 	{
 		return true;
 	}
 
-	void ResidenceBuilding::__addedToCell(Cell* cell)
+	void WoodcutterBuilding::__addedToCell(Cell* cell)
 	{
 		game::systems::attachResourceProcessor(&resourceProcessor);
 
-		if (!getRegistry()->has<ResidenceBuildingComponent>(getEntity()))
+		if (!getRegistry()->has<WoodcutterBuildingComponent>(getEntity()))
 		{
-			getRegistry()->emplace<ResidenceBuildingComponent>(getEntity(), this);
-			getRegistry()->emplace<Consumes<Food>>(getEntity());
+			getRegistry()->emplace<WoodcutterBuildingComponent>(getEntity(), this);
+			getRegistry()->emplace<Produces<Wood>>(getEntity());
+			getRegistry()->emplace<Produces<Biomass>>(getEntity());
 		}
 	}
 
-	void ResidenceBuilding::__removedFromCell(Cell* cell)
+	void WoodcutterBuilding::__removedFromCell(Cell* cell)
 	{
 		// Nothing to do here...
 	}
 
-	void ResidenceBuilding::inventoryUpdated()
+	void WoodcutterBuilding::inventoryUpdated()
 	{
 		// Nothing to do here...
 	}
 
-	const Inventory& ResidenceBuilding::getResourcesRequiredToBuild()
+	const Inventory& WoodcutterBuilding::getResourcesRequiredToBuild()
 	{
 		return constructionResources;
 	}
 
-	const Inventory& ResidenceBuilding::getResourcesObtainedByRemoval()
+	const Inventory& WoodcutterBuilding::getResourcesObtainedByRemoval()
 	{
 		return destructionResources;
 	}

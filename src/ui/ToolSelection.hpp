@@ -8,10 +8,12 @@
 #include <glfw/glfw3.h>
 
 #include "Util.hpp"
+#include "../game/world/buildings/DroneFactoryBuilding.hpp"
 #include "../game/world/buildings/MineBuilding.hpp"
 #include "../game/world/buildings/ResidenceBuilding.hpp"
 #include "../game/world/buildings/StorageBuilding.hpp"
 #include "../game/world/buildings/TestBuildings.hpp"
+#include "../game/world/buildings/WoodcutterBuilding.hpp"
 #include "../rendering/textures/Texture.hpp"
 
 namespace gui

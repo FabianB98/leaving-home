@@ -21,7 +21,7 @@
 #include "DayNightCycle.hpp"
 #include "PickingChunkSelection.hpp"
 #include "world/buildings/Building.hpp"
-#include "world/buildings/TestBuildings.hpp"
+#include "world/buildings/WoodcutterBuilding.hpp"
 #include "world/Chunk.hpp"
 #include "world/World.hpp"
 #include "world/Resource.hpp"
@@ -78,7 +78,7 @@ namespace game
 		skybox = new rendering::Skybox("skybox", "skybox");
 
 		selectedTool = gui::Tool::BUILD;
-		selectedBuilding = &world::TestBuilding::typeRepresentative;
+		selectedBuilding = &world::WoodcutterBuilding::typeRepresentative;
 
 		renderingEngine->setClearColor(glm::vec4(0.2f, 0.2f, 0.2f, 0.0f));
 
@@ -98,7 +98,7 @@ namespace game
 
 		world::Drone::spawnNewDrone(registry, glm::vec3(0.0f, wrld->getHeightGenerator().getHeight(0.0f, 0.0f) + world::DRONE_FLIGHT_HEIGHT, 0.0f));
 		world::Drone::spawnNewDrone(registry, glm::vec3(10.0f, wrld->getHeightGenerator().getHeight(10.0f, 10.0f) + world::DRONE_FLIGHT_HEIGHT, 10.0f));
-		world::Drone::spawnNewDrone(registry, glm::vec3(10.0f, wrld->getHeightGenerator().getHeight(10.0f, 10.0f) + world::DRONE_FLIGHT_HEIGHT, 10.0f));
+		world::Drone::spawnNewDrone(registry, glm::vec3(0.0f, wrld->getHeightGenerator().getHeight(0.0f, 10.0f) + world::DRONE_FLIGHT_HEIGHT, 10.0f));
 
 		float width = renderingEngine->getFramebufferWidth();
 		float height = renderingEngine->getFramebufferHeight();

@@ -2,7 +2,7 @@
 
 namespace game::world
 {
-	static const std::string buildingTypeName = "Mine Building";
+	static const std::string buildingTypeName = "Mine";
 	static const std::string buildingDescription = "A mine. Mines stone and ore from deep under the ground.";
 	static const Inventory constructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Stone>(4.0f) });
 	static const Inventory destructionResources = Inventory(std::unordered_set<std::shared_ptr<IItem>, IItemHash, IItemComparator>{ std::make_shared<Stone>(2.0f) });
@@ -15,7 +15,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Straight_Edge_Wall_Roof_Outer_Corner"),
@@ -23,7 +23,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Straight_Edge_Roof_Wall_Inner_Corner"),
@@ -31,7 +31,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Straight_Edge_Wall_Roof_Left"),
@@ -39,7 +39,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<StraightEdgeBuildingPiece>>{ std::make_shared<StraightEdgeBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Straight_Edge_Wall_Roof_Right"),
@@ -47,7 +47,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Inner_Corner_Wall"),
@@ -55,7 +55,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Inner_Corner_Wall_Roof_Outer_Corner"),
@@ -63,7 +63,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Inner_Corner_Roof_Wall_Inner_Corner"),
@@ -71,7 +71,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Inner_Corner_Wall_Roof_Left"),
@@ -79,7 +79,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Inner_Corner_Wall_Roof_Right"),
@@ -87,7 +87,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<InnerCornerBuildingPiece>>{ std::make_shared<InnerCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Inner_Corner_Wall_Roof_Both"),
@@ -95,7 +95,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Outer_Corner_Wall"),
@@ -103,7 +103,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Outer_Corner_Wall_Roof_Outer_Corner"),
@@ -111,7 +111,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<OuterCornerBuildingPiece>>{ std::make_shared<OuterCornerBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/Outer_Corner_Roof_Wall_Inner_Corner"),
@@ -119,7 +119,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) },
+		) },
 		std::vector<std::shared_ptr<NoEdgeBuildingPiece>>{ std::make_shared<NoEdgeBuildingPiece>(
 			"0",
 			std::make_shared<rendering::model::MeshData>("Mine Building Piece Set/No_Edge_Roof"),
@@ -127,7 +127,7 @@ namespace game::world
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" },
 			std::vector<std::string>{ "0" }
-	) }
+		) }
 	);
 
 	struct MineBuildingComponent
@@ -138,7 +138,7 @@ namespace game::world
 		double lastProduced;
 	};
 
-	static class : public game::systems::IResourceProcessor {
+	static class MineResourceProcessor : public game::systems::IResourceProcessor {
 		void processResources(entt::registry& registry, double deltaTime)
 		{
 			double time = glfwGetTime();
