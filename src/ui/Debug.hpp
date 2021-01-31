@@ -10,6 +10,7 @@
 #include "Util.hpp"
 #include "../rendering/textures/Texture.hpp"
 #include "../game/DayNightCycle.hpp"
+#include "../game/systems/ResourceProcessingSystem.hpp"
 
 namespace gui
 {

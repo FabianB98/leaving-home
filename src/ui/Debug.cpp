@@ -50,6 +50,16 @@ namespace gui
 
 		ImGui::Separator();
 
+		ImGui::Text("Drone Settings");
+		int droneSpeed = (int) game::systems::droneMovementSpeedMultiplier;
+		ImGui::SliderInt("Drone Speed", &droneSpeed, 0, 10, "%dx");
+		game::systems::droneMovementSpeedMultiplier = (float) droneSpeed;
+
+		//std::cout << game::systems::droneMovementSpeedMultiplier << std::endl;
+
+
+		ImGui::Separator();
+
 		ImGui::Text("Camera Options");
 
 		int selected = *camera == CameraType::DEFAULT ? 0 : 1;
