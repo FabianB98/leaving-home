@@ -27,7 +27,7 @@ namespace gui
 		iconOtherTestBuilding = new rendering::textures::Texture2D("remove");
 		iconMineBuilding = new rendering::textures::Texture2D("remove");
 		iconStorageBuilding = new rendering::textures::Texture2D("remove");
-		iconResidenceBuilding = new rendering::textures::Texture2D("remove");
+		iconResidenceBuilding = new rendering::textures::Texture2D("residence");
 	}
 
 	void renderToolSelectionWindow(Tool* selected, float frameHeight)
@@ -96,7 +96,7 @@ namespace gui
 		ImGui::Begin("Building", &open, flags);
 		ImGui::SetWindowPos("Building", ImVec2(2.f * tsMargin + width, frameHeight - tsMargin - height));
 		constexpr int numBuildings = 5;
-		width = numBuildings * bsIconWidth + (numBuildings + 1) * tsSpacing;
+		width = numBuildings * bsIconWidth + (numBuildings + 1) * tsSpacing + 40.f;
 		ImGui::SetWindowSize("Building", ImVec2(width, height));
 
 		ImVec4 c1 = rgba(255, 255, 255, *selectedBuilding == &game::world::TestBuilding::typeRepresentative ? 1.f : 0.4f);
