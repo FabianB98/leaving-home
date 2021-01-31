@@ -167,6 +167,7 @@ namespace game::world
 					}
 					else
 					{
+						building.lastProduced = time;
 						registry.remove_if_exists<Consumes<Ores>>(entity);
 					}
 				});
