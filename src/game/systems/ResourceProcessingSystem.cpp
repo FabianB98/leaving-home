@@ -778,7 +778,7 @@ namespace game::systems
 			glm::vec2 direction = glm::normalize(deltaToDestination);
 			float distanceToDestination = glm::length(deltaToDestination);
 
-			float movementLength = world::DRONE_MOVEMENT_SPEED * (float)deltaTime;
+			float movementLength = world::DRONE_MOVEMENT_SPEED * droneMovementSpeedMultiplier * (float)deltaTime;
 			if (movementLength > distanceToDestination)
 				movementLength = distanceToDestination;
 
