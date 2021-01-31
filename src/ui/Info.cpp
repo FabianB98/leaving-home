@@ -31,7 +31,7 @@ namespace gui
 		cellInfoPos = ImVec2(x, y);
 	}
 
-	void renderCellInfo()
+	void renderCellInfo(entt::registry& registry)
 	{
 		if (!cellInfoOpen) return;
 		
@@ -52,20 +52,27 @@ namespace gui
 			case game::world::CellType::SAND: cellType = "Sand"; break;
 		}
 
-		ImGui::Text("Type: %s", cellType);
-		ImGui::Text("Height: %i", (int) selection->getHeight());
-
 		game::world::CellContent* cellContent = selection->getContent();
 		if (cellContent == nullptr)
 		{
-			ImGui::Text("Content: Empty");
+			ImGui::Text("Type: %s", cellType);
+			ImGui::Text("Height: %i", (int)selection->getHeight());
+			ImGui::Text("This cell is empty.");
 		}
 		else
 		{
-			ImGui::Text("Content: %p", cellContent);
+			//ImGui::Text("Content: %p", cellContent);
 			ImGui::TextWrapped("%s", cellContent->getTypeName().c_str());
 			ImGui::TextWrapped("%s", cellContent->getDescription().c_str());
 			ImGui::TextUnformatted(cellContent->getInventoryContentsString().c_str());
+
+			auto entity = cellContent->getEntity();
+			auto* droneFactory = registry.try_get<game::world::DroneFactoryBuildingComponent>(entity);
+			if (droneFactory != nullptr) {
+				ImGui::TextWrapped("Drones to produce: %i", droneFactory->amountOfDronesToProduce);
+				if (ImGui::Button("Produce"))
+					droneFactory->amountOfDronesToProduce++;
+			}
 		}
 
 		ImGui::End();

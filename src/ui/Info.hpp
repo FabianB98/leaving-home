@@ -9,11 +9,14 @@
 
 #include <glm/glm.hpp>
 
+#include <entt/entt.hpp>
+
 #include "../game/world/World.hpp"
+#include "../game/world/buildings/DroneFactoryBuilding.hpp"
 
 namespace gui
 {
 	void openCellInfo(glm::vec2& mousePos, glm::vec2& frameSize, game::world::Cell* selected);
 
-	void renderCellInfo();
+	void renderCellInfo(entt::registry& registry);
 }

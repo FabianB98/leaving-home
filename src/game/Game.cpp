@@ -237,7 +237,7 @@ namespace game
 		skybox->getShader()->setUniformVec3("sunColor", daynight.getSunColor());
 		skybox->render(renderingEngine);
 
-		gui::renderCellInfo();
+		gui::renderCellInfo(renderingEngine->getRegistry());
 		gui::renderDebugWindow(daynight, &selectedCamera);
 		gui::renderToolSelection(&selectedTool, &selectedBuilding, renderingEngine->getFramebufferHeight());
 
