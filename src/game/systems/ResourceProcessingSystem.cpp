@@ -2,6 +2,8 @@
 
 namespace game::systems
 {
+	float droneMovementSpeedMultiplier = 1.0f;
+
 	std::unordered_set<IResourceProcessor*> resourceProcessors;
 	std::unordered_set<std::shared_ptr<world::IItem>, world::IItemHash, world::IItemComparator> itemTypes;
 

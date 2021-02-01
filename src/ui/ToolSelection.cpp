@@ -25,12 +25,12 @@ namespace gui
 		iconView = new rendering::textures::Texture2D("view");
 		iconRemove = new rendering::textures::Texture2D("remove");
 
-		iconWoodcutterBuilding = new rendering::textures::Texture2D("remove");
-		iconTestBuilding = new rendering::textures::Texture2D("remove");
-		iconMineBuilding = new rendering::textures::Texture2D("remove");
-		iconStorageBuilding = new rendering::textures::Texture2D("remove");
-		iconDroneFactoryBuilding = new rendering::textures::Texture2D("remove");
-		iconResidenceBuilding = new rendering::textures::Texture2D("remove");
+		iconWoodcutterBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
+		iconTestBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
+		iconMineBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
+		iconStorageBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
+		iconDroneFactoryBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
+		iconResidenceBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
 	}
 
 	void renderToolSelectionWindow(Tool* selected, float frameHeight)
@@ -48,9 +48,13 @@ namespace gui
 
 		//ImGui::Text("Tools:");
 
-		ImVec4 c1 = rgba(178, 190, 195, *selected == Tool::BUILD ? 1.f : 0.4f);
+		/*ImVec4 c1 = rgba(178, 190, 195, *selected == Tool::BUILD ? 1.f : 0.4f);
 		ImVec4 c2 = rgba(85, 239, 196, *selected == Tool::VIEW ? 1.f : 0.4f);
-		ImVec4 c3 = rgba(116, 185, 255, *selected == Tool::REMOVE ? 1.f : 0.4f);
+		ImVec4 c3 = rgba(116, 185, 255, *selected == Tool::REMOVE ? 1.f : 0.4f);*/
+
+		ImVec4 c1 = rgba(0, 139, 167, *selected == Tool::BUILD ? 1.f : 0.4f);
+		ImVec4 c2 = rgba(200, 200, 200, *selected == Tool::VIEW ? 1.f : 0.4f);
+		ImVec4 c3 = rgba(224, 80, 78, *selected == Tool::REMOVE ? 1.f : 0.4f);
 
 		//ImGui::Button("Test");
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));

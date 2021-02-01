@@ -3,14 +3,13 @@
 
 // 0.0625 - skip more, faster
 // 0.0312 - skip less, slower
-#define CONTRAST 0.02
+#define CONTRAST 0.0312
 
 // 0.25 - low quality
 // 0.125 - high quality
-#define RELATIVE 0.225
+#define RELATIVE 0.125
 
 #define BLEND 0.25
-
 #define EDGE 0.25
 #define EDGE_STEPS 16
 
@@ -128,7 +127,7 @@ float edgeBlend(out vec2 pixelStep) {
 
 
     float edge = (m + opposite) * 0.5;
-    float threshold = gradient * BLEND;
+    float threshold = gradient * EDGE;
 
     // edge sample point uv coordinates
     vec2 edgeOffset = pixelStep * 0.5;

@@ -22,8 +22,6 @@
 
 namespace game::systems
 {
-	static float droneMovementSpeedMultiplier{ 1.0f };
-
 	struct IResourceProcessor
 	{
 		virtual void processResources(entt::registry& registry, double deltaTime) = 0;

@@ -3,6 +3,11 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+namespace game::systems
+{
+	extern float droneMovementSpeedMultiplier;
+}
+
 namespace gui
 {
 	void renderDebugWindow(game::DayNightCycle& daynight, CameraType* camera)
