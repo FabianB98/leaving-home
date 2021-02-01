@@ -1,11 +1,44 @@
 # Blender MTL File: 'factory.blend'
 # Material Count: 1
 
-newmtl None
+newmtl accent1
+Ns 500
+Ka 0.1 0.1 0.1
+Kd 0.2 0.2 0.2
+Ks 0.0 0.0 0.0
+d 1
+illum 2
+
+newmtl accent2
+Ns 500
+Ka 0.1 0.1 0.1
+Kd 0.1 0.1 0.2
+Ks 0.5 0.5 0.5
+d 1
+illum 2
+
+newmtl pipe
+Ns 500
+Ka 0.1 0.2 0.1
+Kd 0.0 0.55 0.0
+Ks 0.0 0.0 0.0
+d 1
+illum 2
+
+newmtl roof
+Ns 500
+Ka 0.15 0.15 0.15
+Kd 0.5 0.5 0.5
+Ks 0.0 0.0 0.0
+d 1
+illum 2
+
+newmtl wall
 Ns 500
 Ka 0.1 0.1 0.1
 Kd 0.3 0.3 0.3
 Ks 0.0 0.0 0.0
 d 1
 illum 2
+
 

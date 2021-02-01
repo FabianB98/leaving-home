@@ -14,6 +14,8 @@
 #include "../game/world/buildings/StorageBuilding.hpp"
 #include "../game/world/buildings/TestBuildings.hpp"
 #include "../game/world/buildings/WoodcutterBuilding.hpp"
+#include "../game/world/buildings/FoodFactoryBuilding.hpp"
+#include "../game/world/buildings/ReforesterBuilding.hpp"
 #include "../rendering/textures/Texture.hpp"
 
 namespace gui

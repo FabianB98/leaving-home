@@ -1,0 +1,60 @@
+# Blender MTL File: 'factory.blend'
+# Material Count: 1
+
+newmtl brown
+Ns 500
+Ka 0.0 0.0 0.0
+Kd 0.32 0.14 0.0
+Ks 0.0 0.0 0.0
+d 1
+illum 2
+
+newmtl green
+Ns 500
+Ka 0.05 0.2 0.0
+Kd 0.002 0.111 0.0
+Ks 0.0 0.0 0.0
+d 1
+illum 2
+
+
+newmtl green2
+Ns 500
+Ka 0.05 0.2 0.0
+Kd 0.003 0.188 0.0
+Ks 0.0 0.0 0.0
+d 1
+illum 2
+
+
+newmtl accent2
+Ns 500
+Ka 0.1 0.1 0.3
+Kd 0.1 0.1 0.1
+Ks 0.2 0.2 0.4
+d 1
+illum 2
+
+newmtl roof
+Ns 500
+Ka 0.15 0.15 0.15
+Kd 0.51 0.43 0.51
+Ks 0.0 0.0 0.0
+d 1
+illum 2
+
+newmtl wall
+Ns 500
+Ka 0.1 0.1 0.1
+Kd 0.49 0.41 0.25
+Ks 0.0 0.0 0.0
+d 1
+illum 2
+
+
+
+
+
+
+
+
