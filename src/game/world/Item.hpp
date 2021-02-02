@@ -108,6 +108,11 @@ namespace game::world
 			return std::type_index(typeid(T));
 		}
 
+		static const std::shared_ptr<T> getTypeRepresentative()
+		{
+			return typeRepresentative;
+		}
+
 	private:
 		static std::shared_ptr<T> typeRepresentative;
 		static Harvestable<T> harvestable;

@@ -119,7 +119,9 @@ namespace game::world
 		template <class T>
 		std::shared_ptr<T> getItemTyped()
 		{
-			return std::dynamic_pointer_cast<T>(getItem(std::make_shared<T>(0.0f)));
+			static_assert(std::is_base_of<Item<T>, T>::value, "Template parameter T must be a subclass of Item!");
+
+			return std::dynamic_pointer_cast<T>(getItem(T::getTypeRepresentative()));
 		}
 
 		std::shared_ptr<IItem> removeItem(std::shared_ptr<IItem> itemType, float maxAmount)
@@ -143,7 +145,9 @@ namespace game::world
 		template <class T>
 		std::shared_ptr<T> removeItemTyped(float maxAmount)
 		{
-			return std::dynamic_pointer_cast<T>(removeItem(std::make_shared<T>(0.0f), maxAmount));
+			static_assert(std::is_base_of<Item<T>, T>::value, "Template parameter T must be a subclass of Item!");
+
+			return std::dynamic_pointer_cast<T>(removeItem(T::getTypeRepresentative(), maxAmount));
 		}
 
 		void split(unsigned int amount)
