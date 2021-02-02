@@ -271,8 +271,11 @@ namespace rendering
         }
 
 
+        bool fxaa = MSAA_SAMPLES == 0 && useFXAA && !showWireframe;
+        GLuint drawBuffer = fxaa ? mainBuffer : 0;
+
         // DEFERRED - LIGHTING PASS
-        glBindFramebuffer(GL_FRAMEBUFFER, mainBuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, drawBuffer);
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -282,7 +285,7 @@ namespace rendering
 
             //copy depth buffer of geometry pass to main framebuffer
             glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mainBuffer);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawBuffer);
             glBlitFramebuffer(
                 0, 0, getFramebufferWidth(), getFramebufferHeight(),
                 0, 0, getFramebufferWidth(), getFramebufferHeight(),
@@ -315,7 +318,7 @@ namespace rendering
         
         game->render(this);
 
-        if (MSAA_SAMPLES == 0 && useFXAA && !showWireframe) {
+        if (fxaa) {
             // use fxaa
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
@@ -323,16 +326,16 @@ namespace rendering
 
             renderFXAA();
         }
-        else {
-            // no fxaa, blit mainBuffer to default framebuffer
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, mainBuffer);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-            glBlitFramebuffer(
-                0, 0, getFramebufferWidth(), getFramebufferHeight(),
-                0, 0, getFramebufferWidth(), getFramebufferHeight(),
-                GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT, GL_NEAREST
-            );
-        }
+        //else {
+        //    // no fxaa, blit mainBuffer to default framebuffer
+        //    glBindFramebuffer(GL_READ_FRAMEBUFFER, mainBuffer);
+        //    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        //    glBlitFramebuffer(
+        //        0, 0, getFramebufferWidth(), getFramebufferHeight(),
+        //        0, 0, getFramebufferWidth(), getFramebufferHeight(),
+        //        GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT, GL_NEAREST
+        //    );
+        //}
 
 
         renderDebugWindow();

@@ -27,13 +27,13 @@ namespace gui
 		iconView = new rendering::textures::Texture2D("view");
 		iconRemove = new rendering::textures::Texture2D("remove");
 
-		iconWoodcutterBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
-		iconReforesterBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
+		iconWoodcutterBuilding = new rendering::textures::Texture2D("buildingThumbnails/woodcutter");
+		iconReforesterBuilding = new rendering::textures::Texture2D("buildingThumbnails/reforester");
 		//iconTestBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
-		iconFoodFactoryBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
-		iconMineBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
-		iconStorageBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
-		iconDroneFactoryBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
+		iconFoodFactoryBuilding = new rendering::textures::Texture2D("buildingThumbnails/foodfactory");
+		iconMineBuilding = new rendering::textures::Texture2D("buildingThumbnails/mine");
+		iconStorageBuilding = new rendering::textures::Texture2D("buildingThumbnails/storage");
+		iconDroneFactoryBuilding = new rendering::textures::Texture2D("buildingThumbnails/test");
 		iconResidenceBuilding = new rendering::textures::Texture2D("buildingThumbnails/residence");
 	}
 
@@ -110,13 +110,13 @@ namespace gui
 		width = numBuildings * bsIconWidth + (numBuildings + 1) * tsSpacing;
 		ImGui::SetWindowSize("Building", ImVec2(width, height));
 
-		ImVec4 c1 = rgba(255, 255, 255, *selectedBuilding == &game::world::WoodcutterBuilding::typeRepresentative ? 1.f : 0.4f);
-		ImVec4 c2 = rgba(255, 255, 255, *selectedBuilding == &game::world::ReforesterBuilding::typeRepresentative ? 1.f : 0.4f);
-		ImVec4 c3 = rgba(255, 255, 255, *selectedBuilding == &game::world::FoodFactoryBuilding::typeRepresentative ? 1.f : 0.4f);
-		ImVec4 c4 = rgba(255, 255, 255, *selectedBuilding == &game::world::MineBuilding::typeRepresentative ? 1.f : 0.4f);
-		ImVec4 c5 = rgba(255, 255, 255, *selectedBuilding == &game::world::StorageBuilding::typeRepresentative ? 1.f : 0.4f);
-		ImVec4 c6 = rgba(255, 255, 255, *selectedBuilding == &game::world::DroneFactoryBuilding::typeRepresentative ? 1.f : 0.4f);
-		ImVec4 c7 = rgba(255, 255, 255, *selectedBuilding == &game::world::ResidenceBuilding::typeRepresentative ? 1.f : 0.4f);
+		ImVec4 c1 = rgba(255, 255, 255, *selectedBuilding == &game::world::WoodcutterBuilding::typeRepresentative ? 1.f : 0.6f);
+		ImVec4 c2 = rgba(255, 255, 255, *selectedBuilding == &game::world::ReforesterBuilding::typeRepresentative ? 1.f : 0.6f);
+		ImVec4 c3 = rgba(255, 255, 255, *selectedBuilding == &game::world::FoodFactoryBuilding::typeRepresentative ? 1.f : 0.6f);
+		ImVec4 c4 = rgba(255, 255, 255, *selectedBuilding == &game::world::MineBuilding::typeRepresentative ? 1.f : 0.6f);
+		ImVec4 c5 = rgba(255, 255, 255, *selectedBuilding == &game::world::StorageBuilding::typeRepresentative ? 1.f : 0.6f);
+		ImVec4 c6 = rgba(255, 255, 255, *selectedBuilding == &game::world::DroneFactoryBuilding::typeRepresentative ? 1.f : 0.6f);
+		ImVec4 c7 = rgba(255, 255, 255, *selectedBuilding == &game::world::ResidenceBuilding::typeRepresentative ? 1.f : 0.6f);
 
 		//ImGui::Button("Test");
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
