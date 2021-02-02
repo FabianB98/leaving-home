@@ -159,7 +159,7 @@ namespace game::world
 						std::uniform_int_distribution<> distr(0, cells.size() - 1);
 						auto& randomCell = std::next(std::begin(cells), distr(gen));
 
-						Cell* treeCell = randomCell->first->getAnyNeighborFulfillingPredicate(20, std::function<bool(Cell*)>([](Cell* cell) {
+						Cell* treeCell = randomCell->first->getAnyNeighborFulfillingPredicate(10, std::function<bool(Cell*)>([](Cell* cell) {
 							CellContent* cellContent = cell->getContent();
 							return cellContent != nullptr && dynamic_cast<Tree*>(cellContent) != nullptr;
 						}));

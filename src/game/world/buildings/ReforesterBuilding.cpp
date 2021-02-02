@@ -147,7 +147,7 @@ namespace game::world
 			{
 				registry.patch<ReforesterBuildingComponent>(entity, [&registry, entity, time](auto& building) {
 					float occupiedSpace = building.building->getTotalAmountOfActualOccupiedSpace();
-					float requiredBiomass = (float) (1 + 4 / (int) occupiedSpace) * 0.1f;
+					float requiredBiomass = 0.1f;
 
 					Inventory& inventory = registry.get<Inventory>(entity);
 					std::shared_ptr<Biomass> biomass = inventory.getItemTyped<Biomass>();
@@ -166,7 +166,7 @@ namespace game::world
 							std::uniform_int_distribution<> distr(0, cells.size() - 1);
 							auto& randomCell = std::next(std::begin(cells), distr(gen));
 
-							Cell* treeCell = randomCell->first->getAnyNeighborFulfillingPredicate(20, std::function<bool(Cell*)>([](Cell* cell) {
+							Cell* treeCell = randomCell->first->getAnyNeighborFulfillingPredicate(10, std::function<bool(Cell*)>([](Cell* cell) {
 								CellContent* cellContent = cell->getContent();
 								return cellContent == nullptr && cell->getCellType() == CellType::GRASS;
 								}));

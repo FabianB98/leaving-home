@@ -148,7 +148,7 @@ namespace game::world
 				registry.patch<FoodFactoryBuildingComponent>(entity, [&registry, entity, time](auto& building) {
 					Inventory& inventory = registry.get<Inventory>(entity);
 					std::shared_ptr<Biomass> biomass = inventory.getItemTyped<Biomass>();
-					bool hasEnoughBiomass = biomass != nullptr && biomass->amount >= 2.0f;
+					bool hasEnoughBiomass = biomass != nullptr && biomass->amount >= 1.0f;
 					if (hasEnoughBiomass)
 					{
 						float occupiedSpace = building.building->getTotalAmountOfActualOccupiedSpace();
@@ -157,7 +157,7 @@ namespace game::world
 						if (time - building.lastProduced > timeForProduction)
 						{
 							building.lastProduced = time;
-							inventory.removeItemTyped<Biomass>(2.0f);
+							inventory.removeItemTyped<Biomass>(1.0f);
 							inventory.addItemTyped<Food>(1.0f);
 						}
 					}
@@ -165,7 +165,7 @@ namespace game::world
 					{
 						building.lastProduced = time;
 					}
-					});
+				});
 			}
 		}
 	} resourceProcessor;

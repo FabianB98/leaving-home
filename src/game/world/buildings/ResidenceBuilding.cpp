@@ -146,11 +146,11 @@ namespace game::world
 			for (auto& entity : registry.view<ResidenceBuildingComponent>())
 			{
 				registry.patch<ResidenceBuildingComponent>(entity, [&registry, entity, time](auto& building) {
-					if (time - building.lastConsumed > 60.0f)
+					if (time - building.lastConsumed > 120.0f)
 					{
 						building.lastConsumed = time;
 
-						float amountToConsume = 0.5f * building.building->getTotalAmountOfActualOccupiedSpace();
+						float amountToConsume = 0.1f * building.building->getTotalAmountOfActualOccupiedSpace();
 						std::shared_ptr<Food> consumedFood = registry.get<Inventory>(entity).removeItemTyped<Food>(amountToConsume);
 						if (consumedFood == nullptr || consumedFood->amount != amountToConsume)
 						{
